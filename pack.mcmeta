@@ -1,0 +1,7 @@
+{
+  "pack": {
+  "__comment1__": "the format defaults to what is used in mc 1.18; currently unused by code",
+    "pack_format": 8,
+    "description": "Mcpptest Data and Tags"
+  }
+}

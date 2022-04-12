@@ -246,7 +246,9 @@ public class CompileJob {
 			String s=stdin.nextLine();
 			if(s.equals("Y")) ;//proceed
 			else return;
-		};
+		}else{
+			//consider loading in version number
+		}
 		
 		for(Namespace ns: this.namespaces.values()) {
 			this.genMcf(ns);
