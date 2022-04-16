@@ -205,13 +205,13 @@ public class Variable {
 	public String matchesPhrase(String matchtag) {
 		switch (this.pointsTo) {
 		case STORAGE:{
-			return "storage %s {%s: %s}".formatted(this.holder,this.address,matchtag);
+			return "data storage %s {%s: %s}".formatted(this.holder,this.address,matchtag);
 		}
 		case BLOCK:{
-			return "block %s {%s: %s}".formatted(this.holder,this.address,matchtag);
+			return "data block %s {%s: %s}".formatted(this.holder,this.address,matchtag);
 		}
 		case ENTITY:{
-			return "entity %s {%s: %s}".formatted(this.holder,this.address,matchtag);
+			return "data entity %s {%s: %s}".formatted(this.holder,this.address,matchtag);
 		}
 		case SCORE:{
 			return null;

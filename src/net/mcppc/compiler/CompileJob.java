@@ -112,16 +112,22 @@ public class CompileJob {
 	 * primary root directory; used to locate namespaces to compile
 	 * all the other roots are secondary
 	 */
-	final Path rootSrc;
+	Path rootSrc;public void setRootSrc(Path o) {
+		this.rootSrc=o;
+	}
 
 	/**
 	 * specifies the root where all mch generated will go; may be same as src root
 	 */
-	final Path rootHeaderOut;
+	Path rootHeaderOut;public void setRootHeaderOut(Path o) {
+		this.rootHeaderOut=o;
+	}
 	/**
 	 * specifies the root to find other hdrs if not in rootHeaderOut; similar to g++ -I'...'
 	 */
-	final List<Path> rootIncludes=new ArrayList<Path>();
+	final List<Path> rootIncludes=new ArrayList<Path>();public void addInclude(Path o) {
+		rootIncludes.add(o);
+	}
 	
 	/**
 	 * specifies where to find any mcf functions that need to be copied into the resulting datapack;
@@ -129,12 +135,16 @@ public class CompileJob {
 	 *  not every mcf must be here as long as the other mcf files are already in t;
 	 *  TODO figure out if to do this or not
 	 */
-	final List<Path> rootLinks=new ArrayList<Path>();
+	final List<Path> rootLinks=new ArrayList<Path>();public void addLink(Path o) {
+		rootLinks.add(o);
+	}
 
 	/**
 	 * specifies where all mcf functions will go; may be same as src root
 	 */
-	public final Path rootDatapack;
+	Path rootDatapack;public void setRootDatapack(Path o) {
+		this.rootDatapack=o;
+	}
 	
 	
 	final boolean GEN_H_FROM_SRC=true;

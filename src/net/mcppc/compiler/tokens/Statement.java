@@ -286,7 +286,6 @@ public abstract class Statement extends Token {
 		}
 		@Override
 		public void compileMe(PrintStream f,Compiler c,Scope s) throws CompileError {
-			// TODO Auto-generated method stub
 			Register.RStack stack=this.s.getStackFor();
 			this.token.call(f, c, s, stack);
 			stack.finish(c.job);

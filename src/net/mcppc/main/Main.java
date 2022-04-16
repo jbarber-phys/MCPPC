@@ -1,5 +1,7 @@
 package net.mcppc.main;
 
+import java.io.File;
+import java.nio.file.Files;
 import java.util.regex.Matcher;
 
 import net.mcppc.compiler.CompileJob;
@@ -48,8 +50,76 @@ public class Main {
 	}
 	public static void main(String[] args) {
 		//the project directory is the datapack level (same as pack.mcmeta)
+		//args
 		CompileJob job=new CompileJob();
+		for(int i=0;i<args.length;i++) {
+			String arg=args[i];
+			if(arg.equals("-o") && i+1<args.length) {
+				i++;
+				arg=args[i];
+				File f=new File(arg);
+				if(f.exists()) {
+					System.out.printf("set output dir to: %s\n", arg);
+					job.setRootDatapack(f.toPath());
+				}else {
+					System.err.printf("could not find output dir: %s\n", arg);
+					return;
+				}
+			}
+			if(arg.equals("-src") && i+1<args.length) {
+				i++;
+				arg=args[i];
+				File f=new File(arg);
+				if(f.exists()) {
+					System.out.printf("set src dir to: %s\n", arg);
+					job.setRootSrc(f.toPath());
+				}else {
+					System.err.printf("could not find src dir: %s\n", arg);
+					return;
+				}
+			}
+			if(arg.equals("-h") && i+1<args.length) {
+				i++;
+				arg=args[i];
+				File f=new File(arg);
+				if(f.exists()) {
+					System.out.printf("set header out dir to: %s\n", arg);
+					job.setRootHeaderOut(f.toPath());
+				}else {
+					System.err.printf("could not find header out dir: %s\n", arg);
+					return;
+				}
+			}
+			if(arg.equals("-I") && i+1<args.length) {
+				i++;
+				arg=args[i];
+				File f=new File(arg);
+				if(f.exists()) {
+					System.out.printf("added include dir: %s\n", arg);
+					job.addInclude(f.toPath());
+				}else {
+					System.err.printf("could not find include dir: %s\n", arg);
+					return;
+				}
+			}
+			if(arg.equals("-L") && i+1<args.length) {
+				i++;
+				arg=args[i];
+				File f=new File(arg);
+				if(f.exists()) {
+					System.out.printf("added linking dir: %s\n", arg);
+					job.addInclude(f.toPath());
+				}else {
+					System.err.printf("could not find include dir: %s\n", arg);
+					return;
+				}
+			}
+		}
+		
+		
 		job.compileAll();
 		//floatFormatTest();
+		
+		//C:\Users\jbarb_t8a3esk\AppData\Roaming\.minecraft\saves\Mcpp_test_world\datapacks\
 	}
 }

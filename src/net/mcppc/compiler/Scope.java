@@ -83,14 +83,14 @@ public class Scope {
 		path.append(base.path);
 		path.append(CompileJob.FILE_TO_SUBDIR_SUFFIX);
 		path.append(f.name);
-		return new ResourceLocation(base.path,path.toString());
+		return new ResourceLocation(base.namespace,path.toString());
 	}
 	public static ResourceLocation getSubRes(ResourceLocation base,String fname) {
 		StringBuffer path=new StringBuffer();
 		path.append(base.path);
 		path.append(CompileJob.FILE_TO_SUBDIR_SUFFIX);
 		path.append(fname);
-		return new ResourceLocation(base.path,path.toString());
+		return new ResourceLocation(base.namespace,path.toString());
 	}
 	public ResourceLocation getSubRes(ResourceLocation res) {
 		if(this.parent==null)return res;
@@ -105,8 +105,7 @@ public class Scope {
 		int index=path.length();
 		boolean f=this.appendExSuff(path);
 		if(f && function!=null)path.insert(index, "___");
-		
-		return new ResourceLocation(res.namespace,path.toString());
+		return new ResourceLocation(res.namespace,path.toString().toLowerCase());
 	}
 	public boolean appendExSuff(StringBuffer buff) {
 		boolean b=false;
