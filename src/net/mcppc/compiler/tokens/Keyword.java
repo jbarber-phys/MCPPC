@@ -19,7 +19,8 @@ public enum Keyword {
 	IMPORT("import"),
 	EXECUTE("execute"),
 	WHILE("while"),
-	FOR("for");
+	FOR("for"),
+	RETURN("return");
 	
 	public static final Map<String,Keyword> VALUES = new HashMap<String, Keyword>();
 	static {

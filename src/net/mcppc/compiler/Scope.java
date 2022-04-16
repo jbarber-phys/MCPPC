@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.tokens.Statement;
 
 /**
  * tells the code inside what stack to use; for flow statements, where to store flags, 
@@ -28,7 +29,7 @@ public class Scope {
 	String flowType;
 	
 	//count flows for sub-blocks to use
-	private int flowCounter=0;
+	private int flowCounter;
 	
 	
 	//file IO for compiling mcfs only
@@ -67,7 +68,7 @@ public class Scope {
 		this.isOpen=false;
 	}
 
-	public int makeNextFlowNumber() {
+	private int makeNextFlowNumber() {
 		return this.flowCounter++;
 	}
 
@@ -97,16 +98,20 @@ public class Scope {
 		if(function!=null) {
 			path.append(this.function.name);
 			
-		}else {
-			this.appendExSuff(path);
 		}
+		int index=path.length();
+		boolean f=this.appendExSuff(path);
+		if(f && function!=null)path.insert(index, "___");
+		
 		return new ResourceLocation(res.namespace,path.toString());
 	}
-	public void appendExSuff(StringBuffer buff) {
-		if(this.parent!=null)this.parent.appendExSuff(buff);
+	public boolean appendExSuff(StringBuffer buff) {
+		boolean b=false;
+		if(this.parent!=null)b=this.parent.appendExSuff(buff);
 		if (this.hasExtraSuffix) {
 			buff.append("flowblock_%s__%s_".formatted(this.myFlowNumber,this.flowType));
-		}
+			b=true;
+		}return b;
 		
 	}
 	public Scope superscope() {
@@ -115,6 +120,8 @@ public class Scope {
 	
 	public boolean isInFunctionDefine() {
 		return this.function!=null;
+	}public Function getFunction() {
+		return this.function;
 	}
 	
 	public void addEstimate(Variable var,Number est) {
@@ -137,11 +144,32 @@ public class Scope {
 		this.resBase=s.resBase;
 		s.children.add(this);
 	}
+	private Scope(Scope s,Statement.Flow flow) {
+		this.parent=s;
+		this.function=s.function;
+		this.myFlowNumber=s.makeNextFlowNumber();
+		this.resBase=s.resBase;
+		this.flowType=flow.getFlowType();
+		this.hasExtraSuffix=true;
+		s.children.add(this);
+	}
 	public Scope subscope(Function f) throws CompileError{
 		if(this.parent!=null) throw new CompileError("functions inside flow / functions not (yet) supproted");
 		if(this.isInFunctionDefine()) throw new CompileError("functions inside functions not yet supproted");
 		return new Scope(this,f);
-		
 	}
-	//TODO 
+	public Scope subscope(Statement.Flow flow) throws CompileError{
+		return new Scope(this,flow);
+	}
+	
+	public Variable getIfelseDoneVarExMe() {
+		//external to the if statement
+		final Variable done=new Variable("\"$ifelse_done\"",VarType.BOOL,null,this.getSubRes());
+		return done;
+	}
+	public Variable getBreakVarInMe() {
+		//internal scope to the loop
+		final Variable bk=new Variable("\"$break\"",VarType.BOOL,null,this.getSubRes());
+		return bk;
+	}
 }

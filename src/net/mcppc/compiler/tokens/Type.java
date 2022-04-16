@@ -12,6 +12,7 @@ import net.mcppc.compiler.tokens.Token.BasicName;
 import net.mcppc.compiler.tokens.Token.Factory;
 
 public class Type extends Token {
+	public static final boolean ALLOW_NEGATIVE_PRECISION=true;
 	//Cast is depricated
 	private class Cast extends Type{
 		public Cast(int line, int col, VarType type) {
@@ -42,9 +43,14 @@ public class Type extends Token {
 			
 		}
 		else if(tt.isFloatP) {
+			Token menos = c.nextNonNullMatch(Factories.checkForMinus);
 			Token p = c.nextNonNullMatch(Factories.nextNum);
 			if ((!(p instanceof Token.Num)) || ((Token.Num)p).type.isFloatP()) throw new CompileError.UnexpectedToken(p,"integer");
 			int precision = ((Token.Num)p).value.intValue();
+			if(menos instanceof UnaryOp) {
+				if(Type.ALLOW_NEGATIVE_PRECISION)precision*=-1;
+				else throw new CompileError("negative precision used; to permit this, set Type.ALLOW_NEGATIVE_PRECISION to true;");
+			}
 			vt=new VarType(tt,precision);
 			Token close=c.nextNonNullMatch(Factories.closeParen);
 			if ((!(close instanceof Token.Paren)) || ((Token.Paren)close).forward) throw new CompileError.UnexpectedToken(close,"')'");
@@ -72,23 +78,24 @@ public class Type extends Token {
 		final Token.Factory[] look = {Token.BasicName.factory,Factories.space,Factories.newline,Factories.comment,Token.Paren.factory};
 		Token t=c.nextNonNullMatch(look);
 		if (!(t instanceof BasicName)) throw new UnexpectedToken(t,"name");
-		//TODO let Type tokenize itself if true
 		int aftertypename=c.cursor;
-		Token t2 = c.nextNonNullMatch(look);
+		Token t2 = c.nextNonNullMatch(Factories.checkForParen);
 		Type type;
 		if (t2 instanceof Token.Paren) {
-			if (!((Token.Paren) t2).forward)throw new UnexpectedToken(t2);
-			type=Type.tokenizeType(c, matcher, line, col, (BasicName) t);
+			if (!((Token.Paren) t2).forward) {
+				c.cursor=aftertypename;//rewind
+				type=Type.tokenizeTypeNoArgs(c, matcher, line, col, (BasicName) t);
+			}else type=Type.tokenizeType(c, matcher, line, col, (BasicName) t);
 			//leave cursor alone
 		}
 		else {
 			type=Type.tokenizeTypeNoArgs(c, matcher, line, col, (BasicName) t);
-			c.cursor=aftertypename;//rewind
+			//DONT rewind
 		}
 		return type;
 	}
 	//Depricated
-	static final Token.Factory depfactory = new Factory(Regexes.NAME) {
+	@Deprecated static final Token.Factory depfactory = new Factory(Regexes.NAME) {
 		@Override
 		public Token createToken(Compiler c, Matcher matcher, int line, int col) {
 			c.cursor=matcher.end();

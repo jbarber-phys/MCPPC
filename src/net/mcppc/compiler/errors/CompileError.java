@@ -72,6 +72,9 @@ public class CompileError extends Exception {
 		public UnsupportedCast(VarType from, VarType to) {
 			super("Unsupported cast from %s to %s;".formatted(from,to));
 		}
+		public UnsupportedCast(VarType from, VarType to, String in) {
+			super("Unsupported implied cast from %s to %s in %s;".formatted(from,to,in));
+		}
 		
 	}
 	

@@ -44,7 +44,7 @@ public class Function {
 			return f;
 		}
 		final List<String> names;
-		final List<Equation> args=new ArrayList<Equation>();
+		public final List<Equation> args=new ArrayList<Equation>();
 		Function func; public Function getFunction() {return this.func;}
 		public FuncCallToken(int line, int col,MemberName fname) {
 			super(line, col);

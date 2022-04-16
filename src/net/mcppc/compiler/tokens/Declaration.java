@@ -95,7 +95,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	public static Declaration fromheader(Compiler c, Matcher matcher, int line, int col,Keyword access) throws CompileError {
 		return header(c, matcher, line, col, access, true);
 	}
-	static Declaration header(Compiler c, Matcher matcher, int line, int col,Keyword access,boolean isReadingHeader) throws CompileError {
+	public static Declaration header(Compiler c, Matcher matcher, int line, int col,Keyword access,boolean isReadingHeader) throws CompileError {
 		Declaration d = new Declaration(line,col,access);
 		c.dommentCollector=d;
 		//typename
@@ -322,6 +322,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 				Equation eq=Equation.toAssign(line, col, c, matcher);
 				//asn = c.nextNonNullMatch(look);
 				//equation finds the semicolon;
+				d.assignment=eq;
 			}else
 				c.nextNonNullMatch(Factories.headerSkipline);
 		}
@@ -334,7 +335,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	boolean isFunction;
 	Function function;
 	Scope defineScope=null;
-		@Override public boolean didOpenCommandBlock() {
+		@Override public boolean didOpenCodeBlock() {
 			return this.defineScope!=null;
 		} @Override public Scope getNewScope() {
 			return this.defineScope;
@@ -398,7 +399,10 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	}
 	@Override
 	public String asString() {
-		return "<statement-declaration>";
+		return "<statement-declaration %s %s>"
+				.formatted(this.estimate!=null?"~~...":"",
+						this.assignment!=null?"=...":"");
 	}
+	
 
 }

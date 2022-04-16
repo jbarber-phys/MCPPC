@@ -8,6 +8,7 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Keyword;
+import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
 
 public class Variable {
@@ -53,6 +54,14 @@ public class Variable {
 		this.holder=c.resourcelocation.toString();
 		this.pointsTo=Mask.STORAGE;
 	}
+	public Variable(String name,VarType vt, Keyword access, ResourceLocation res) {
+		this.name = name;
+		this.type = vt;
+		this.access=access;
+		this.address=name;//scope sensitive
+		this.holder=res.toString();
+		this.pointsTo=Mask.STORAGE;
+	}
 	public Variable parameterOf(Function f,boolean ref) {
 		this.address="%s.%s".formatted(f.name,this.name);
 		this.holder=f.getResoucrelocation().toString();
@@ -81,7 +90,8 @@ public class Variable {
 		this.pointsTo=Mask.BLOCK;
 		return this;
 	}
-	public Variable maskScore(Selector s,String score) {
+	public Variable maskScore(Selector s,String score) throws CompileError {
+		if(this.type.isStruct()) throw new CompileError("cannot mask a struct / class type to scoreboard;");
 		this.isbasic=false;
 		this.holder=s.toCMD();
 		this.holderHeader=s.toHDR();
@@ -99,7 +109,14 @@ public class Variable {
 	}
 	public void setMe(PrintStream f,RStack stack,int home) throws CompileError {
 		if(this.type.isStruct()) {
-			throw new CompileError("Varaible.setMe() does not yet work for structs.");
+			if(this.type.struct.canCasteFrom(stack.getVarType(home), this.type.structArgs)) {
+				this.type.struct.castRegistersFrom(f, stack, home, stack.getVarType(home), this.type.structArgs);
+			}else if(stack.getVarType(home).struct.canCasteTo( this.type,stack.getVarType(home).structArgs)) {
+				stack.getVarType(home).struct.castRegistersTo(f, stack, home, this.type, stack.getVarType(home).structArgs);
+			}else {
+				throw new CompileError.UnsupportedCast(this.type, stack.getVarType(home));
+			}
+			this.type.struct.setMe(f, stack, home, this);
 		}else {
 			Register reg=stack.getRegister(home);
 			VarType regtype=stack.getVarType(home);
@@ -107,8 +124,8 @@ public class Variable {
 		}
 	}
 	private void setMe(PrintStream f,Register reg,VarType regType) throws CompileError {
-		if(this.type.isStruct())throw new CompileError("Varaible.setMe() does not yet work for structs.");
 		if(this.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
+		if(!VarType.areBasicTypesCompadible(this.type, regType)) throw new CompileError.UnsupportedCast(this.type, regType);
 		//non structs only; structs need their own routines possibly multiple registers)
 		String tagtype=this.type.type.getTagType();
 		double mult=Math.pow(10, -regType.getPrecision());//scientific notation may cause problems
@@ -138,7 +155,7 @@ public class Variable {
 	}
 	public void getMe(PrintStream p,RStack stack,int home) throws CompileError {
 		if(this.type.isStruct()) {
-			throw new CompileError("Varaible.setMe() does not yet work for structs.");
+			this.type.struct.getMe(p, stack, home, this);
 		}else {
 			Register reg=stack.getRegister(home);
 			getMe(p,reg);
@@ -146,11 +163,11 @@ public class Variable {
 		
 	}
 	private void getMe(PrintStream f,Register reg) throws CompileError {
-		if(this.type.isStruct())throw new CompileError("Varaible.setMe() does not yet work for structs.");
 		if(this.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
+
 		//non structs only; structs need their own routines possibly multiple registers)
 		//String tagtype=this.type.type.getTagType();
-		double mult=Math.pow(10, this.type.getPrecision());//scientific notation may cause problems
+		double mult=Math.pow(10, this.type.getPrecision());//scientific notation IS OK
 		switch (this.pointsTo) {
 		case STORAGE:{
 			f.println("execute store result score %s run data get storage %s %s %s"
@@ -185,18 +202,37 @@ public class Variable {
 		} default:return null;
 		}
 	}
+	public String matchesPhrase(String matchtag) {
+		switch (this.pointsTo) {
+		case STORAGE:{
+			return "storage %s {%s: %s}".formatted(this.holder,this.address,matchtag);
+		}
+		case BLOCK:{
+			return "block %s {%s: %s}".formatted(this.holder,this.address,matchtag);
+		}
+		case ENTITY:{
+			return "entity %s {%s: %s}".formatted(this.holder,this.address,matchtag);
+		}
+		case SCORE:{
+			return null;
+		} default:return null;
+		}
+	}
 	public String getJsonText() {
+		String edress = PrintF.ESCAPE_TAG_IN_JSON? Regexes.escape(this.address):this.address;
 		if(this.type.isStruct())return this.type.struct.getJsonTextFor(this);
 		if(this.type.isVoid())return "{\"text\": \"<void>\"}";
 		//format string is in vartype
 		switch(this.pointsTo) {
-		case STORAGE: return "{\"storage\": \"%s\", \"nbt\": \"%s\"}".formatted(this.holder,this.address);
-		case BLOCK:return "{\"block\": \"%s\", \"nbt\": \"%s\"}".formatted(this.holder,this.address);
-		case ENTITY:return "{\"entity\": \"%s\", \"nbt\": \"%s\"}".formatted(this.holder,this.address);
+		case STORAGE: return "{\"storage\": \"%s\", \"nbt\": \"%s\"}".formatted(this.holder,edress);
+		case BLOCK:return "{\"block\": \"%s\", \"nbt\": \"%s\"}".formatted(this.holder,edress);
+		case ENTITY:return "{\"entity\": \"%s\", \"nbt\": \"%s\"}".formatted(this.holder,edress);
 		case SCORE:
 			//TODO will need to change selector to not display multiplies value
 			Warnings.warning("getJsonText not yet valid for var with mask SCORE");
-			return "{\"score\": {\"name\": \"%s\", \"objective\": \"%s\"}}".formatted(this.holder,this.address);
+			String score="{\"score\": {\"name\": \"%s\", \"objective\": \"%s\"}}".formatted(this.holder,edress);
+			String meta="{\"translate\": \"%%se-%%s\",with: [%s,%s]}".formatted(score,this.type.getPrecision());
+			return meta;
 		
 		}
 		return null;
@@ -245,7 +281,7 @@ public class Variable {
 		}
 	}
 	public void setMeToBoolean(PrintStream p,Compiler c,Scope s, RStack stack,boolean value) throws CompileError {
-		if(!this.type.isNumeric()) throw new CompileError("cannot set variable %s to a number value %s;"
+		if(this.type.isNumeric()) throw new CompileError("cannot set variable %s to a boolean value %s;"
 				.formatted(this.toHeader(),value));
 		if(this.type.isStruct()) {
 			this.type.struct.setVarToBool(p, c, s, stack, value,this.type.structArgs);
@@ -258,8 +294,18 @@ public class Variable {
 		if(to.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
 		if(from.type.isStruct())throw new CompileError("Varaible.setMe() does not yet work for structs.");
 		if(from.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
-		boolean floatp = to.type.isFloatP() || from.type.isFloatP();
+		if(to.type.isStruct() && to.type.struct.canCasteFrom(from.type, to.type.structArgs)) {
+			to.type.struct.setMeDirect(f, stack, to, from);
+			return;
+		}else if(from.type.isStruct() && from.type.struct.canCasteTo(to.type, from.type.structArgs)) {
+			from.type.struct.getMeDirect(f, stack, to, from);
+			return;
+		}
+			
+			
+		if(to.type.isNumeric() ^ to.type.isNumeric()) throw new CompileError.UnsupportedCast(from.type, to.type);
 		
+		boolean floatp = to.type.isFloatP() || from.type.isFloatP();
 		if(to.pointsTo==Mask.SCORE) {
 			if(from.pointsTo==Mask.SCORE) {
 				boolean esgn=(to.type.getPrecision()-from.type.getPrecision())>=0;
@@ -287,6 +333,6 @@ public class Variable {
 			String dfrom=from.dataPhrase();
 			f.printf("data modify %s set from %s\n",dto,dfrom);
 		}
-		//USE STRING FORMAT EVEN FOR FLOATS - AVOID SCI NOTATION IN MCF
+		//USE STRING FORMAT EVEN FOR FLOATS - DONT USE %f BECAUSE IT ROUNDS- SCI NOTATION IS OK IN MCF
 	}
 }

@@ -28,9 +28,20 @@ public class Main {
 		}
 		
 	}
+	public static void floatFormatTest() {
+		double big=Math.pow(7, 10);
+		double small=Math.pow(7, -5);
+		System.out.printf("%%s : %s , %s ;\n", big,small); //uses sci. not. if it is big
+		System.out.printf("%%f : %f , %f ;\n", big,small); // will round to 6 places
+		/*
+		 * USE %s; SCI NOTATION IS NOT A PROBLEM; I TESTED THIS IN MC; THE VSCODE PLUGIN GETS IT WRONG
+		 */
+		
+	}
 	public static void main(String[] args) {
 		//the project directory is the datapack level (same as pack.mcmeta)
 		CompileJob job=new CompileJob();
 		job.compileAll();
+		//floatFormatTest();
 	}
 }

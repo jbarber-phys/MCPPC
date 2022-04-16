@@ -33,6 +33,9 @@ public class Register implements Comparable<Register>{
 	public String inCMD() {
 		return "%s %s".formatted(holder,getScoreAt(index));
 	}
+	public String testMeInCMD() {
+		return "score %s matches 1..".formatted(this.inCMD());
+	}
 	public static String getScoreAt(int index) {
 		return "MCPP_REGISTER_%d".formatted(index);
 	}
@@ -66,7 +69,7 @@ public class Register implements Comparable<Register>{
 	}
 	public void multByFloatUsingRam(PrintStream p,RStack stack,double mult) {
 		p.printf("execute store result storage %s double %s run scoreboard players get %s\n", stack.getTempRamInCmd(),mult,this.inCMD());
-		p.printf("execute store result score %s run datadata get storage %s 1\n", this.inCMD(),stack.getTempRamInCmd());
+		p.printf("execute store result score %s run data get storage %s 1\n", this.inCMD(),stack.getTempRamInCmd());
 	}
 	/**
 	 * does not account for types - that must be done manual
@@ -147,7 +150,7 @@ public class Register implements Comparable<Register>{
 				return -1;//DNE
 			}
 			int max=this.vartypes.lastKey();
-			while(this.regvarEstimates.lastKey()>max)this.regvarEstimates.remove(this.regvarEstimates.lastKey());
+			while((!this.regvarEstimates.isEmpty())&&this.regvarEstimates.lastKey()>max)this.regvarEstimates.remove(this.regvarEstimates.lastKey());
 			return max;
 		}
 		public void cap(int cap) throws CompileError {
@@ -155,6 +158,10 @@ public class Register implements Comparable<Register>{
 			while((!this.vartypes.isEmpty())
 					&&this.vartypes.lastKey()>cap)this.pop();
 			//while(this.regvarEstimates.lastKey()>cap)this.pop();
+		}
+		public void clear() {
+			this.vartypes.clear();
+			this.regvarEstimates.clear();
 		}
 		public void finish(CompileJob job) {
 			Namespace ns=job.namespaces.get(this.res.namespace);
@@ -164,16 +171,16 @@ public class Register implements Comparable<Register>{
 			VarType oldType=this.getVarType(index);
 			if(oldType.isStruct()) {
 				if(newType.struct.canCasteFrom(oldType,newType.structArgs))
-					newType.struct.castRegistersFrom(p, c, s, this, index, oldType, newType.structArgs);
+					newType.struct.castRegistersFrom(p, this, index, oldType, newType.structArgs);
 				else if(oldType.struct.canCasteTo(newType,oldType.structArgs))
-					newType.struct.castRegistersTo(p, c, s, this, index, newType, oldType.structArgs);
+					newType.struct.castRegistersTo(p,  this, index, newType, oldType.structArgs);
 				else throw new CompileError.UnsupportedCast(newType, oldType);
 				
 			}else {
 				if (oldType.isNumeric() ^ newType.isNumeric())throw new CompileError.UnsupportedCast(newType, oldType);
 				else if (oldType.isFloatP() || newType.isFloatP()) {
 					int dp=newType.getPrecision()-oldType.getPrecision();
-					String op = (dp>0)?"/=":"*=";
+					String op = (dp>0)?"*=":"/=";
 					long mult=(long) Math.pow(10, Math.abs(dp));
 					if(dp!=0) {
 						int extra=this.getExtra();

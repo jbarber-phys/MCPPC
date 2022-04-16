@@ -23,12 +23,32 @@ import net.mcppc.compiler.tokens.BiOperator.OpType;
  *
  */
 public class Equation extends Token {
+	private static final boolean PRE_EVAL_EXP = false;
 	public static Equation toAssign(int line,int col,Compiler c,Matcher m) throws CompileError {
 		Equation e=new Equation(line,col,c);
 		e.isTopLevel=true;
 		e.wasOpenedWithParen=false;
 		e.populate(c, m);
 		return e;
+	}
+	public static Equation toArgue(int line,int col,Compiler c,Matcher m) throws CompileError {
+		Equation e=new Equation(line,col,c);
+		e.isTopLevel=false;
+		e.wasOpenedWithParen=false;
+		e.isAnArg=true;
+		e.populate(c, m);
+		return e;
+	}
+	public boolean wasLastArg() throws CompileError {
+		switch(this.end) {
+		case ARGSEP:
+			return false;
+		case CLOSEPAREN:
+			return true;
+		default:
+			throw new CompileError("equation that was an arg ended with ';' or '{'");
+		
+		}
 	}
 	//true if this is the outermost equation
 	public boolean isTopLevel=false;
@@ -195,8 +215,9 @@ public class Equation extends Token {
 					sub2.elements.add(sub);
 					sub2.lastOp=OperationOrder.CAST;
 					sub2.populate(c, m,recurrs+1);
-					this.elements.add(sub2);
+					v=sub2;
 					if(sub2.end!=End.LATEROP) {
+						this.elements.add(sub2);
 						this.end=sub2.end;
 						return this;
 					}
@@ -217,8 +238,9 @@ public class Equation extends Token {
 				sub.elements.add(v);
 				sub.lastOp=((UnaryOp) v).getOpOrder();
 				sub.populate(c, m,recurrs+1);
-				this.elements.add(sub);
+				v=sub;
 				if(sub.end!=End.LATEROP) {
+					this.elements.add(sub);
 					this.end=sub.end;
 					return this;
 				}
@@ -240,14 +262,16 @@ public class Equation extends Token {
 						BuiltinFunction.isBuiltinFunc((((Token.MemberName) v).names.get(0)))) {
 					//a builtin function
 					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col, ((Token.MemberName) v).names.get(0));
-					this.elements.add(sub);
+					//this.elements.add(sub);
+					v=sub;
 
 				}else {
 					if(!(v instanceof Token.MemberName)) throw new CompileError.UnexpectedToken(v, "name before '('");
 					//a normal function
 					Function.FuncCallToken ft=Function.FuncCallToken.make(c, v.line, v.col, m, (MemberName) v, this.stack);
 					ft.identify(c,c.currentScope);
-					this.elements.add(ft);
+					//this.elements.add(ft);
+					v=ft;
 				}
 				//keep going
 				//willAddV=false;
@@ -275,15 +299,18 @@ public class Equation extends Token {
 					sub.elements.add(op);
 					sub.lastOp=((BiOperator) op).getOpOrder();
 					sub.populate(c, m,recurrs+1);
-					this.elements.add(sub);
+					//this.elements.add(sub);
+					v=sub;
+					//CompileJob.compileMcfLog.printf("sub of size %s;\n", sub.elements.size());
 					if(sub.end!=End.LATEROP) {
+						this.elements.add(v);
 						this.end=sub.end;
 						return this;
 					}
 					//keep going for another op; will loop; dont worry about the () function finder because it cannot be activated
 					pc=c.cursor;
 					op=c.nextNonNullMatch(lookForOperation);
-					continue;//retorical
+					continue oploop;//retorical
 				}else if (cpr<0) {
 					//return 
 					this.elements.add(v);
@@ -298,7 +325,9 @@ public class Equation extends Token {
 					break oploop;
 				}
 						
-			} if (op instanceof Token.Paren && !((Token.Paren) op).forward) {
+			}
+			//CompileJob.compileMcfLog.printf("post sub;\n");
+			if (op instanceof Token.Paren && !((Token.Paren) op).forward) {
 				//close paren (non-empty)
 				this.elements.add(v);
 				this.end=End.CLOSEPAREN;
@@ -347,14 +376,14 @@ public class Equation extends Token {
 	}
 	private boolean hasSetToReg=false;
 	private Integer homeReg=null;
+	public VarType retype=VarType.VOID;
 	// register is added by putTokenToRegister if !(in instanceof Equation) (then the sub_equation will do it)
 	private int putTokenToRegister(PrintStream p,Compiler c,Scope s,VarType typeWanted,Token in) throws CompileError {
 		//to a register
 		int regnum;
 		if (in instanceof Equation) {
 			((Equation) in).compileOps(p, c, s, typeWanted);
-			((Equation) in).setReg(p, c, s, typeWanted);
-			regnum=((Equation) in).homeReg;
+			regnum=((Equation) in).setReg(p, c, s, typeWanted);
 		}else if (in instanceof Token.MemberName) {
 			regnum=stack.setNext(((Token.MemberName) in).var.type);
 			((Token.MemberName) in).var.getMe(p, stack,regnum);
@@ -375,15 +404,28 @@ public class Equation extends Token {
 			this.stack.estmiate(regnum, ((Function.FuncCallToken) in).getEstimate());
 		}else if (in instanceof BuiltinFunction.BFCallToken) {
 			regnum=stack.setNext(((BuiltinFunction.BFCallToken) in).getRetType());
-			((BuiltinFunction.BFCallToken) in).call(p, c, s, stack,regnum);
+			((BuiltinFunction.BFCallToken) in).call(p, c, s, stack);
 			((BuiltinFunction.BFCallToken) in).getRet(p, c, s, stack,regnum);
 			this.stack.estmiate(regnum, ((BuiltinFunction.BFCallToken) in).getEstimate());
-		}else {
+		}else if (in instanceof Statement.CommandToken) {
+			regnum=this.storeCMD(p, c, s, typeWanted, in);
+		}
+		else {
 			throw new CompileError.UnexpectedToken(in, "number, equation, variable or function");
 		}
 		return regnum;
 	}
+	public int storeCMD(PrintStream p,Compiler c,Scope s,VarType typeWanted,Token in) throws CompileError {
+		int regnum;
+		VarType mtype=typeWanted.isLogical()?VarType.BOOL:VarType.LONG;
+		String cretype=typeWanted.isLogical()?"success":"result";
+		regnum=stack.setNext(mtype);
+		Register r=stack.getRegister(regnum);
+		p.printf("execute store %s score %s run %s\n", cretype,r.inCMD(),((Statement.CommandToken)in).inCMD());
+		return regnum;
+	}
 	//flag for if to attempt to do inline mult for literal numbers
+	@SuppressWarnings("unused")
 	public void compileOps(PrintStream p,Compiler c,Scope s,VarType typeWanted) throws CompileError {
 		if(this.doesAnyOps || !(this.isTopLevel || this.isAnArg)) {
 			//do sub ops on registers
@@ -391,12 +433,12 @@ public class Equation extends Token {
 				UnaryOp op=(UnaryOp) this.elements.get(0);
 				Token in=this.elements.get(1);
 				this.homeReg=this.putTokenToRegister(p, c, s, typeWanted, in);
-				op.doOperation(p, c, s, stack, this.homeReg);
+				op.perform(p, c, s, stack, this.homeReg);
 			}
 			else if(this.elements.get(0) instanceof Equation &&  ((Equation)this.elements.get(0)).isCast) {
 				Type cast=(Type) ((Equation)this.elements.get(0)).elements.get(0);
 				Token in=this.elements.get(1);
-				this.homeReg=this.putTokenToRegister(p, c, s, typeWanted, in);
+				this.homeReg=this.putTokenToRegister(p, c, s, cast.type, in);
 				//cast register
 				this.stack.castRegister(p, c, s, this.homeReg, cast.type);
 			}else if (this.elements.size()==1){
@@ -406,10 +448,10 @@ public class Equation extends Token {
 				if(!this.isAnArg)throw new CompileError("unexpected blank equation at line %s col %s".formatted(this.line,this.col));
 			}else {
 				Token first=this.elements.get(0);
-				CompileJob.compileMcfLog.println(Token.asStrings(elements));
+				//CompileJob.compileMcfLog.println(Token.asStrings(elements));
 				this.homeReg=this.putTokenToRegister(p, c, s, typeWanted, first);//may be redundant but that is OK
 				if(this.elements.size()%2==0)throw new CompileError.UnexpectedTokens(elements, "an odd number of tokens alternating value, operation");
-				List<Number> exponents=new ArrayList<Number>();
+				List<Number> exponents=new ArrayList<Number>(); 
 				Number prevNum=null;if(first instanceof Token.Num) prevNum=((Token.Num) first).value;
 				for(int i=1;i<this.elements.size()-1;i+=2) {
 					Token opt=this.elements.get(i);if(!(opt instanceof BiOperator))throw new CompileError.UnexpectedToken(opt, "bi-operator");
@@ -419,7 +461,7 @@ public class Equation extends Token {
 						Number e;
 						if(nextval instanceof Equation) {
 							e=((Equation)nextval).getNegativeNumberLiteral();
-							if(e==null) throw new CompileError.UnexpectedToken(nextval, "number or neg-number");
+							if(e==null) throw new CompileError.UnexpectedToken(nextval, "number or neg-number; avoid nested exp ints;");
 						}else if (nextval instanceof Token.Num) {
 							e=((Token.Num)nextval).value;
 						}else throw new CompileError.UnexpectedToken(nextval, "number", "var-exponents not supported");
@@ -429,13 +471,16 @@ public class Equation extends Token {
 						if((newnum==null && prevNum==null) | (!op.canLiteralMult())) {
 							int nextreg=this.putTokenToRegister(p, c, s, typeWanted, nextval);
 							op.perform(p, c, s, stack, this.homeReg, nextreg);
+							CompileJob.compileMcfLog.printf("homeReg: %s;\n", this.homeReg);
 							stack.cap(this.homeReg);//remove unused register IF it was created
 						}else if (prevNum!=null && newnum==null ) {
+							//first term is number
 							int nextreg=this.putTokenToRegister(p, c, s, typeWanted, nextval);
 							if(op.op==OpType.MULT)op.literalMultOrDiv(p, c, s, stack, nextreg,this.homeReg, (Num)first);
 							else op.perform(p, c, s, stack, this.homeReg, nextreg);// const / var;
 							stack.cap(this.homeReg);//
 						}else if (prevNum==null && newnum!=null ) {
+							//second term is number
 							op.literalMultOrDiv(p, c, s, stack, this.homeReg,this.homeReg,(Num) nextval);
 							//stack.cap(this.homeReg);//safe but unneeded
 						}else  {//two numbers
@@ -451,29 +496,44 @@ public class Equation extends Token {
 					for(Number n:exponents) {
 						e=Equation.pow(n, e);
 					}
-					BiOperator.exp(p, c, s, stack, homeReg, e);
+					if(first instanceof Num && Equation.PRE_EVAL_EXP) {
+						e=Equation.pow(((Num)first).value, e);
+						int precison=(int) (5-Math.round(Math.log10( e.doubleValue())));
+						stack.getRegister(this.homeReg).setValue(p, e,new VarType(Builtin.DOUBLE,precison));
+						this.stack.estmiate(this.homeReg, e);
+					}else {
+						BiOperator.exp(p, c, s, stack, homeReg, e);
+					}
 					stack.cap(this.homeReg);//remove old register
 				}
 				
 			}
 			this.hasSetToReg=true;
+			this.retype=stack.getVarType(this.homeReg);
 		}else {
-			if (this.elements.size()==0)return;//done
+			if (this.elements.size()==0)return ;//done
 			if(this.elements.size()>1)throw new CompileError("eq mistaken for a does no ops eq.");
 			Token e=this.elements.get(0);
 			if(e instanceof Token.MemberName) {
 				//do nothing
-				
+
+				this.retype=((Token.MemberName)e).var.type;
 			}else if(e instanceof Token.Num) {
 				//do nothing
-				
+				this.retype=((Token.Num)e).type;
 			}else if(e instanceof Token.Bool) {
 				//do nothing
-				
+				this.retype=((Token.Bool)e).type;
 			}else if(e instanceof Function.FuncCallToken) {
 				((Function.FuncCallToken)e).call(p, c,s,this.stack);
+				this.retype=((Function.FuncCallToken)e).getFunction().retype;
 			} else if(e instanceof BuiltinFunction.BFCallToken) {
-				((BuiltinFunction.BFCallToken)e).call(p, c,s,this.stack,this.stack.getExtra());
+				((BuiltinFunction.BFCallToken)e).call(p, c,s,this.stack);
+				this.retype=((BuiltinFunction.BFCallToken)e).getRetType();
+			} else  if (e instanceof Statement.CommandToken){
+				this.homeReg=this.storeCMD(p, c, s, typeWanted, e);
+				this.retype=stack.getVarType(this.homeReg);
+				this.hasSetToReg=true;
 			}
 		}
 	}
@@ -500,7 +560,7 @@ public class Equation extends Token {
 			}
 		}
 	}
-	public void setReg(PrintStream p,Compiler c,Scope s,VarType typeWanted) throws CompileError {
+	public int setReg(PrintStream p,Compiler c,Scope s,VarType typeWanted) throws CompileError {
 		if(this.hasSetToReg) {
 			//already done
 		}else {
@@ -523,7 +583,6 @@ public class Equation extends Token {
 			}
 			
 		}
+		return this.homeReg;
 	}
-	
-	
 }

@@ -3,6 +3,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.*;
 
+import net.mcppc.compiler.CompileJob;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Scope;
 import net.mcppc.compiler.VarType;
@@ -96,6 +97,7 @@ public abstract class Token {
 		@Override public String asString() {return ".";
 		}
 	}
+	
 	public static class WildChar extends Token{
 		public static final Factory dontPassFactory=new Factory(Regexes.ANY_CHAR) {
 			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
@@ -215,6 +217,30 @@ public abstract class Token {
 			return this.name;
 		}
 	}
+	public static class StringToken extends Token{
+		//for a named thing that hasn't been identified yet
+		public static final Factory factory = new Factory(Regexes.STRLIT) {
+			@Override
+			public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+				c.cursor=matcher.end();
+				return new StringToken(line,col,matcher.group());
+			}
+		};
+		String literal;
+		public StringToken(int line, int col,String name) {
+			super(line, col);
+			this.literal=name;
+		}
+		@Override public String asString() {
+			return this.literal();
+		}
+		public String literal() {
+			return this.literal;
+		}
+		public String getJsonText() {
+			return this.literal();
+		}
+	}
 	public static class MemberName extends Token implements Identifiable{
 		//for a named thing that hasn't been identified yet
 		public static final Factory factory = new Factory(Regexes.NAME) {
@@ -291,7 +317,12 @@ public abstract class Token {
 					if (matcher.group(4)!=null) {
 						exp=Integer.parseInt(matcher.group(4).substring(1));//correct
 					}
-					Number value = Double.parseDouble(matcher.group(1)+matcher.group(2)+matcher.group(4));//should work
+					String s=(matcher.group(1)!=null?matcher.group(1):"")
+							+(matcher.group(2)!=null?matcher.group(2):"")
+							+(matcher.group(4)!=null?matcher.group(4):"");
+					//CompileJob.compileMcfLog.printf("%s   %s   %s   %s;\n", matcher.group(1),matcher.group(2),matcher.group(3),matcher.group(4));
+					//CompileJob.compileMcfLog.printf("%s;\n", s);
+					Number value = Double.parseDouble(s);//should work
 					return new Num(line,col,value,new VarType(b,precision));
 				}
 				Number value = Long.parseLong(matcher.group(1));

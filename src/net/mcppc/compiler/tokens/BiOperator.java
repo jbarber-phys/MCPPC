@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 
+import net.mcppc.compiler.CompileJob;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.OperationOrder;
 import net.mcppc.compiler.Register;
@@ -42,7 +43,7 @@ public class BiOperator extends Token{
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.mod(p, c, s, stack, home1, home2);
 			}},
-		EXP("+",OperationOrder.EXP) {
+		EXP("^",OperationOrder.EXP) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				throw new CompileError("OpType.EXP.perform(...) should not be called; handle this elsewhere;");
 			}},
@@ -71,15 +72,15 @@ public class BiOperator extends Token{
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.compare(p, c, s, stack, home1, home2,"<");
 			}},
-		XOR("<",OperationOrder.XOR) {
+		XOR("|!&",OperationOrder.XOR) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.xor(p, c, s, stack, home1, home2);
 			}},
-		AND("<",OperationOrder.AND) {
+		AND("&",OperationOrder.AND) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.and(p, c, s, stack, home1, home2);
 			}},
-		OR("<",OperationOrder.OR) {
+		OR("|",OperationOrder.OR) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.or(p, c, s, stack, home1, home2);
 			}};
@@ -116,8 +117,11 @@ public class BiOperator extends Token{
 	final OpType op;
 	public BiOperator(int line, int col,Matcher m) {
 		super(line, col);
-		//this.op=OpType.fromString(m.group());
 		this.op=OpType.fromMatch(m);
+	}
+	public BiOperator(int line, int col,OpType op) {
+		super(line, col);
+		this.op=op;
 	}
 	@Override
 	public String asString() {
@@ -165,6 +169,7 @@ public class BiOperator extends Token{
 			h2.operation(p, pop2, rex);
 		}
 		h1.operation(p, aop, h2);
+		stack.setVarType(home1, typef);
 		if(stack.getEstimate(home1)!=null&&stack.getEstimate(home2)!=null)
 			stack.estmiate(home1, stack.getEstimate(home1).doubleValue()+stack.getEstimate(home2).doubleValue());
 		else stack.estmiate(home1, null);
@@ -200,6 +205,7 @@ public class BiOperator extends Token{
 		// o: small place; x:high place; position: from 1,2
 		VarType finalType=type1;
 		if(!type1.isFloatP() && type2.isFloatP())finalType=type2;//log estimate correction
+		//CompileJob.compileMcfLog.printf("%s * %s = %s;\n", type1,type2,finalType);
 		Register reg_1o=stack.getRegister(extra);
 		Register reg_1x=stack.getRegister(extra+1);
 		Register reg_2o=stack.getRegister(extra+2);
@@ -261,6 +267,7 @@ public class BiOperator extends Token{
 		h1.operation(p, "+=", reg_xo);
 		h1.operation(p, "+=", reg_xx);
 		//operations done
+		stack.setVarType(home1, finalType);
 		if(stack.getEstimate(home1)!=null&&stack.getEstimate(home2)!=null)
 			stack.estmiate(home1, stack.getEstimate(home1).doubleValue()*stack.getEstimate(home2).doubleValue());
 		else stack.estmiate(home1, null);
@@ -275,6 +282,7 @@ public class BiOperator extends Token{
 		//this.assertNumeric(type1, type2);
 		VarType finalType=type1;
 		if(!type1.isFloatP() && type2.isFloatP())finalType=type2;//log estimate correction
+		//CompileJob.compileMcfLog.printf("shortMult typef %s;\n", finalType.asString());
 		
 		int fppow=finalType.getPrecision()-type1.getPrecision()-type2.getPrecision();
 		String precop=fppow>0?"*=":"/=";
@@ -287,6 +295,7 @@ public class BiOperator extends Token{
 			h1.operation(p, precop, h2);
 		}
 		//operations done
+		stack.setVarType(home1, finalType);
 		if(stack.getEstimate(home1)!=null&&stack.getEstimate(home2)!=null)
 			stack.estmiate(home1, stack.getEstimate(home1).doubleValue()*stack.getEstimate(home2).doubleValue());
 		else stack.estmiate(home1, null);
@@ -302,10 +311,10 @@ public class BiOperator extends Token{
 		double timespow=Math.pow(10, otype.getPrecision()-itype.getPrecision());
 		Register regIn=stack.getRegister(in);
 		Register regOut=stack.getRegister(dest);
-		regIn.multByFloatUsingRam(p, stack, mult);
 		stack.setVarType(dest,otype);
+		//regIn.multByFloatUsingRam(p, stack, mult);//this is redundant
 		p.printf("execute store result storage %s double %s run scoreboard players get %s\n", stack.getTempRamInCmd(),mult,regIn.inCMD());
-		p.printf("execute store result score %s run datadata get storage %s %s\n", regOut.inCMD(),stack.getTempRamInCmd(),timespow);
+		p.printf("execute store result score %s run data get storage %s %s\n", regOut.inCMD(),stack.getTempRamInCmd(),timespow);
 		if(stack.getEstimate(in)!=null)stack.estmiate(in, stack.getEstimate(in).doubleValue()*mult);
 	}
 	public Token literalMultOrDiv(PrintStream p, Compiler c, Scope s, RStack stack,  Integer dest,Num n1,Num n2) throws CompileError {
@@ -370,6 +379,7 @@ public class BiOperator extends Token{
 			h2.operation(p, pop2, rex);
 		}
 		h1.operation(p, "/=", h2);
+		stack.setVarType(home1, typef);
 		stack.estmiate(home1, null);//divisor could be near zero
 	}
 	private void mod(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2) throws CompileError {
@@ -401,6 +411,7 @@ public class BiOperator extends Token{
 			h2.operation(p, pop2, rex);
 		}
 		h1.operation(p, "%=", h2);
+		stack.setVarType(home1, typef);
 		if(stack.getEstimate(home2)!=null) {
 			if(stack.getEstimate(home1)!=null && stack.getEstimate(home1).doubleValue() < stack.getEstimate(home2).doubleValue())
 				//stack.estmiate(home1, stack.getEstimate(home1))//does nothing
@@ -421,8 +432,8 @@ public class BiOperator extends Token{
 		}
 		if(Math.abs(exp)<Register.SCORE_BITS) {
 			//repeat mult
-			String pop=type1.getPrecision()>0?"/=":"*=";
 			String expop=exp>0?"*=":"/=";
+			String pop=type1.getPrecision()*exp>0?"/=":"*=";
 			boolean doPrecision=type1.getPrecision()!=0;
 			boolean reverse = (type1.getPrecision()>0) && exp<0;
 			long mult = (long) Math.pow(10, Math.abs(type1.getPrecision()));
@@ -431,7 +442,7 @@ public class BiOperator extends Token{
 			Register rex1=stack.getRegister(extra1);
 			Register rex2=stack.getRegister(extra2);
 			if(doPrecision)rex2.setValue(p, mult);
-			rex1.setValue(p, 1);
+			rex1.setValue(p, mult);
 			for(int i=1;i<=Math.abs(exp);i++) {
 				if((stack.getEstimate(home1)!=null && Math.log(stack.getEstimate(home1).doubleValue())*i+Math.log(mult)>=(Register.SCORE_BITS-1-2)*Math.log(2))
 						^ reverse
@@ -451,30 +462,50 @@ public class BiOperator extends Token{
 			throw new CompileError("exponent %s is way too big and will definetly overflow if base >= 2;"
 					.formatted(exp));
 		}
-		if(stack.getEstimate(home1)!=null)stack.estmiate(home1, Math.pow((double) stack.getEstimate(home1), exp));
+		if(stack.getEstimate(home1)!=null)stack.estmiate(home1, Math.pow(stack.getEstimate(home1).doubleValue(), exp));
 		
 	}
 	private void compare(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,String cpop) throws CompileError {
-		VarType type1=stack.getVarType(home1);
-		VarType type2=stack.getVarType(home2);
-		Register reg1=stack.getRegister(home1);
-		Register reg2=stack.getRegister(home2);
-		int extra=stack.reserve(1);Register regE=stack.getRegister(extra);
-		this.assertNumeric(type1, type2);
-		regE.setValue(p,false);
-		p.printf("execute if %s run %s\n", reg1.compare(cpop, reg2),regE.setValueStr(true));
-		reg1.operation(p, "=", regE);
+		this.compareGen(p, c, s, stack, home1, home2, cpop, false);
 	}
 	private void compareNot(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,String cpopnot) throws CompileError {
+		this.compareGen(p, c, s, stack, home1, home2, cpopnot, true);
+		
+	}
+	private void compareGen(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,String cpop,boolean invert) throws CompileError {
 		VarType type1=stack.getVarType(home1);
 		VarType type2=stack.getVarType(home2);
 		Register reg1=stack.getRegister(home1);
 		Register reg2=stack.getRegister(home2);
-		int extra=stack.reserve(1);Register regE=stack.getRegister(extra);
+		VarType typef=VarType.BOOL;
 		this.assertNumeric(type1, type2);
-		regE.setValue(p,true);
-		p.printf("execute if %s run %s\n", reg1.compare(cpopnot, reg2),regE.setValueStr(false));
+		int extra=stack.reserve(1);Register regE=stack.getRegister(extra);
+		//prep reg for compare
+		int p1=type1.getPrecision();
+		int p2=type2.getPrecision();
+		if(p1!=p2){
+			int spreg=p1<p2?home1:home2;
+			double spest=stack.getEstimate(spreg).doubleValue();
+			int maxps=(int) Math.round((Register.SCORE_BITS-1)*Math.log10(2)-Math.log10(spest));
+			int pf=Math.max(Math.min(Math.max(p1, p2), maxps),Math.min(p1, p2));
+			//CompileJob.compileMcfLog.printf("maxps: %s; pf: %s;\n", maxps,pf);
+			if(p1!=pf) {
+				String pop=(pf-p1)>0?"*=":"/=";
+				long mult=Math.round(Math.pow(10, Math.abs(pf-p1)));
+				regE.setValue(p, mult);
+				reg1.operation(p, pop, regE);
+			}if(p2!=pf) {
+				String pop=(pf-p2)>0?"*=":"/=";
+				long mult=Math.round(Math.pow(10, Math.abs(pf-p2)));
+				regE.setValue(p, mult);
+				reg2.operation(p, pop, regE);
+			}
+		}
+		//now compare
+		regE.setValue(p,invert);
+		p.printf("execute if %s run %s\n", reg1.compare(cpop, reg2),regE.setValueStr(!invert));
 		reg1.operation(p, "=", regE);
+		stack.setVarType(home1, typef);
 	}
 	//Note: xor, and, or; are all commutitive+asociative with themselves
 	private void xor(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2) throws CompileError {

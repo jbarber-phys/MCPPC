@@ -38,6 +38,14 @@ public class FileInterface {
 	public FileInterface(ResourceLocation f) {
 		this.path=f;
 	}
+	public void printmefordebug(PrintStream p,int depth,int tabs) {
+		StringBuffer s=new StringBuffer();while(s.length()<tabs)s.append('\t');
+		p.printf("%sinterface %s\n",s.toString(), this.path);
+		p.printf("%s\t public funcs: %s;\n",s.toString(), this.funcsPublic.keySet());
+
+		p.printf("%s\t public vars: %s;\n",s.toString(), this.varsPublic.keySet());
+	
+	}
 	public static class SelfInterface extends FileInterface{
 		public SelfInterface(ResourceLocation f) {
 			super(f);
@@ -190,15 +198,26 @@ public class FileInterface {
 			return f;
 		}
 		public void printmefordebug(PrintStream p) {
-			p.printf("interface %s\n", this.path);
-			p.printf("\t libs %s;\n", this.libs.keySet());
-			p.printf("\t public funcs: %s;\n", this.funcsPublic.keySet());
-			p.printf("\t private funcs: %s;\n", this.funcsPrivate.keySet());
-			p.printf("\t extern funcs: %s;\n", this.funcsExtern.keySet());
+			printmefordebug(p,1,0);
+		}
+		public void printmefordebug(PrintStream p,int depth,int tabs) {
+			StringBuffer s=new StringBuffer();while(s.length()<tabs)s.append('\t');
+			p.printf("%sinterface %s\n",s.toString(), this.path);
+			p.printf("%s\t public funcs: %s;\n",s.toString(), this.funcsPublic.keySet());
+			p.printf("%s\t private funcs: %s;\n",s.toString(), this.funcsPrivate.keySet());
+			p.printf("%s\t extern funcs: %s;\n",s.toString(), this.funcsExtern.keySet());
 
-			p.printf("\t public vars: %s;\n", this.varsPublic.keySet());
-			p.printf("\t private vars: %s\n", this.varsPrivate.keySet());
-			p.printf("\t extern vars: %s;\n", this.varsExtern.keySet());
+			p.printf("%s\t public vars: %s;\n",s.toString(), this.varsPublic.keySet());
+			p.printf("%s\t private vars: %s\n",s.toString(), this.varsPrivate.keySet());
+			p.printf("%s\t extern vars: %s;\n",s.toString(), this.varsExtern.keySet());
+			if(depth<=0) {
+				p.printf("%s\t libs %s;\n", s.toString(),this.libs.keySet());
+				
+			}else {
+				for (FileInterface itf:this.libs.values()) {
+					itf.printmefordebug(p, depth-1, tabs+1);
+				}
+			}
 		
 		}
 	}

@@ -17,6 +17,12 @@ import net.mcppc.compiler.tokens.UnaryOp;
  *
  */
 public class VarType {
+	public static final VarType BOOL = new VarType(Builtin.BOOL);
+	public static final VarType INT = new VarType(Builtin.INT);
+	public static final VarType BYTE = new VarType(Builtin.BYTE);
+	public static final VarType SHORT = new VarType(Builtin.SHORT);
+	public static final VarType LONG = new VarType(Builtin.LONG);
+	public static final VarType VOID = new VarType(Builtin.VOID);
 	public enum Builtin{
 		BYTE("byte",true,false,false,false),
 		SHORT("short",true,false,false,false),
@@ -41,12 +47,14 @@ public class VarType {
 		Builtin(String name,boolean num,boolean flt,boolean logic,boolean st){
 			this.isNumber=num;
 			this.isFloatP=flt;
+			this.isLogical=logic;
 			this.typename=name;
 			this.isVoid=false;
 		}
 		Builtin(String name,boolean num,boolean flt,boolean logic,boolean st,boolean isVoid){
 			this.isNumber=num;
 			this.isFloatP=flt;
+			this.isLogical=logic;
 			this.typename=name;
 			this.isVoid=isVoid;
 		}
@@ -173,6 +181,7 @@ public class VarType {
 		else if(this.type.isFloatP) return "%s(%d)".formatted(this.type.typename,this.precision);
 		else return this.type.typename;
 	}
+	@Override public String toString() {return this.asString();}
 	public String headerString(){
 		if(this.type.isStruct) return this.struct.headerTypeString(this);
 		else if(this.type.isFloatP) return "%s(%d)".formatted(this.type.typename,this.precision);
@@ -200,5 +209,11 @@ public class VarType {
 	}
 	public void doBiOpSecond(BiOperator.OpType op,PrintStream p,Compiler c,Scope s, RStack stack,Integer home1,Integer home2) throws CompileError {
 		this.struct.doBiOpSecond(op, this.structArgs, p, c, s, stack, home1, home2);
+	}
+	public static boolean areBasicTypesCompadible(VarType t1,VarType t2) {
+		if(t1.isVoid()^t2.isVoid())return false;
+		if(t1.isNumeric()^t2.isNumeric())return false;
+		if(t1.isLogical()^t2.isLogical())return false;
+		return true;
 	}
 }

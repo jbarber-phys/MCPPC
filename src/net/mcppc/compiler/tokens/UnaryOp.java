@@ -49,16 +49,25 @@ public class UnaryOp extends Token {
 			c.cursor=matcher.end();
 			return new UnaryOp(line,col,matcher);
 		}};
+		public static final Factory uminusfactory=new Factory(Regexes.UNARY_MINUS) {
+			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+				c.cursor=matcher.end();
+				return new UnaryOp(line,col,matcher);
+			}};
 	private final UOType op;
 	public UnaryOp(int line, int col,Matcher m) {
 		super(line, col);
 		this.op=UOType.fromString(m.group());
 	}
+	public UnaryOp(int line, int col, UOType op) {
+		super(line, col);
+		this.op=op;
+	}
 	@Override
 	public String asString() {
-		return null;
+		return this.op.s;
 	}
-	public void doOperation(PrintStream p,Compiler c,Scope s, RStack stack,Integer home) throws CompileError {
+	public void perform(PrintStream p,Compiler c,Scope s, RStack stack,Integer home) throws CompileError {
 		VarType t=stack.getVarType(home);
 		if(t.isStruct()) {
 			t.doStructUnaryOp(this.op,p, c, s, stack, home);

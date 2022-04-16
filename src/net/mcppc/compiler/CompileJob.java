@@ -9,13 +9,16 @@ import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.OutputDump;
 
@@ -25,6 +28,10 @@ public class CompileJob {
 	public static final String EXT_H="mch";
 	public static final String EXT_MCF="mcfunction";
 	public static final String EXT_JSON="json";
+	
+
+	public static final String STDLIB_NAMESPACE="mcppc";
+	public static final boolean INCLUDE_STDLIB=false;
 	
 
 	public static final String SUBDIR_SRC="src";
@@ -89,6 +96,8 @@ public class CompileJob {
 	}
 	
 	//nonstatic below
+	public final boolean CLEAN_MCF_SUBDIR=true;
+	
 	final Map<String,Namespace> namespaces=new HashMap<String,Namespace>();
 	
 	//there shound never be more than 1 compiler per resourcelocation
@@ -117,6 +126,7 @@ public class CompileJob {
 	 * specifies where to find any mcf functions that need to be copied into the resulting datapack;
 	 *  may be same as rootSrc root but not as rootDatapack
 	 *  not every mcf must be here as long as the other mcf files are already in t;
+	 *  TODO figure out if to do this or not
 	 */
 	final List<Path> rootLinks=new ArrayList<Path>();
 
@@ -132,6 +142,10 @@ public class CompileJob {
 	 */
 	public CompileJob() {
 		this.rootSrc=this.rootDatapack=this.rootHeaderOut=Path.of(getCWD());
+		if(CompileJob.INCLUDE_STDLIB) {
+			Path stdlib=Path.of(getCWD()).resolve("resources");
+			this.includePath(stdlib);
+		}
 	}
 	public CompileJob(Path root) {
 		this.rootSrc=this.rootDatapack=this.rootHeaderOut=root;
@@ -182,6 +196,10 @@ public class CompileJob {
 		Path p=this.rootDatapack.resolve(CompileJob.DATA).resolve(res.namespace).resolve(CompileJob.SUBDIR_MCF).resolve(res.path+"."+CompileJob.EXT_MCF);
 		return p;
 	}
+	public Path pathForMcfSubfunctionsDir(ResourceLocation res) {
+		Path p=this.rootDatapack.resolve(CompileJob.DATA).resolve(res.namespace).resolve(CompileJob.SUBDIR_MCF).resolve(res.path+CompileJob.FILE_TO_SUBDIR_SUFFIX);
+		return p;
+	}
 	public Path pathForTagLoad() {
 		Path p=this.rootDatapack.resolve(CompileJob.DATA).resolve("minecraft/tags/functions").resolve("load"+"."+CompileJob.EXT_JSON);
 		return p;
@@ -210,10 +228,11 @@ public class CompileJob {
 		if(c==null) {
 			//else compile a new header
 			Path p = this.pathForInclude(res);
+			if(p==null)throw new CompileError("could not find include for %s;".formatted(res));
 			if (!this.namespaces.containsKey(res.namespace)) {
 				this.namespaces.put(res.namespace, new Namespace(p.toFile()));
 			}
-			c=new Compiler(this, res);c.isHeaderOnly=true;
+			c=new Compiler(this, res,true);
 			this.headerOnlyCompilers.put(res, c);
 		}
 		if(c.areLocalsLoaded) {
@@ -249,8 +268,12 @@ public class CompileJob {
 		}else{
 			//consider loading in version number
 		}
-		
+
+		Collection<Namespace> srcNamespaces=new ArrayList<Namespace>();
 		for(Namespace ns: this.namespaces.values()) {
+			srcNamespaces.add(ns);
+		}//avoid java.util.ConcurrentModificationException
+		for(Namespace ns: srcNamespaces) {
 			this.genMcf(ns);
 		}
 		this.genNamespaceFunctionsAndTags();
@@ -333,7 +356,7 @@ public class CompileJob {
         	//fileLog.println(script);
         	//Path samePath=this.pathForSrc(script);fileLog.println(samePath);
         	try {
-            	c.compile1(this.GEN_H_FROM_SRC);//ready to test
+            	c.compile1(this.GEN_H_FROM_SRC);
             	boolean canCompile=c.myInterface.attemptLoadLibs(this);
             	if(canCompile) {
             		//go ahead and compile early

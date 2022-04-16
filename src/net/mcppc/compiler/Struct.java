@@ -90,11 +90,47 @@ public abstract class Struct {
 	
 	//caste from takes precedent over caste to;
 	public boolean canCasteFrom(VarType from,VarType.StructTypeParams myArgs) { return false; }
-	public abstract void castRegistersFrom(PrintStream p,Compiler c,Scope s, RStack stack,int start,VarType old,VarType.StructTypeParams myArgs) throws CompileError;
+	public abstract void castRegistersFrom(PrintStream p, RStack stack,int start,VarType old,VarType.StructTypeParams myArgs) throws CompileError;
 	
 	public boolean canCasteTo(VarType to,VarType.StructTypeParams myArgs) { return false; }
-	public abstract void castRegistersTo(PrintStream p,Compiler c,Scope s, RStack stack,int start,VarType newType,VarType.StructTypeParams myArgs) throws CompileError;
-	
+	public abstract void castRegistersTo(PrintStream p, RStack stack,int start,VarType newType,VarType.StructTypeParams myArgs) throws CompileError;
+	/**
+	 * sets some registers to the value of the struct
+	 * @param p
+	 * @param stack
+	 * @param home
+	 * @param me
+	 * @throws CompileError
+	 */
+	public abstract void getMe(PrintStream p,RStack stack,int home,Variable me)throws CompileError;
+	/**
+	 * gets some registers to set a variable of this struct
+	 * @param p
+	 * @param stack
+	 * @param home
+	 * @param me
+	 * @throws CompileError
+	 */
+	public abstract void setMe(PrintStream p,RStack stack,int home,Variable me)throws CompileError;
+	public void getMeDirect(PrintStream p,RStack stack,Variable to,Variable me)throws CompileError{
+		Struct.basicSetDirect(p, stack, to, me);
+	}
+	public void setMeDirect(PrintStream p,RStack stack,Variable me,Variable from)throws CompileError{
+		Struct.basicSetDirect(p, stack, me, from);
+	}
+	/**
+	 * an implimentation of direct get/set that will usually work unless there is casting
+	 * @param p
+	 * @param stack
+	 * @param to
+	 * @param from
+	 */
+	public static void basicSetDirect(PrintStream p,RStack stack,Variable to,Variable from) {
+		String dto=to.dataPhrase();
+		String dfrom=from.dataPhrase();
+		p.printf("data modify %s set from %s\n",dto,dfrom);
+	}
+
 	
 	public abstract boolean canDoBiOp(BiOperator.OpType op,StructTypeParams tps,VarType other,boolean isFirst)throws CompileError;
 	public abstract void doBiOpFirst(BiOperator.OpType op,StructTypeParams tps,PrintStream p,Compiler c,Scope s, RStack stack,Integer home1,Integer home2)throws CompileError;
@@ -110,6 +146,10 @@ public abstract class Struct {
 	public abstract void setRegistersToBool(PrintStream p,Compiler c,Scope s, RStack stack,int home,boolean val,StructTypeParams tps)throws CompileError;
 	
 	
-	public abstract void getMe(PrintStream p,RStack stack,int home,VarType.StructTypeParams tps)throws CompileError;
-	public abstract void setMe(PrintStream p,RStack stack,int home,VarType.StructTypeParams tps)throws CompileError;
+	public abstract boolean isCompadible(VarType type2)throws CompileError;
+	public abstract void directSet(PrintStream p,Variable to, Variable from,boolean toMe)throws CompileError;
+	public abstract void toScore(PrintStream p,RStack s,Integer  to, Variable from,boolean toMe)throws CompileError;
+	public void directSetTag(PrintStream p,Variable to, Variable from)throws CompileError{
+		
+	}
 }

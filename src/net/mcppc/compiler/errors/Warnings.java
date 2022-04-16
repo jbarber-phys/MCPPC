@@ -4,6 +4,7 @@ import java.io.PrintStream;
 
 public class Warnings {
 	static PrintStream warn=System.err;
+	//eclipse shows all err output in red
 	public static enum OneTimeWarnings{
 		TYPE64BIT("Warning: used datatype double or long, but these types may be downcasted due to minecraft scores being only 32 bits;"),
 		LIKELYOVERFLOW("Warning: likely overflow of data in scoreboard;")

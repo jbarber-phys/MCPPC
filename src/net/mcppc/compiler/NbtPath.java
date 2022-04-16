@@ -40,8 +40,11 @@ public class NbtPath {
 		path=m.group().trim();
 	}
 	@Override public String toString() {return this.path;}
-	
+
 	public static NbtPathToken nextNbtCarefull (Compiler c, Matcher matcher) throws CompileError {
+		return nextNbtCarefull(c,matcher,false);
+	}
+	public static NbtPathToken nextNbtCarefull (Compiler c, Matcher matcher,boolean doubleBraces) throws CompileError {
 		StringBuffer buff=new StringBuffer();
 		
 		@SuppressWarnings("unused") Token wc=c.nextNonNullMatch(Factories.skipSpace);
@@ -56,6 +59,13 @@ public class NbtPath {
 				buff.append(matcher.group());
 				braces++;
 				c.cursor=matcher.end();
+				if(doubleBraces) {
+					matcher.region(c.cursor, matcher.regionEnd());
+					if(!matcher.usePattern(Regexes.CODEBLOCKBRACE).lookingAt()
+							||
+							matcher.group(1)==null)throw new CompileError("expected a double (escpaed) brace {{ but got a single one");
+					c.cursor=matcher.end();
+				}
 				continue;
 			}else if (matcher.usePattern(Regexes.NBT_CLOSE)
 			.lookingAt()) {
@@ -63,6 +73,13 @@ public class NbtPath {
 				buff.append(matcher.group());
 				braces--;
 				c.cursor=matcher.end();
+				if(doubleBraces) {
+					matcher.region(c.cursor, matcher.regionEnd());
+					if(!matcher.usePattern(Regexes.CODEBLOCKBRACE).lookingAt()
+							||
+							matcher.group(2)==null)throw new CompileError("expected a double (escpaed) brace {{ but got a single one");
+					c.cursor=matcher.end();
+				}
 				continue;
 			}
 			else if (matcher.usePattern(Regexes.NBT_THROUGH)
@@ -72,7 +89,7 @@ public class NbtPath {
 				continue;
 			}else {
 				//end
-				if(braces!=0) new CompileError("unexpected brace count (extra opens %d) in nbttag on line %d;".formatted(braces,c.line));
+				if(braces!=0) throw new CompileError("unexpected brace count (extra opens %d) in nbttag on line %d;".formatted(braces,c.line));
 				return new NbtPathToken(line,col,buff.toString());
 			}
 		}

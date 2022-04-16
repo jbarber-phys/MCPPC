@@ -75,14 +75,20 @@ public class Compiler{
 		this.line++;
 	}
 	public Compiler (CompileJob job,ResourceLocation res) {
+		this(job,res,false);
+	}
+	public Compiler (CompileJob job,ResourceLocation res,boolean hdrOnly) {
 		this.resourcelocation=res;
 		this.job=job;
+		this.isHeaderOnly=hdrOnly;
 		this.makeFiles();
 		CompileJob.compileMcfLog.printf("new compiler at %s;\n", res);
 	}
 	private void makeFiles() {
 		this.src=job.pathForSrc(this.resourcelocation).toFile();
-		this.hdr=job.pathForHeaderOut(this.resourcelocation).toFile();
+		if(this.isHeaderOnly)this.hdr=job.pathForInclude(this.resourcelocation).toFile();
+		else this.hdr=job.pathForHeaderOut(this.resourcelocation).toFile();
+		
 		this.mcf=job.pathForMcf(this.resourcelocation).toFile();
 	}
 	public void loadSrc() throws FileNotFoundException, CompileError {
@@ -156,7 +162,10 @@ public class Compiler{
 					else {match=true;break thefor;}
 				}
 			}
-			if(!match)throw new CompileError("no recognized token found with pattern line %d col %d.".formatted(this.line,this.cursor-this.lineStart));
+			if(!match) {
+				String s=this.content.substring(this.cursor, this.cursor+10);
+				throw new CompileError("no recognized token found with pattern to match '%s'... line %d col %d.".formatted(s,this.line,this.cursor-this.lineStart));
+			}
 
 		}
 		if(canEnd)return null;
@@ -189,6 +198,7 @@ public class Compiler{
 				domments.add(dom);
 			}
 		};
+		this.dommentCollector=dc;
 		boolean prevHeaderable = false;
 		comploop: while(cursor<this.content.length()) {
 			int startline=this.line;
@@ -198,20 +208,21 @@ public class Compiler{
 			if(sm instanceof Token.CodeBlockBrace) {
 				if(((Token.CodeBlockBrace)sm).forward) {
 					//shoudl have been handled by previous statement
-					throw new CompileError.UnexpectedToken(sm,"'}' or line;","previous statement should have handled any open braces");
+					throw new CompileError.UnexpectedToken(sm,"'{' or line;","previous statement should have handled any forward braces");
 				}else {
 					//end block
 					if(this.currentScope.parent==null) {
 						//may leave early
 						domments.clear();
 						this.dommentCollector=dc;
-						continue;
-						//throw new CompileError.UnexpectedToken(sm,"'}' or line;","found outside of scope");
+						//continue;
+						throw new CompileError.UnexpectedToken(sm,"'}' or line;","found outside of scope");
 						
 					}
+					CompileJob.compileHdrLog.println("header: block end: '%s', line %d col %d.".formatted(sm.asString(),this.line,this.cursor-this.lineStart));
 						
 					this.currentScope=this.currentScope.superscope();
-					break comploop;
+					continue comploop;
 				}
 			}
 			CompileJob.compileHdrLog.println("statement: '%s', line %d col %d.".formatted(sm.asString(),this.line,this.cursor-this.lineStart));
@@ -223,6 +234,10 @@ public class Compiler{
 			domments.clear();
 			this.dommentCollector=dc;
 			headerlines.add((Statement) sm);
+			if(sm instanceof Statement.CodeBlockOpener && ((Statement.CodeBlockOpener) sm).didOpenCodeBlock()) {
+				this.currentScope=((Statement.CodeBlockOpener) sm).getNewScope();
+				//thats it
+			}
 		}
 		this.areLocalsLoaded=true;
 		//FileOutputStream fos=new FileOutputStream(hdr, false);//second arg is if append
@@ -276,6 +291,7 @@ public class Compiler{
 				domments.add(dom);
 			}
 		};
+		this.dommentCollector=dc;
 		if(isInCodeBlock)CompileJob.compileMcfLog.printf("new block for %s\n", block.scope.getSubRes());
 		MultiFlow flowPred=null;
 		comploop: while(cursor<this.content.length()) {
@@ -312,14 +328,18 @@ public class Compiler{
 			}
 			if(isInCodeBlock) block.addStatement((Statement) sm);
 			else compiledLines.add((Statement) sm);
-			if(sm instanceof Statement.CodeBlockOpener && ((Statement.CodeBlockOpener) sm).didOpenCommandBlock()) {
+			if(sm instanceof Statement.CodeBlockOpener && ((Statement.CodeBlockOpener) sm).didOpenCodeBlock()) {
 				this.currentScope=((Statement.CodeBlockOpener) sm).getNewScope();
 				CodeBlock subblock=new CodeBlock(this.line,this.column(),this.currentScope);
 				this.BuildCodeBlock(subblock);
+				this.dommentCollector=dc;
 				if(isInCodeBlock)block.addStatement(subblock);
 				else compiledLines.add(subblock);
 				if(sm instanceof Statement.MultiFlow) {
-					if(flowPred!=null && ((Statement.MultiFlow)sm).recive())((MultiFlow) sm).setPredicessor(flowPred);
+					if(flowPred!=null && ((Statement.MultiFlow)sm).recive())
+						if(!((MultiFlow) sm).setPredicessor(flowPred)) 
+							throw new CompileError("%s cannot be sent as predicessor to a %s statement;"
+									.formatted(flowPred.getFlowType(),((MultiFlow) sm).getFlowType()));
 					
 					if(flowPred==null && ((Statement.MultiFlow)sm).sendForward())flowPred=(MultiFlow) sm;
 					else if(flowPred!=null && ((Statement.MultiFlow)sm).sendForward()&& ((Statement.MultiFlow)sm).claim())flowPred=(MultiFlow) sm;
@@ -370,9 +390,16 @@ public class Compiler{
 			s.compileMe(this.baseScope.out, this, currentScope);
 		}
 		this.baseScope.closeJustMyFiles();
+		if (this.job.CLEAN_MCF_SUBDIR) {
+			File f=this.job.pathForMcfSubfunctionsDir(this.resourcelocation).toFile();
+			//TODO
+		}
 		for(Statement block:compiledLines) if (block instanceof CodeBlock){
 			((CodeBlock) block).compileMyBlock(this);
 		}
 		this.currentScope=this.baseScope;
+	}
+	public boolean isHeaderOnly() {
+		return isHeaderOnly;
 	}
 }
