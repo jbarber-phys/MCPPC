@@ -35,6 +35,7 @@ public abstract class Statement extends Token {
 		default public boolean canRecurr() {
 			return false;
 		}
+		public boolean canBreak();
 	}
 	public static interface MultiFlow extends Flow{
 		//implement this if its a flow statement that affects later flow statements: like if -> elif -> else
@@ -46,6 +47,7 @@ public abstract class Statement extends Token {
 	public static interface CodeBlockOpener {
 		public boolean didOpenCodeBlock();
 		public Scope getNewScope();
+		public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s)throws CompileError;
 	}
 	public static abstract class Factory extends Token.Factory {
 		public abstract Statement createStatement(Compiler c, Matcher matcher, int line, int col) throws CompileError;
@@ -161,7 +163,9 @@ public abstract class Statement extends Token {
 			@Override public Statement createStatement(Compiler c, Matcher matcher, int line, int col) throws CompileError {
 				c.cursor=matcher.end();
 				CommandToken t=new CommandToken(line,col,matcher.group(1));
-				if(c.nextNonNullMatch(Factories.nextIsLineEnd) instanceof Token.LineEnd)throw new CompileError.UnexpectedToken(t, ";");
+				if(c.nextNonNullMatch(Factories.nextIsLineEnd) instanceof Token.LineEnd)
+					c.cursor=matcher.end();
+				else throw new CompileError.UnexpectedToken(t, ";");
 				return new CommandStatement(line,col,t);
 			}
 		};
@@ -213,6 +217,36 @@ public abstract class Statement extends Token {
 				//equation finds the semicolon;
 				if(eq.end !=End.STMTEND) throw new CompileError("assignment ended with a non-';'");
 				return new Statement.Assignment(line, col, ret, eq);
+			}else
+				throw new CompileError.UnexpectedToken(asn, "'=' or '~~' or '('","return statements must be assignlike as they do not affect flow; example: return = 23;");
+			
+			
+		}
+		//break has optional arg for depth; zero depth is default; break = true; break(0)=true;
+		public static Assignment makeBreak(Compiler c,Matcher m,int line,int col) throws CompileError {
+			c.cursor=m.end();
+			Token t=c.nextNonNullMatch(Factories.checkForParen);
+			int depth=0;
+			if(t instanceof Token.Paren) {
+				if(!((Token.Paren) t).forward)throw new CompileError.UnexpectedToken(t, "'(' or '='");
+				t=c.nextNonNullMatch(Factories.nextNum);
+				if(!(t instanceof Token.Num))throw new CompileError.UnexpectedToken(t, "positive int number");
+				Number n=((Token.Num)t).value;
+				if(!CMath.isNumberInt(n)) throw new CompileError.UnexpectedToken(t, "positive int number");
+				depth=n.intValue();
+				if (depth<0)throw new CompileError.UnexpectedToken(t, "positive int number");
+				t=c.nextNonNullMatch(Factories.closeParen);
+				
+			}
+			Token asn=c.nextNonNullMatch(Factories.checkForAssignlike);
+			if(!c.currentScope.hasBreak(depth)) throw new CompileError("tried to break with depth %d that did not exist;".formatted(depth));
+			Variable brk=c.currentScope.getBreakVarInMe(depth);
+			//? =
+			if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ASSIGNMENT) {
+				Equation eq=Equation.toAssign(line, col, c, m);
+				//equation finds the semicolon;
+				if(eq.end !=End.STMTEND) throw new CompileError("assignment ended with a non-';'");
+				return new Statement.Assignment(line, col, brk, eq);
 			}else
 				throw new CompileError.UnexpectedToken(asn, "'=' or '~~' or '('","return statements must be assignlike as they do not affect flow; example: return = 23;");
 			

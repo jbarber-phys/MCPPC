@@ -10,6 +10,7 @@ import java.util.Scanner;
 import java.util.regex.*;
 import net.mcppc.compiler.errors.*;
 import net.mcppc.compiler.tokens.*;
+import net.mcppc.compiler.tokens.Statement.CodeBlockOpener;
 import net.mcppc.compiler.tokens.Statement.Domment;
 import net.mcppc.compiler.tokens.Statement.Headerable;
 import net.mcppc.compiler.tokens.Statement.MultiFlow;
@@ -233,7 +234,7 @@ public class Compiler{
 			}
 			domments.clear();
 			this.dommentCollector=dc;
-			headerlines.add((Statement) sm);
+			if(sm instanceof Statement)headerlines.add((Statement) sm);
 			if(sm instanceof Statement.CodeBlockOpener && ((Statement.CodeBlockOpener) sm).didOpenCodeBlock()) {
 				this.currentScope=((Statement.CodeBlockOpener) sm).getNewScope();
 				//thats it
@@ -330,7 +331,7 @@ public class Compiler{
 			else compiledLines.add((Statement) sm);
 			if(sm instanceof Statement.CodeBlockOpener && ((Statement.CodeBlockOpener) sm).didOpenCodeBlock()) {
 				this.currentScope=((Statement.CodeBlockOpener) sm).getNewScope();
-				CodeBlock subblock=new CodeBlock(this.line,this.column(),this.currentScope);
+				CodeBlock subblock=new CodeBlock(this.line,this.column(),this.currentScope,(CodeBlockOpener) sm);
 				this.BuildCodeBlock(subblock);
 				this.dommentCollector=dc;
 				if(isInCodeBlock)block.addStatement(subblock);
@@ -392,7 +393,13 @@ public class Compiler{
 		this.baseScope.closeJustMyFiles();
 		if (this.job.CLEAN_MCF_SUBDIR) {
 			File f=this.job.pathForMcfSubfunctionsDir(this.resourcelocation).toFile();
-			//TODO
+			//clean old unused functions
+			if(f.exists() && f.isDirectory()) {
+				for(File sf:f.listFiles()) {
+					CompileJob.compileMcfLog.println("cleaning %s;".formatted(sf.getAbsolutePath()));
+					sf.delete();
+				}
+			}
 		}
 		for(Statement block:compiledLines) if (block instanceof CodeBlock){
 			((CodeBlock) block).compileMyBlock(this);

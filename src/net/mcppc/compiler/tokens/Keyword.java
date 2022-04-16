@@ -20,6 +20,7 @@ public enum Keyword {
 	EXECUTE("execute"),
 	WHILE("while"),
 	FOR("for"),
+	BREAK("break"),
 	RETURN("return");
 	
 	public static final Map<String,Keyword> VALUES = new HashMap<String, Keyword>();

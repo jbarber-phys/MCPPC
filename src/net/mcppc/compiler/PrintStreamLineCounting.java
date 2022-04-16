@@ -13,9 +13,14 @@ import net.mcppc.compiler.errors.Warnings;
 
 public class PrintStreamLineCounting extends PrintStream {
 	//to generate large numbers of methods, use context menu > source > generate constrocturs from super
+
+	protected static final PrintStream outputSizeLog=System.out;
 	private int lines=0;
 	public int getLines() {
 		return lines;
+	}
+	public void announceLines(String name) {
+		outputSizeLog.printf("printed %d lines to %s.mcf;\n", this.getLines(),name);
 	}
 
 	public PrintStreamLineCounting(OutputStream out) {

@@ -109,28 +109,7 @@ public class Equation extends Token {
 			
 	};
 	public List<Token> elements=new ArrayList<Token>();
-	public static Number uminus(Number n) {
-		if(n instanceof Byte)return -n.byteValue();
-		else if(n instanceof Short)return -n.shortValue();
-		else if(n instanceof Integer)return -n.intValue();
-		else if(n instanceof Long)return -n.longValue();
-		else if(n instanceof Float)return -n.floatValue();
-		else if(n instanceof Double)return -n.doubleValue();
-		else return null;
-		
-	}
-	public static Number pow(Number b,Number e) {
-		if(e instanceof Float)return (double)Math.pow(b.doubleValue(), e.doubleValue());
-		else if(e instanceof Double)return (double)Math.pow(b.doubleValue(), e.doubleValue());
-		else if(b instanceof Byte)return (int)Math.pow(b.doubleValue(), e.doubleValue());
-		else if(b instanceof Short)return (int)Math.pow(b.doubleValue(), e.doubleValue());
-		else if(b instanceof Integer)return (long)Math.pow(b.doubleValue(), e.doubleValue());
-		else if(b instanceof Long)return (long)Math.pow(b.doubleValue(), e.doubleValue());
-		else if(b instanceof Float)return (double)Math.pow(b.doubleValue(), e.doubleValue());
-		else if(b instanceof Double)return (double)Math.pow(b.doubleValue(), e.doubleValue());
-		else return null;
-		
-	}
+	
 	private Number getNegativeNumberLiteral() {
 		if(this.elements.size()!=2)return null;
 		if(!(this.elements.get(0) instanceof UnaryOp))return null;
@@ -138,7 +117,28 @@ public class Equation extends Token {
 		if(!op.isUminus())return null;
 		if(!(this.elements.get(1) instanceof Token.Num))return null;
 		Number n1=((Token.Num)this.elements.get(1)).value;
-		return uminus(n1);
+		return CMath.uminus(n1);
+	}
+
+	public boolean isNumber() {
+		if(this.elements.size()==1) {
+			if(!(this.elements.get(0) instanceof Token.Num))return false;
+			return true;
+		}
+		if(this.elements.size()!=2)return false;
+		if(!(this.elements.get(0) instanceof UnaryOp))return false;
+		UnaryOp op=(UnaryOp) this.elements.get(0);
+		if(!op.isUminus())return false;
+		if(!(this.elements.get(1) instanceof Token.Num))return false;
+		
+		return true;
+	}
+	public Number getNumber() {
+		if(this.elements.size()==1) {
+			if((this.elements.get(0) instanceof Token.Num))return ((Token.Num)this.elements.get(0)).value;
+			return null;
+		}
+		return this.getNegativeNumberLiteral();
 	}
 	public boolean isRefable() {
 		if(this.elements.size()!=1)return false;
@@ -494,10 +494,10 @@ public class Equation extends Token {
 					Collections.reverse(exponents);
 					Number e=1;
 					for(Number n:exponents) {
-						e=Equation.pow(n, e);
+						e=CMath.pow(n, e);
 					}
 					if(first instanceof Num && Equation.PRE_EVAL_EXP) {
-						e=Equation.pow(((Num)first).value, e);
+						e=CMath.pow(((Num)first).value, e);
 						int precison=(int) (5-Math.round(Math.log10( e.doubleValue())));
 						stack.getRegister(this.homeReg).setValue(p, e,new VarType(Builtin.DOUBLE,precison));
 						this.stack.estmiate(this.homeReg, e);

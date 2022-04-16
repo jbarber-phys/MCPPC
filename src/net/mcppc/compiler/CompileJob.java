@@ -96,7 +96,8 @@ public class CompileJob {
 	}
 	
 	//nonstatic below
-	public final boolean CLEAN_MCF_SUBDIR=true;
+	public boolean CLEAN_MCF_SUBDIR=true;
+	public final int MAX_NUM_CMDS=(int) Math.round(Math.pow(2, 15)-1);
 	
 	final Map<String,Namespace> namespaces=new HashMap<String,Namespace>();
 	
@@ -265,6 +266,7 @@ public class CompileJob {
 			String s=stdin.nextLine();
 			if(s.equals("Y")) ;//proceed
 			else return;
+			this.CLEAN_MCF_SUBDIR=false;//avoid cleaning just in case
 		}else{
 			//consider loading in version number
 		}
@@ -429,20 +431,23 @@ public class CompileJob {
 			if(ns.srcFilesRel.size()==0)continue;//skip if no src found
 			ResourceLocation mcf=ns.getLoadFunction();
 			Path load=this.pathForMcf(mcf);
-			PrintStream p=null;
+			PrintStreamLineCounting p=null;
 			boolean success=true;
 			try {
 				File f=load.toFile();
 				f.getParentFile().mkdirs();
 				f.createNewFile();
-				p=new PrintStream(f);
+				p=new PrintStreamLineCounting(f);
 				Register.createAll(p, ns.maxNumRegisters);
 			} catch (IOException e) {
 				e.printStackTrace();
 				CompileJob.compileMcfLog.printf("failed to make namespace %s;\n", ns.name);
 				success=false;
 			}finally {
-				if(p!=null)p.close();
+				if(p!=null) {
+					p.close();
+					p.announceLines(mcf.toString());
+				}
 			}
 			if(success) {
 				CompileJob.compileMcfLog.printf("made namespace %s;\n", ns.name);

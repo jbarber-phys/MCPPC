@@ -12,12 +12,14 @@ import net.mcppc.compiler.errors.CompileError;
 
 public class CodeBlock extends Statement {
 	public final Scope scope;
+	public final Statement.CodeBlockOpener opener;
 	
 	final List<Statement> statements=new ArrayList<Statement>();
 
-	public CodeBlock(int line, int col,Scope s) {
+	public CodeBlock(int line, int col,Scope s,CodeBlockOpener opener) {
 		super(line, col);
 		this.scope=s;
+		this.opener= opener;
 	}
 	public void addStatement(Statement sm) {
 		this.statements.add(sm);
@@ -33,6 +35,8 @@ public class CodeBlock extends Statement {
 			//s.printStatementTree(CompileJob.compileMcfLog, 0);
 			s.compileMe(this.scope.out, c, scope);
 		}
+		if(this.opener!=null)opener.addToEndOfMyBlock(this.scope.out, c, this.scope);
+		
 		this.scope.closeJustMyFiles();
 		for(Statement block:this.statements) if (block instanceof CodeBlock){
 			((CodeBlock) block).compileMyBlock(c);

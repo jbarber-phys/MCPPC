@@ -42,7 +42,7 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 	public static IfElse makeMe(Compiler c, Matcher matcher, int line, int col,Keyword opener) throws CompileError {
 		//test for else if
 		c.cursor=matcher.end();
-		CompileJob.compileMcfLog.printf("flow ifElse %s;\n", opener);
+		//CompileJob.compileMcfLog.printf("flow ifElse %s;\n", opener);
 		Token t;
 		Keyword open=opener;
 		if(opener==Keyword.ELSE) {
@@ -120,7 +120,6 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 	Variable done;
 	@Override
 	public void compileMe(PrintStream p, Compiler c, Scope s) throws CompileError {
-		// TODO test
 		ResourceLocation mcf=this.mySubscope.getSubRes();
 		//internal tokens
 		BiOperator and = new BiOperator(this.line,-1,OpType.AND);
@@ -174,6 +173,14 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 	@Override
 	public Scope getNewScope() {
 		return this.mySubscope;
+	}
+	@Override
+	public boolean canBreak() {
+		return false;
+	}
+	@Override
+	public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
+		//do nothing
 	}
 
 

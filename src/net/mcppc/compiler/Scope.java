@@ -31,7 +31,7 @@ public class Scope {
 	//count flows for sub-blocks to use
 	private int flowCounter;
 	
-	
+	private final boolean isBreakable;
 	//file IO for compiling mcfs only
 	final List<Scope> children = new ArrayList<Scope>();
 	public PrintStream out=null;
@@ -55,11 +55,14 @@ public class Scope {
 			isOpen=false;
 			throw new FileNotFoundException("actually an IOException");
 		}
-		this.out=new PrintStream(f);
+		this.out=new PrintStreamLineCounting(f);
 		return this.out;
 	}
 	public void closeFiles() {
-		if(this.out!=null)out.close();
+		if(this.out!=null) {
+			out.close();
+			if(this.out instanceof PrintStreamLineCounting) ((PrintStreamLineCounting) this.out).announceLines(this.getSubRes().toString());
+		}
 		this.isOpen=false;
 		for(Scope k:this.children)k.closeFiles();
 	}
@@ -136,6 +139,7 @@ public class Scope {
 		//scope of compiler root;
 		this.myFlowNumber=0;
 		this.resBase=c.resourcelocation;
+		this.isBreakable=false;
 	}
 	private Scope(Scope s,Function f) {
 		this.parent=s;
@@ -143,6 +147,7 @@ public class Scope {
 		this.myFlowNumber=0;
 		this.resBase=s.resBase;
 		s.children.add(this);
+		this.isBreakable=false;
 	}
 	private Scope(Scope s,Statement.Flow flow) {
 		this.parent=s;
@@ -151,6 +156,7 @@ public class Scope {
 		this.resBase=s.resBase;
 		this.flowType=flow.getFlowType();
 		this.hasExtraSuffix=true;
+		this.isBreakable=flow.canBreak();
 		s.children.add(this);
 	}
 	public Scope subscope(Function f) throws CompileError{
@@ -167,9 +173,32 @@ public class Scope {
 		final Variable done=new Variable("\"$ifelse_done\"",VarType.BOOL,null,this.getSubRes());
 		return done;
 	}
+	public boolean hasBreak() {
+		return hasBreak(0);
+	}
+	public boolean hasBreak(int depth) {
+		if(this.isBreakable) {
+			if(depth==0)return true;
+			if(this.parent==null)return false;
+			return this.parent.hasBreak(depth-1);
+		}
+		if(this.parent==null)return false;
+		return this.parent.hasBreak(depth);
+	}
 	public Variable getBreakVarInMe() {
-		//internal scope to the loop
-		final Variable bk=new Variable("\"$break\"",VarType.BOOL,null,this.getSubRes());
-		return bk;
+		return getBreakVarInMe(0);
+	}
+	public Variable getBreakVarInMe(int depth) {
+		if(this.isBreakable) {
+			//internal scope to the loop
+			if(depth==0) {
+				final Variable bk=new Variable("\"$break\"",VarType.BOOL,null,this.getSubRes());
+				return bk;
+			}
+			if(this.parent==null)return null;
+			return this.parent.getBreakVarInMe(depth-1);
+		}
+		if(this.parent==null)return null;
+		return this.parent.getBreakVarInMe(depth);
 	}
 }

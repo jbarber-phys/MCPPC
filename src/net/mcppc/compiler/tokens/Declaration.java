@@ -403,6 +403,10 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 				.formatted(this.estimate!=null?"~~...":"",
 						this.assignment!=null?"=...":"");
 	}
+	@Override
+	public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
+		//do nothing
+	}
 	
 
 }

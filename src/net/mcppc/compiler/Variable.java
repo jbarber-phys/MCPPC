@@ -218,6 +218,13 @@ public class Variable {
 		} default:return null;
 		}
 	}
+	public String isTrue() {
+		if(this.pointsTo==Mask.SCORE) {
+			return "score %s %s matches 1..".formatted(this.holder,this.address);
+			
+		}
+		return this.matchesPhrase("1b");
+	}
 	public String getJsonText() {
 		String edress = PrintF.ESCAPE_TAG_IN_JSON? Regexes.escape(this.address):this.address;
 		if(this.type.isStruct())return this.type.struct.getJsonTextFor(this);
@@ -277,7 +284,11 @@ public class Variable {
 		if(this.type.isStruct()) {
 			this.type.struct.setVarToNumber(p, c, s, stack, value,this.type.structArgs);
 		} else {
-			p.printf("data modify %s set value %s\n", this.dataPhrase(),value);
+			//enforce type
+			Number n;
+			if(this.type.isFloatP())n=value.doubleValue();
+			else n=value.longValue();
+			p.printf("data modify %s set value %s\n", this.dataPhrase(),n);
 		}
 	}
 	public void setMeToBoolean(PrintStream p,Compiler c,Scope s, RStack stack,boolean value) throws CompileError {

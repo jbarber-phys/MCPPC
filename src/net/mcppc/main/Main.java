@@ -36,6 +36,14 @@ public class Main {
 		/*
 		 * USE %s; SCI NOTATION IS NOT A PROBLEM; I TESTED THIS IN MC; THE VSCODE PLUGIN GETS IT WRONG
 		 */
+		int i=3;
+		Integer itg=3;
+		Double dbl=(double) 3;
+		Number ni=true?(long) 3.0:3.0;
+		Number nd=(double) 3;
+		System.out.printf("%%s : %s , %s, %s, %s, %s ;\n", i,itg,dbl,ni,nd); //uses sci. not. if it is big
+		//System.out.printf("%%d : %d, %d, %s, %d, %s ;\n", i,itg,dbl,ni,nd); // will round to 6 places
+		
 		
 	}
 	public static void main(String[] args) {

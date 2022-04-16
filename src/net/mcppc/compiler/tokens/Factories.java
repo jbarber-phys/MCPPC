@@ -37,6 +37,10 @@ public final class Factories {
 				return IfElse.skipMe(c, matcher, line, col, w);
 			case ELSE:
 				return IfElse.skipMe(c, matcher, line, col, w);
+			case FOR:
+				return ForStm.skipMe(c, matcher, line, col, w);
+			case WHILE:
+				return While.skipMe(c, matcher, line, col, w);
 			default:{
 				//don't include in header
 			}
@@ -72,15 +76,17 @@ public final class Factories {
 				return IfElse.makeMe(c, matcher, line, col, w);
 			case ELSE:
 				return IfElse.makeMe(c, matcher, line, col, w);
+			case FOR:
+				return ForStm.makeMe(c, matcher, line, col, w);
+			case WHILE:
+				return While.makeMe(c, matcher, line, col, w);
+			case BREAK:
+				return Statement.Assignment.makeBreak(c, matcher, line, col);
+			case RETURN:
+				return Statement.Assignment.makeReturn(c, matcher, line, col);
 			//TODO
 			case EXECUTE:
 				break;
-			case FOR:
-				break;
-			case WHILE:
-				break;
-			case RETURN:
-				return Statement.Assignment.makeReturn(c, matcher, line, col);
 			default:
 				break;
 
