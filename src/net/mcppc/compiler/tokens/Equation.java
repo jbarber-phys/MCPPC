@@ -11,7 +11,6 @@ import java.util.regex.Matcher;
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Register.RStack;
-import net.mcppc.compiler.VarType.Builtin;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
@@ -499,7 +498,7 @@ public class Equation extends Token {
 					if(first instanceof Num && Equation.PRE_EVAL_EXP) {
 						e=CMath.pow(((Num)first).value, e);
 						int precison=(int) (5-Math.round(Math.log10( e.doubleValue())));
-						stack.getRegister(this.homeReg).setValue(p, e,new VarType(Builtin.DOUBLE,precison));
+						stack.getRegister(this.homeReg).setValue(p, e,VarType.doubleWith(precison));
 						this.stack.estmiate(this.homeReg, e);
 					}else {
 						BiOperator.exp(p, c, s, stack, homeReg, e);

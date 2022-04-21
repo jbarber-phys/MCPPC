@@ -97,7 +97,7 @@ public class BiOperator extends Token{
 			}
 			return null;
 		}
-		final String s;
+		public final String s;
 		final OperationOrder order;
 		OpType(String s,OperationOrder op){
 			this.s=s;

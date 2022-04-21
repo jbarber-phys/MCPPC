@@ -112,19 +112,51 @@ public abstract class Token {
 		@Override public String asString() {return s;
 		}
 	}
-	public static class Paren extends Token{
+	public static abstract class AbstractBracket extends Token{
+		public AbstractBracket(int line, int col,boolean forward) {
+			super(line, col);
+			this.forward=forward;
+		}
+		public final boolean forward;
+		
+		
+		//KEEP THIS AS FALSE;
+		public static final boolean ARE_TYPEARGS_PARENS=false;
+		public static final Token.Factory[] checkForParen = 
+			{Factories.newline,Factories.comment,Factories.domment,Factories.space,
+					Statement.Domment.factory,
+					ARE_TYPEARGS_PARENS?Token.Paren.factory:TypeArgBracket.factory,
+					Token.WildChar.dontPassFactory};
+
+		public static  boolean isArgTypeArg(Token t) {
+			if(ARE_TYPEARGS_PARENS)return t instanceof Paren;
+			else return t instanceof TypeArgBracket;
+		}
+	}
+	public static class Paren extends AbstractBracket{
 		public static final Factory factory = new Factory(Regexes.PARENS) {
 			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
 				c.cursor=matcher.end();
 				return new Paren(line,col,matcher.group(1)!=null);
 			}};
-		public final boolean forward;
 		public Paren(int line, int col,boolean forward) {
-			super(line, col);
-			this.forward=forward;
+			super(line, col,forward);
 		}
 		@Override public String asString() {
 			return forward?"(":")";
+		}
+	}
+	public static class TypeArgBracket extends AbstractBracket{
+		public static final Factory factory = new Factory(Regexes.ANGLEBRACKETS) {
+			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+				c.cursor=matcher.end();
+				return new TypeArgBracket(line,col,matcher.group(1)!=null);
+			}};
+		public TypeArgBracket(int line, int col,boolean forward) {
+			super(line, col,forward);
+		}
+		@Override public String asString() {
+			return forward?"<":">";
 		}
 	}
 	public static class Bool extends Token implements ConstexprValue{
@@ -134,7 +166,7 @@ public abstract class Token {
 				return new Bool(line,col,matcher.group(1)!=null);
 			}};
 		public final boolean val;
-		public final VarType type=new VarType(Builtin.BOOL);
+		public final VarType type=VarType.BOOL;
 		public Bool(int line, int col,boolean val) {
 			super(line, col);
 			this.val=val;
@@ -143,7 +175,7 @@ public abstract class Token {
 			return val?"true":"false";
 		}
 	}
-	public static class CodeBlockBrace extends Token{
+	public static class CodeBlockBrace extends AbstractBracket{
 		public static final  Factory factory = new Factory(Regexes.CODEBLOCKBRACE) {
 			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
 				c.cursor=matcher.end();
@@ -156,10 +188,8 @@ public abstract class Token {
 				c.cursor=matcher.end();
 				return t;
 			}};
-		public final boolean forward;
 		public CodeBlockBrace(int line, int col,boolean forward) {
-			super(line, col);
-			this.forward=forward;
+			super(line, col,forward);
 		}
 		@Override public String asString() {
 			return forward?"{":"}";
@@ -335,7 +365,7 @@ public abstract class Token {
 			@Override
 			public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
 				c.cursor=matcher.end();
-				return new Num(line,col,null,new VarType(Builtin.DOUBLE));
+				return new Num(line,col,null,VarType.DOUBLE);
 			}};
 		public final Number value;
 		public final VarType type;
@@ -368,7 +398,7 @@ public abstract class Token {
 					//2 floats
 					//use sig fig rules
 					int newPrecision=(int) Math.min(this.type.getPrecision()-Math.log10(n2), other.type.getPrecision()-Math.log10(n1));
-					ntype=new VarType(Builtin.DOUBLE,newPrecision);
+					ntype=VarType.doubleWith(newPrecision);
 				}
 			}
 			return new Num(this.line,this.col,result,ntype);
@@ -384,7 +414,7 @@ public abstract class Token {
 					//2 floats
 					//use sig fig rules
 					int newPrecision=(int) Math.min(this.type.getPrecision()+Math.log10(n2), other.type.getPrecision()+2.0*Math.log10(n2)-Math.log10(n1));
-					ntype=new VarType(Builtin.DOUBLE,newPrecision);
+					ntype=VarType.doubleWith(newPrecision);
 				}
 			}
 			return new Num(this.line,this.col,result,ntype);

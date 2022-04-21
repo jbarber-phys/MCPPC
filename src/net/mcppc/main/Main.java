@@ -96,7 +96,7 @@ public class Main {
 				File f=new File(arg);
 				if(f.exists()) {
 					System.out.printf("added include dir: %s\n", arg);
-					job.addInclude(f.toPath());
+					job.includePath(f.toPath());
 				}else {
 					System.err.printf("could not find include dir: %s\n", arg);
 					return;
@@ -108,7 +108,7 @@ public class Main {
 				File f=new File(arg);
 				if(f.exists()) {
 					System.out.printf("added linking dir: %s\n", arg);
-					job.addInclude(f.toPath());
+					job.addLink(f.toPath());
 				}else {
 					System.err.printf("could not find include dir: %s\n", arg);
 					return;

@@ -32,7 +32,7 @@ public class UnaryOp extends Token {
 		}
 		
 		final OperationOrder order;
-		final String s;
+		public final String s;
 		public abstract void perform(PrintStream p,Compiler c,Scope s, RStack stack,Integer home);
 		UOType(String s,OperationOrder order){
 			this.s=s;

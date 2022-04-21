@@ -169,11 +169,12 @@ public class Register implements Comparable<Register>{
 		}
 		public void castRegister(PrintStream p,Compiler c,Scope s,int index,VarType newType) throws CompileError {
 			VarType oldType=this.getVarType(index);
+			if(oldType.equals(newType))return;//skip cast
 			if(oldType.isStruct()) {
-				if(newType.struct.canCasteFrom(oldType,newType.structArgs))
-					newType.struct.castRegistersFrom(p, this, index, oldType, newType.structArgs);
-				else if(oldType.struct.canCasteTo(newType,oldType.structArgs))
-					newType.struct.castRegistersTo(p,  this, index, newType, oldType.structArgs);
+				if(newType.struct.canCasteFrom(oldType,newType))
+					newType.struct.castRegistersFrom(p, this, index, oldType, newType);
+				else if(oldType.struct.canCasteTo(newType,oldType))
+					newType.struct.castRegistersTo(p,  this, index, newType, oldType);
 				else throw new CompileError.UnsupportedCast(newType, oldType);
 				
 			}else {

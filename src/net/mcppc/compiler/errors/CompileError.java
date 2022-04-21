@@ -63,6 +63,12 @@ public class CompileError extends Exception {
 		public UnsupportedOperation(VarType v1,Token op, VarType v2) {
 			super("Unsupported operation: %s %s %s (line %d col %d);".formatted(v1.asString(),op.asString(),v2.asString(),op.line,op.col));
 		}
+		public UnsupportedOperation(VarType v1,BiOperator.OpType op, VarType v2) {
+			super("Unsupported operation: %s %s %s ;".formatted(v1.asString(),op.s,v2.asString()));
+		}
+		public UnsupportedOperation(UnaryOp.UOType op, VarType v) {
+			super("Unsupported operation: %s %s ;".formatted(op.s,v.asString()));
+		}
 		public UnsupportedOperation(Token op, VarType v2) {
 			super("Unsupported unary operation:  %s %s (line %d col %d);".formatted(op.asString(),v2.asString(),op.line,op.col));
 		}
@@ -74,6 +80,24 @@ public class CompileError extends Exception {
 		}
 		public UnsupportedCast(VarType from, VarType to, String in) {
 			super("Unsupported implied cast from %s to %s in %s;".formatted(from,to,in));
+		}
+		
+	}
+	public static class CannotSet extends CompileError{
+		public CannotSet(VarType set, String in) {
+			super("Cannot set a %s to a literal %s;".formatted(set.asString(),in));
+		}
+		
+	}
+	public static class VarNotFound extends CompileError{
+		public VarNotFound(String var) {
+			super("Could not find Variable %s;".formatted(var));
+		}
+		public VarNotFound(Struct s,String field) {
+			super("Could not find Field  %s.%s;".formatted(s.name,field));
+		}
+		public VarNotFound(Struct s,int index) {
+			super("Could not find index member  %s[%s];".formatted(s.name,index));
 		}
 		
 	}

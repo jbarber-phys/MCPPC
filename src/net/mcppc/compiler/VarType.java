@@ -4,9 +4,9 @@ import java.io.PrintStream;
 import java.util.regex.Matcher;
 
 import net.mcppc.compiler.Register.RStack;
-import net.mcppc.compiler.VarType.StructTypeParams;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.BiOperator;
+import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.UnaryOp;
 /**
  * a variable type, incliding type parameters like precision;
@@ -22,8 +22,14 @@ public class VarType {
 	public static final VarType BYTE = new VarType(Builtin.BYTE);
 	public static final VarType SHORT = new VarType(Builtin.SHORT);
 	public static final VarType LONG = new VarType(Builtin.LONG);
+	public static final VarType FLOAT = new VarType(Builtin.FLOAT);
+	public static final VarType DOUBLE = new VarType(Builtin.DOUBLE);
 	public static final VarType VOID = new VarType(Builtin.VOID);
-	public enum Builtin{
+	
+	public static VarType doubleWith(int precison) {
+		return new VarType(Builtin.DOUBLE,precison);
+	}
+	public static enum Builtin{
 		BYTE("byte",true,false,false,false),
 		SHORT("short",true,false,false,false),
 		INT("int",true,false,false,false),
@@ -63,11 +69,6 @@ public class VarType {
 			if (this.isVoid)throw new CompileError("void cannot be set to tag");
 			if (this==BOOL)return BYTE.typename;
 			else return this.typename;
-		}
-	}
-	public static interface StructTypeParams{
-		public static final class Blank implements StructTypeParams{
-			public Blank(){}
 		}
 	}
 	public static final int DEFAULT_PRECISION = 3;
@@ -125,13 +126,13 @@ public class VarType {
 	//number of registers
 	public int sizeOf() {
 		if (this.type.isStruct) {
-			return this.struct.sizeOf(this.structArgs);
+			return this.struct.sizeOf(this);
 		}
 		//else if (this.isVoid()) return 0;
 		else return 1;//for now, extra precision is ignored
 	}
 	public int getPrecision() {
-		if (this.type.isStruct)return this.struct.getPrecision(this.structArgs);
+		if (this.type.isStruct)return this.struct.getPrecision(this);
 		return this.isFloatP()?this.precision:0;
 	}
 	public VarType floatify() {
@@ -160,7 +161,10 @@ public class VarType {
 		}
 		return new VarType(this.type,newPrecision);
 	}
-	
+	public String getNBTTagType() throws CompileError {
+		if(this.isStruct())return this.struct.getNBTTagType(this);
+		else return this.type.getTagType();
+	}
 	
 	public static boolean isType(String type) {
 		for (Builtin t: Builtin.values()) {
@@ -176,15 +180,17 @@ public class VarType {
 		
 	}
 	//must be 
+	public static final String HDRFORMAT=Token.AbstractBracket.ARE_TYPEARGS_PARENS?"%s(%d)":"%s<%d>";
 	public String asString(){
+		
 		if(this.type.isStruct) return this.struct.asString(this);
-		else if(this.type.isFloatP) return "%s(%d)".formatted(this.type.typename,this.precision);
+		else if(this.type.isFloatP) return HDRFORMAT.formatted(this.type.typename,this.precision);
 		else return this.type.typename;
 	}
 	@Override public String toString() {return this.asString();}
 	public String headerString(){
 		if(this.type.isStruct) return this.struct.headerTypeString(this);
-		else if(this.type.isFloatP) return "%s(%d)".formatted(this.type.typename,this.precision);
+		else if(this.type.isFloatP) return HDRFORMAT.formatted(this.type.typename,this.precision);
 		else return this.type.typename;
 	}
 	public String getFormatString() {
@@ -199,21 +205,33 @@ public class VarType {
 		}
 	}
 	public void doStructUnaryOp(UnaryOp.UOType op,PrintStream p,Compiler c,Scope s, RStack stack,Integer home) throws CompileError {
-		this.struct.doUnaryOp(op, this.structArgs, p, c, s, stack, home);
+		this.struct.doUnaryOp(op, this, p, c, s, stack, home);
 	}
 	public boolean supportsBiOp(BiOperator.OpType op,VarType other, boolean first) throws CompileError {
-		return this.struct.canDoBiOp(op, this.structArgs, other, first);
+		return this.struct.canDoBiOp(op, this, other, first);
 	}
 	public void doBiOpFirst(BiOperator.OpType op,PrintStream p,Compiler c,Scope s, RStack stack,Integer home1,Integer home2) throws CompileError {
-		this.struct.doBiOpFirst(op, this.structArgs, p, c, s, stack, home1, home2);
+		this.struct.doBiOpFirst(op, this, p, c, s, stack, home1, home2);
 	}
 	public void doBiOpSecond(BiOperator.OpType op,PrintStream p,Compiler c,Scope s, RStack stack,Integer home1,Integer home2) throws CompileError {
-		this.struct.doBiOpSecond(op, this.structArgs, p, c, s, stack, home1, home2);
+		this.struct.doBiOpSecond(op, this, p, c, s, stack, home1, home2);
 	}
 	public static boolean areBasicTypesCompadible(VarType t1,VarType t2) {
 		if(t1.isVoid()^t2.isVoid())return false;
 		if(t1.isNumeric()^t2.isNumeric())return false;
 		if(t1.isLogical()^t2.isLogical())return false;
 		return true;
+	}
+	@Override public boolean equals(Object other) {
+		if (this==other)return true;
+		if (other==null)return false;
+		if(!(other instanceof VarType))return false;
+		VarType v=(VarType) other;
+		return this.type==v.type
+				&& this.struct==v.struct
+				&& this.precision==v.precision
+				&&this.structArgs.equals(v.structArgs);
+		
+		
 	}
 }

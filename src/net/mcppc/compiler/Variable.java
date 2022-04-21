@@ -62,6 +62,14 @@ public class Variable {
 		this.holder=res.toString();
 		this.pointsTo=Mask.STORAGE;
 	}
+	Variable(String name,VarType vt, Keyword access,Mask pointsTo, String holder,String address) {
+		this.name = name;
+		this.type = vt;
+		this.access=access;
+		this.address=address;//scope sensitive
+		this.holder=holder;
+		this.pointsTo=pointsTo;
+	}
 	public Variable parameterOf(Function f,boolean ref) {
 		this.address="%s.%s".formatted(f.name,this.name);
 		this.holder=f.getResoucrelocation().toString();
@@ -91,7 +99,11 @@ public class Variable {
 		return this;
 	}
 	public Variable maskScore(Selector s,String score) throws CompileError {
-		if(this.type.isStruct()) throw new CompileError("cannot mask a struct / class type to scoreboard;");
+		if(this.type.isStruct()) {
+			if(!this.type.struct.canMaskScore(this.type))
+				throw new CompileError("cannot mask a struct / class type to scoreboard;");
+			//else good
+		}
 		this.isbasic=false;
 		this.holder=s.toCMD();
 		this.holderHeader=s.toHDR();
@@ -109,10 +121,10 @@ public class Variable {
 	}
 	public void setMe(PrintStream f,RStack stack,int home) throws CompileError {
 		if(this.type.isStruct()) {
-			if(this.type.struct.canCasteFrom(stack.getVarType(home), this.type.structArgs)) {
-				this.type.struct.castRegistersFrom(f, stack, home, stack.getVarType(home), this.type.structArgs);
-			}else if(stack.getVarType(home).struct.canCasteTo( this.type,stack.getVarType(home).structArgs)) {
-				stack.getVarType(home).struct.castRegistersTo(f, stack, home, this.type, stack.getVarType(home).structArgs);
+			if(this.type.struct.canCasteFrom(stack.getVarType(home), this.type)) {
+				this.type.struct.castRegistersFrom(f, stack, home, stack.getVarType(home), this.type);
+			}else if(stack.getVarType(home).struct.canCasteTo( this.type,stack.getVarType(home))) {
+				stack.getVarType(home).struct.castRegistersTo(f, stack, home, this.type, stack.getVarType(home));
 			}else {
 				throw new CompileError.UnsupportedCast(this.type, stack.getVarType(home));
 			}
@@ -127,7 +139,7 @@ public class Variable {
 		if(this.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
 		if(!VarType.areBasicTypesCompadible(this.type, regType)) throw new CompileError.UnsupportedCast(this.type, regType);
 		//non structs only; structs need their own routines possibly multiple registers)
-		String tagtype=this.type.type.getTagType();
+		String tagtype=this.type.getNBTTagType();
 		double mult=Math.pow(10, -regType.getPrecision());//scientific notation may cause problems
 		
 		switch (this.pointsTo) {
@@ -265,24 +277,11 @@ public class Variable {
 		
 		}
 	}
-	@Override public boolean equals(Object o) {
-		if (o==null) return false;
-		if (this ==o)return true;//auto-equal if they point to the same object
-		if(o instanceof Variable) {
-			Variable ov=(Variable) o;
-			return this.name.equals(ov.name)
-					&& this.holder.equals(ov.holder)
-					&& this.address.equals(ov.address);
-		}else return false;
-	}
-	@Override public int hashCode() {
-		return Objects.hash(this.name,this.holder,this.address);
-	}
 	public void setMeToNumber(PrintStream p,Compiler c,Scope s, RStack stack,Number value) throws CompileError {
 		if(!this.type.isNumeric()) throw new CompileError("cannot set variable %s to a number value %s;"
 				.formatted(this.toHeader(),value));
 		if(this.type.isStruct()) {
-			this.type.struct.setVarToNumber(p, c, s, stack, value,this.type.structArgs);
+			this.type.struct.setVarToNumber(p, c, s, stack, value,this.type);
 		} else {
 			//enforce type
 			Number n;
@@ -295,7 +294,7 @@ public class Variable {
 		if(this.type.isNumeric()) throw new CompileError("cannot set variable %s to a boolean value %s;"
 				.formatted(this.toHeader(),value));
 		if(this.type.isStruct()) {
-			this.type.struct.setVarToBool(p, c, s, stack, value,this.type.structArgs);
+			this.type.struct.setVarToBool(p, c, s, stack, value,this.type);
 		}else {
 			p.printf("data modify %s set value %s\n", this.dataPhrase(),value?1:0);
 		}
@@ -305,11 +304,13 @@ public class Variable {
 		if(to.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
 		if(from.type.isStruct())throw new CompileError("Varaible.setMe() does not yet work for structs.");
 		if(from.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
-		if(to.type.isStruct() && to.type.struct.canCasteFrom(from.type, to.type.structArgs)) {
+		if(to.type.isStruct() && to.type.struct.canCasteFrom(from.type, to.type)) {
 			to.type.struct.setMeDirect(f, stack, to, from);
+			to.type.struct.castVarFrom(f, stack, from, from.type, to.type);
 			return;
-		}else if(from.type.isStruct() && from.type.struct.canCasteTo(to.type, from.type.structArgs)) {
+		}else if(from.type.isStruct() && from.type.struct.canCasteTo(to.type, from.type)) {
 			from.type.struct.getMeDirect(f, stack, to, from);
+			from.type.struct.castVarTo(f, stack, from, from.type, to.type);
 			return;
 		}
 			
@@ -345,5 +346,48 @@ public class Variable {
 			f.printf("data modify %s set from %s\n",dto,dfrom);
 		}
 		//USE STRING FORMAT EVEN FOR FLOATS - DONT USE %f BECAUSE IT ROUNDS- SCI NOTATION IS OK IN MCF
+	}
+	
+	public Variable indexMyNBTPath(int index,VarType type) {
+		return new Variable("%s[%s]".formatted(this.name,index),
+				type,
+				this.access,
+				this.pointsTo,
+				this.holder,
+				"%s[%s]".formatted(this.address,index)
+				);
+	}
+	public Variable fieldMyNBTPath(String field,VarType type) {
+		return new Variable("%s.%s".formatted(this.name,field),
+				type,
+				this.access,
+				this.pointsTo,
+				this.holder,
+				"%s.%s".formatted(this.address,field)
+				);
+	}
+	
+	/**
+	 * Variables are considered equal if they point to the same destination and have the same type;
+	 * they need not have the same name, finality, refness, ...
+	 */
+	@Override public boolean equals(Object o) {
+		if (o==null) return false;
+		if (this ==o)return true;//auto-equal if they point to the same object
+		if(o instanceof Variable) {
+			Variable ov=(Variable) o;
+			return  this.areRefsEqual(ov)&&this.areTypesEqual(ov);
+		}else return false;
+	}
+	public boolean areRefsEqual(Variable ov) {
+		return this.pointsTo==ov.pointsTo
+				&&this.holder.equals(ov.holder)
+				&& this.address.equals(ov.address);
+	}
+	public boolean areTypesEqual(Variable ov) {
+		return this.type.equals(ov.type);
+	}
+	@Override public int hashCode() {
+		return Objects.hash(this.name,this.holder,this.address);
 	}
 }

@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 
 import net.mcppc.compiler.Register.RStack;
-import net.mcppc.compiler.VarType.StructTypeParams;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Factories;
@@ -104,17 +103,28 @@ public abstract class BuiltinFunction {
 	public abstract void getRet(PrintStream p, Compiler c, Scope s,Args args,Variable v,RStack stack) throws CompileError;
 	public abstract Number getEstimate();
 	
-	
+	/**
+	 * serializes argis in a basic way; if t
+	 * @param c
+	 * @param matcher
+	 * @param line
+	 * @param col
+	 * @param looks lists to look for each token; if null, will find next Equation
+	 * @param endEarly
+	 * @return
+	 * @throws CompileError
+	 */
 	public static final Args tokenizeArgsBasic(Compiler c, Matcher matcher, int line, int col,List<Token.Factory[]> looks,boolean endEarly)throws CompileError {
 		BasicArgs args=new BasicArgs();
 		int index=0;
 		for(Token.Factory[] look:looks) {
-			Token t=c.nextNonNullMatch(look);
+			Token t=look!=null?
+					c.nextNonNullMatch(look)
+					:
+					Equation.toArgue(c.line, c.column(), c, matcher).populate(c, matcher);
 			args.targs.add(t);
 			if(t instanceof Equation) {
-				//TODO this is unreachable; Equation has not factories
-				//it would require a bunch of factories with low priority
-				//equation already absorbed the comma / end paren
+				//TODO test this to make sure it works with eqs
 				switch (((Equation)t).end) {
 				case ARGSEP:
 					break;//keep going

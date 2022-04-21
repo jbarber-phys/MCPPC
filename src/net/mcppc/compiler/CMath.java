@@ -30,4 +30,69 @@ public abstract class CMath {
 		if(n instanceof Short)return true;
 		return false;
 	}
+	
+	private static int[] cycleElements;
+	private static int cycleElementIndex = 0;
+	private static boolean cycleFound = false;
+	private static final int NEW = 0;
+	private static final int PUSHED = 1;
+	private static final int POPPED = 2;
+	private static final int OLD = 3;
+	/**
+	 * finds circular loops in a graph
+	 * thx nits.kk https://stackoverflow.com/questions/37907339/how-to-detect-circular-reference-in-a-tree
+	 * @param graph
+	 * @param N
+	 * @param u
+	 * @param states
+	 * @return
+	 */
+	private static int findCycle(int[][] graph,int N, int u, int[] states){
+	    for(int v = 0; v < N; v++){
+	        if(graph[u][v] == 1){
+	            if(states[v] == PUSHED){
+	                // cycle found
+	                cycleFound = true;
+	                return v;
+	            }else if(states[v] == NEW){
+	                states[v] = PUSHED;
+	                int poppedVertex = findCycle(graph, N, v, states);
+	                states[v] = POPPED;
+	                if(cycleFound){
+	                    if(poppedVertex == u){
+	                        cycleElements[cycleElementIndex++] = v;
+	                        cycleElements[cycleElementIndex++] = u;
+	                        //cycleFound = false;
+	                        return -1;
+	                    }else{
+	                        cycleElements[cycleElementIndex++] = v;
+	                        return poppedVertex;
+	                    }
+	                }
+	            }
+	        }
+	    }
+	    return -1;
+	}
+	public static int[] findCycle(int[][] graph,int N){
+	    int[] states = new int[N];
+	    cycleFound=false;
+	    for(int u=0;u<N;u++) if(states[u]==NEW){
+			cycleElements = new int[N];
+			cycleElementIndex=0;
+		    states[u] = PUSHED;
+		    findCycle(graph,N,u,states);
+		    if(cycleFound)break;
+	    }
+	    	
+	    
+	    if(cycleFound) {
+			System.err.println("loop found");
+	    	int[] ret=new int[cycleElementIndex];
+	    	for(int i = 0; i < cycleElementIndex; i++)ret[i]=cycleElements[i];
+	    	return ret;
+	    }
+	    return null;
+	    
+	}
 }

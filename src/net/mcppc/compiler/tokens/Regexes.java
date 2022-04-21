@@ -21,6 +21,7 @@ public final class Regexes {
 	public static final Pattern ANY_CHAR=Pattern.compile(".");// .
 
 	public static final Pattern PARENS=Pattern.compile("(\\()|(\\))");// (\()|(\))
+	public static final Pattern ANGLEBRACKETS=Pattern.compile("(<)|(>)");// (<)|(>)
 	public static final Pattern ARGSEP=Pattern.compile(",");// ,
 	public static final Pattern SPACE=Pattern.compile("[ \\t]+");// [ \t]+
 	public static final Pattern SPACE_NEWLINE=Pattern.compile("\\n");// \n

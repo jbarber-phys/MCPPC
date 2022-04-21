@@ -21,6 +21,7 @@ import java.util.stream.Stream;
 import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.OutputDump;
+import net.mcppc.compiler.tokens.Import;
 
 public class CompileJob {
 	public static final String DATA="data";
@@ -31,7 +32,7 @@ public class CompileJob {
 	
 
 	public static final String STDLIB_NAMESPACE="mcppc";
-	public static final boolean INCLUDE_STDLIB=false;
+	public static final boolean INCLUDE_STDLIB=true;
 	
 
 	public static final String SUBDIR_SRC="src";
@@ -43,7 +44,7 @@ public class CompileJob {
 	public static final String PACK_MCMETA="pack.mcmeta";
 	
 	public static final PrintStream fileLog=OutputDump.out;
-	public static final PrintStream compileHdrLog=OutputDump.out;
+	public static final PrintStream compileHdrLog=System.out;
 	public static final PrintStream compileMcfLog=System.out;
 	
 	public static final Scanner stdin = new Scanner(System.in);
@@ -97,6 +98,7 @@ public class CompileJob {
 	
 	//nonstatic below
 	public boolean CLEAN_MCF_SUBDIR=true;
+	public boolean CHECK_INCLUDES_FOR_CIRCULAR_RUNS=false;
 	public final int MAX_NUM_CMDS=(int) Math.round(Math.pow(2, 15)-1);
 	
 	final Map<String,Namespace> namespaces=new HashMap<String,Namespace>();
@@ -125,9 +127,7 @@ public class CompileJob {
 	/**
 	 * specifies the root to find other hdrs if not in rootHeaderOut; similar to g++ -I'...'
 	 */
-	final List<Path> rootIncludes=new ArrayList<Path>();public void addInclude(Path o) {
-		rootIncludes.add(o);
-	}
+	final List<Path> rootIncludes=new ArrayList<Path>();
 	
 	/**
 	 * specifies where to find any mcf functions that need to be copied into the resulting datapack;
@@ -257,9 +257,11 @@ public class CompileJob {
 		
 		
 	}
-	public boolean addPossibleExternalDependancy(ResourceLocation res) {
-		if(this.externalImports.contains(res)) return false;
-		this.externalImports.add(res);
+	public boolean addPossibleExternalDependancy(Import i) {
+		if(this.externalImports.contains(i.getLib())) return false;
+		
+		this.externalImports.add(i.getLib());
+		
 		return true;
 	}
 	public void compileAll() {
@@ -288,6 +290,7 @@ public class CompileJob {
 		for(Namespace ns: srcNamespaces) {
 			this.genMcf(ns);
 		}
+		if(this.checkForCircularRuns())return;
 		this.genNamespaceFunctionsAndTags();
 	}
 	private boolean haspackmcmeta() {
@@ -490,6 +493,41 @@ public class CompileJob {
 		
 		
 	}
+	//TODO dont use yet; is bugged out
+	public boolean checkForCircularRuns() {
+		List<ResourceLocation> cs=new ArrayList<ResourceLocation>();
+		for(Compiler key: this.compilers.values()) {
+			cs.add(key.resourcelocation);
+		}
+		if(this.CHECK_INCLUDES_FOR_CIRCULAR_RUNS)for(Compiler key: this.headerOnlyCompilers.values()) {
+			cs.add(key.resourcelocation);
+		}
+
+		int N=cs.size();
+		int[][] graph = new int[N][N];
+		for(int i=0;i<N;i++) {
+			Compiler c=this.compilers.get(cs.get(i));
+			if (c==null)c=this.headerOnlyCompilers.get(cs.get(i));
+			if(c!= null && c.myInterface!=null)for(ResourceLocation r: c.myInterface.runs.values()) {
+				int b;
+				if((b=cs.indexOf(r)) >=0) graph[i][b]=1;
+			}
+		}
+		//for(int i=0;i<N;i++) {for(int j=0;j<N;j++) {System.out.print(graph[i][j]+"   ");}System.out.print("\n");}
+    	//System.out.printf("%s\n",this.compilers.keySet());
+    	//System.out.printf("%s\n",this.headerOnlyCompilers.keySet());
+    	//System.out.printf("%s\n",N);
+		//int[] loop=null;
+		int[] loop=CMath.findCycle(graph, N);
+		if(loop!=null) {
+			System.err.println("Error: found circular runs between:");
+			for(int i=0;i<loop.length;i++)
+				System.err.printf("\t %s\n",cs.get(loop[i]));
+			return false;
+				
+		}return true;
+	}
+
 	//TODO figure out (and when to) which external mcfs need to be copied (linking);
 		//may need to re-read headers to recursively find dependancies
 }

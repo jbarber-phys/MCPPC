@@ -16,6 +16,7 @@ import net.mcppc.compiler.tokens.*;
  * stores all the information a file exports in its header
  * @author jbarb_t8a3esk
  *
+ *TODO stop circular runs of libraries;
  */
 public class FileInterface {
 	public final ResourceLocation path;
@@ -53,6 +54,7 @@ public class FileInterface {
 		boolean hasReadLibs=false;
 		//headers to read
 		final Map<String, ResourceLocation> imports = new HashMap<String, ResourceLocation>();
+		final Map<String, ResourceLocation> runs = new HashMap<String, ResourceLocation>();
 		//then make interfaces in
 		final Map<String, FileInterface> libs = new HashMap<String, FileInterface>();
 
@@ -94,6 +96,7 @@ public class FileInterface {
 			}
 		}
 		public boolean add(Import imp) {
+			if(imp.willRun())this.runs.putIfAbsent(imp.getAlias(), imp.getLib());
 			return this.imports.putIfAbsent(imp.getAlias(), imp.getLib())==null;
 		}
 		public boolean attemptLoadLibs(CompileJob job) {

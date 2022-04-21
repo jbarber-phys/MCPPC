@@ -69,7 +69,7 @@ public class Import extends Statement implements Statement.Headerable,DommentCol
 		if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(a, "';'");
 		if(isMcfCompiling)return i;
 		else if(isReadingHeader) {
-			c.job.addPossibleExternalDependancy(res);
+			c.job.addPossibleExternalDependancy(i);
 			return null;
 		}
 		else if(c.myInterface.add(i))
@@ -125,6 +125,10 @@ public class Import extends Statement implements Statement.Headerable,DommentCol
 	@Override
 	public void addDomment(Domment dom) {
 		this.dms.add(dom);
+	}
+
+	public boolean willRun() {
+		return run;
 	}
 
 }

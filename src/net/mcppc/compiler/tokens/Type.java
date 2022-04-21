@@ -4,6 +4,7 @@ import java.util.regex.Matcher;
 
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Struct;
+import net.mcppc.compiler.StructTypeParams;
 import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.CompileError.NoSuchType;
@@ -38,7 +39,7 @@ public class Type extends Token {
 		VarType vt;
 		if (tt.isStruct) {
 			Struct s=Struct.STRUCTS.get(name.name);
-			VarType.StructTypeParams args=s.tokenizeTypeArgs(c, matcher, line, col);
+			StructTypeParams args=s.tokenizeTypeArgs(c, matcher, line, col);
 			vt = new VarType(s,args);
 			
 		}
@@ -52,12 +53,12 @@ public class Type extends Token {
 				else throw new CompileError("negative precision used; to permit this, set Type.ALLOW_NEGATIVE_PRECISION to true;");
 			}
 			vt=new VarType(tt,precision);
-			Token close=c.nextNonNullMatch(Factories.closeParen);
-			if ((!(close instanceof Token.Paren)) || ((Token.Paren)close).forward) throw new CompileError.UnexpectedToken(close,"')'");
+			Token close=c.nextNonNullMatch(AbstractBracket.checkForParen);
+			if ((!(AbstractBracket.isArgTypeArg(close))) || ((Token.AbstractBracket)close).forward) throw new CompileError.UnexpectedToken(close,"')'");
 		}else {
 			vt=new VarType(tt);
-			Token close=c.nextNonNullMatch(Factories.closeParen);
-			if ((!(close instanceof Token.Paren)) || ((Token.Paren)close).forward) throw new CompileError.UnexpectedToken(close,"')'");
+			Token close=c.nextNonNullMatch(AbstractBracket.checkForParen);
+			if ((!(AbstractBracket.isArgTypeArg(close))) || ((Token.AbstractBracket)close).forward) throw new CompileError.UnexpectedToken(close,"')'");
 		}
 		return new Type(line,col,vt);
 		
@@ -67,7 +68,7 @@ public class Type extends Token {
 		VarType v;
 		if (tt.isStruct) {
 			Struct s=Struct.STRUCTS.get(name.name);
-			VarType.StructTypeParams params=s.paramsWNoArgs();
+			StructTypeParams params=s.paramsWNoArgs();
 			v=new VarType(s,params);
 		}else {
 			v=new VarType(tt);
@@ -75,14 +76,14 @@ public class Type extends Token {
 		return new Type(line,col,v);
 	}
 	public static Type tokenizeNextVarType(Compiler c, Matcher matcher, int line, int col) throws CompileError  {
-		final Token.Factory[] look = {Token.BasicName.factory,Factories.space,Factories.newline,Factories.comment,Token.Paren.factory};
+		final Token.Factory[] look = {Token.BasicName.factory,Factories.space,Factories.newline,Factories.comment};
 		Token t=c.nextNonNullMatch(look);
 		if (!(t instanceof BasicName)) throw new UnexpectedToken(t,"name");
 		int aftertypename=c.cursor;
-		Token t2 = c.nextNonNullMatch(Factories.checkForParen);
+		Token t2 = c.nextNonNullMatch(Token.AbstractBracket.checkForParen);
 		Type type;
-		if (t2 instanceof Token.Paren) {
-			if (!((Token.Paren) t2).forward) {
+		if (t2 instanceof Token.AbstractBracket && Token.AbstractBracket.isArgTypeArg((AbstractBracket) t2)) {
+			if (!((Token.AbstractBracket) t2).forward) {
 				c.cursor=aftertypename;//rewind
 				type=Type.tokenizeTypeNoArgs(c, matcher, line, col, (BasicName) t);
 			}else type=Type.tokenizeType(c, matcher, line, col, (BasicName) t);
