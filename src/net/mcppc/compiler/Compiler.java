@@ -32,7 +32,7 @@ public class Compiler{
 	private StringBuffer content;
 	
 	
-	public FileInterface.SelfInterface myInterface;
+	public FileInterface myInterface;
 	Matcher matcher;
 	public ResourceLocation resourcelocation;
 	public CompileJob.Namespace namespace;
@@ -190,7 +190,7 @@ public class Compiler{
 		cursor=0;
 		line=1;
 		lineStart=0;
-		this.myInterface=new FileInterface.SelfInterface(this.resourcelocation);
+		this.myInterface=new FileInterface(this.resourcelocation);
 		this.matcher=Factories.headerLnStart[0].pattern.matcher(this.content);
 		ArrayList<Statement> headerlines=new ArrayList<Statement>();
 		ArrayList<Statement.Domment> domments=new ArrayList<Statement.Domment>();
