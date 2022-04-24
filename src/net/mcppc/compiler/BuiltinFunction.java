@@ -40,9 +40,14 @@ public abstract class BuiltinFunction {
 		return BUILTIN_FUNCTIONS.put(func.name, func)==null;
 	}
 	public static class BFCallToken extends Token{
-		public static BFCallToken make(Compiler c,Matcher m,int line, int col,String name) throws CompileError {
+		public static BFCallToken make(Compiler c,Matcher m,int line, int col,RStack stack,String name) throws CompileError {
 			BFCallToken t=new BFCallToken(line,col,BUILTIN_FUNCTIONS.get(name));
-			t.args=t.f.tokenizeArgs(c, m, line, col);
+			t.args=t.f.tokenizeArgs(c, m, line, col,stack);
+			return t;
+		}
+		public static BFCallToken make(Compiler c,Matcher m,int line, int col,RStack stack,BuiltinFunction func) throws CompileError {
+			BFCallToken t=new BFCallToken(line,col,func);
+			t.args=t.f.tokenizeArgs(c, m, line, col,stack);
 			return t;
 		}
 		final BuiltinFunction f;public BuiltinFunction getBF(){
@@ -70,7 +75,7 @@ public abstract class BuiltinFunction {
 			return this.f.getRetType(args);
 		}
 		public Number getEstimate() {
-			return this.f.getEstimate();
+			return this.f.getEstimate(args);
 		}
 		
 	}
@@ -80,6 +85,10 @@ public abstract class BuiltinFunction {
 	public static class BasicArgs implements Args{
 		public final List<Token> targs=new ArrayList<Token>();
 		public BasicArgs(){
+		}
+		public BasicArgs equations(Compiler c,int line,int col,Matcher m,RStack stack) throws CompileError {
+			Function.FuncCallToken.addArgs(c, line, col, m, stack, this.targs);
+			return this;
 		}
 	}
 	public abstract VarType getRetType(Args a);
@@ -96,12 +105,12 @@ public abstract class BuiltinFunction {
 	 * @param col
 	 * @return
 	 */
-	public abstract Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col)throws CompileError ;
+	public abstract Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col,RStack stack)throws CompileError ;
 	
 	public abstract void call(PrintStream p, Compiler c, Scope s,Args args,RStack stack) throws CompileError;
 	public abstract void getRet(PrintStream p, Compiler c, Scope s,Args args,RStack stack,int stackstart) throws CompileError;
 	public abstract void getRet(PrintStream p, Compiler c, Scope s,Args args,Variable v,RStack stack) throws CompileError;
-	public abstract Number getEstimate();
+	public abstract Number getEstimate(Args args);
 	
 	/**
 	 * serializes argis in a basic way; if t

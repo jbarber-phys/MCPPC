@@ -104,7 +104,8 @@ public final class Factories {
 						BuiltinFunction.isBuiltinFunc((nm.names.get(0)))) {
 					//a builtin function
 					//CompileJob.compileMcfLog.printf("builtin funct: %s\n", nm.names);
-					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, matcher, nm.line, nm.col, nm.names.get(0));
+					RStack stack=c.currentScope.getStackFor();
+					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, matcher, nm.line, nm.col,stack, nm.names.get(0));
 					Token end=c.nextNonNullMatch(Factories.nextIsLineEnd);
 					if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(end, ";","code block after builtin func not yet supported");
 					return new Statement.BuiltinFuncCallStatement(line, col, sub);

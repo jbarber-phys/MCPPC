@@ -101,5 +101,17 @@ public class CompileError extends Exception {
 		}
 		
 	}
+	public static class BFuncNotFound extends CompileError{
+		public BFuncNotFound(String var) {
+			super("Could not find BuiltinFunction %s;".formatted(var));
+		}
+		public BFuncNotFound(Struct s,String f) {
+			super("Could not find Method  %s.%s;".formatted(s.name,f));
+		}
+		public BFuncNotFound(Struct s,String f,boolean statc) {
+			super("Could not find Method  %s%s%s;".formatted(s.name,statc?"::":".",f));
+		}
+		
+	}
 	
 }

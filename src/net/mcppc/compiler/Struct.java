@@ -30,6 +30,12 @@ public abstract class Struct {
 	//TODO String and Vector structs
 	
 	public static final Map<String,Struct> STRUCTS=new HashMap<String,Struct>();
+	public static void register(Struct s) {
+		STRUCTS.put(s.name, s);
+	}
+	static {
+		Vector.registerAll();
+	}
 	public static boolean isStruct(String name) {
 		return STRUCTS.containsKey(name);
 	}
@@ -66,7 +72,7 @@ public abstract class Struct {
 		return new StructTypeParams.Blank();
 	}
 	
-	public StructTypeParams withPrecision(StructTypeParams vt) throws CompileError{
+	public VarType withPrecision(VarType vt,int newPrecision) throws CompileError{
 		return vt;
 	}
 
@@ -81,8 +87,9 @@ public abstract class Struct {
 	 * used for custom print settings for /tellraw
 	 * @param variable the variable to be displayed
 	 * @return the json text element to be used in /tellraw
+	 * @throws CompileError 
 	 */
-	protected abstract String getJsonTextFor(Variable variable) ;//no throws
+	protected abstract String getJsonTextFor(Variable variable) throws CompileError ;//no throws
 	/**
 	 * the number of registers this object takes up
 	 * @param structArgs
@@ -155,7 +162,7 @@ public abstract class Struct {
 	public void doBiOpSecond(BiOperator.OpType op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Integer home1,Integer home2)
 			throws CompileError{throw new CompileError.UnsupportedOperation(stack.getVarType(home1), op, mytype);}
 
-	public boolean canDoUnaryOp(BiOperator.OpType op,VarType mytype,VarType other)throws CompileError {return false;}
+	public boolean canDoUnaryOp(UnaryOp.UOType op,VarType mytype,VarType other)throws CompileError {return false;}
 	public void doUnaryOp(UnaryOp.UOType op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Integer home)
 			throws CompileError{throw new CompileError.UnsupportedOperation( op, mytype);}
 
@@ -169,7 +176,6 @@ public abstract class Struct {
 	/*
 	 * members:
 	 */
-	protected final Map<String,VarType> fields=new HashMap<String,VarType>();
 	public abstract boolean hasField(String name,VarType mytype);
 	public abstract Variable getField(Variable self,String name) throws CompileError;
 	
@@ -182,8 +188,7 @@ public abstract class Struct {
 		return self.indexMyNBTPath(index, type);
 	}
 	
-	//TODO allow builtin member methods
-	
+
 	public abstract boolean hasBuiltinMethod(String name,VarType mytype);
 	public abstract BuiltinStructMethod getBuiltinMethod(Variable self,String name) throws CompileError;
 	
@@ -197,7 +202,15 @@ public abstract class Struct {
 	 */
 	
 
-	public abstract boolean hasStaticBuiltinMethod(String name,VarType mytype);
-	public abstract BuiltinFunction geStatictBuiltinMethod(String name) throws CompileError;
+	public boolean hasStaticBuiltinMethod(String name) {
+		return false;
+	}
+	public BuiltinStaticStructMethod getStatictBuiltinMethod(String name,VarType type) throws CompileError {
+		throw new CompileError.BFuncNotFound(this, name, true);
+	}
+	
+	public BuiltinConstructor getConstructor(VarType myType) throws CompileError {
+		throw new CompileError("no constructor defined for type %s;".formatted(myType.asString()));
+	}
 	
 }

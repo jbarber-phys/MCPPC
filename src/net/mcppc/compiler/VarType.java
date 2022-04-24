@@ -55,6 +55,7 @@ public class VarType {
 			this.isFloatP=flt;
 			this.isLogical=logic;
 			this.typename=name;
+			this.isStruct=st;
 			this.isVoid=false;
 		}
 		Builtin(String name,boolean num,boolean flt,boolean logic,boolean st,boolean isVoid){
@@ -62,6 +63,7 @@ public class VarType {
 			this.isFloatP=flt;
 			this.isLogical=logic;
 			this.typename=name;
+			this.isStruct=st;
 			this.isVoid=isVoid;
 		}
 		public String getTagType() throws CompileError {
@@ -72,12 +74,12 @@ public class VarType {
 		}
 	}
 	public static final int DEFAULT_PRECISION = 3;
-	final Builtin type;
+	public final Builtin type;
 	
 	private final int precision; //does not affect structs
-	protected final StructTypeParams structArgs;
+	public final StructTypeParams structArgs;
 	
-	final Struct struct;//name of the struct if it is one
+	public final Struct struct;//name of the struct if it is one
 	//unimplimented; a struct would be a compile-made data type
 	public VarType(Builtin type) {
 		this.type = type;
@@ -157,7 +159,7 @@ public class VarType {
 	}
 	public VarType withPrecision(int newPrecision) throws CompileError {
 		if (this.isStruct()){
-			StructTypeParams pms=this.struct.withPrecision(this.structArgs);
+			return this.struct.withPrecision(this,newPrecision);
 		}
 		return new VarType(this.type,newPrecision);
 	}
@@ -216,6 +218,20 @@ public class VarType {
 	public void doBiOpSecond(BiOperator.OpType op,PrintStream p,Compiler c,Scope s, RStack stack,Integer home1,Integer home2) throws CompileError {
 		this.struct.doBiOpSecond(op, this, p, c, s, stack, home1, home2);
 	}
+	public static boolean canCast(VarType from,VarType to) {
+		//new type takes priority
+		if(to.isStruct()||from.isStruct()) {
+			boolean ret=false;
+			if(to.isStruct()) {
+				ret=ret||to.struct.canCasteFrom(from, to);
+			}
+			if(from.isStruct()) {
+				ret=ret||from.struct.canCasteTo(from, to);
+			}
+			return ret;
+		}
+		return VarType.areBasicTypesCompadible(from, to);
+	}
 	public static boolean areBasicTypesCompadible(VarType t1,VarType t2) {
 		if(t1.isVoid()^t2.isVoid())return false;
 		if(t1.isNumeric()^t2.isNumeric())return false;
@@ -230,7 +246,10 @@ public class VarType {
 		return this.type==v.type
 				&& this.struct==v.struct
 				&& this.precision==v.precision
-				&&this.structArgs.equals(v.structArgs);
+				&&(this.structArgs==null?
+						v.structArgs==null
+						:
+						this.structArgs.equals(v.structArgs));
 		
 		
 	}

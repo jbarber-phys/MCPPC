@@ -89,7 +89,7 @@ public class PrintF extends BuiltinFunction{
 		throw new CompileError.UnsupportedCast( this.getRetType(args),v.type);
 	}
 	@Override
-	public Number getEstimate() {
+	public Number getEstimate(Args args) {
 		return null;
 	}
 	private static final Token.Factory[] testForSelector = Factories.genericCheck(Selector.SelectorToken.factory);
@@ -104,7 +104,7 @@ public class PrintF extends BuiltinFunction{
 		}
 		
 	}
-	public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col)throws CompileError {
+	public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col,RStack stack)throws CompileError {
 
 		Selector s=Selector.AT_S;
 		Token t=c.nextNonNullMatch(testForSelector);

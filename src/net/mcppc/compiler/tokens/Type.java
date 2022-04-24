@@ -2,6 +2,7 @@ package net.mcppc.compiler.tokens;
 
 import java.util.regex.Matcher;
 
+import net.mcppc.compiler.CompileJob;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Struct;
 import net.mcppc.compiler.StructTypeParams;
@@ -53,15 +54,20 @@ public class Type extends Token {
 				else throw new CompileError("negative precision used; to permit this, set Type.ALLOW_NEGATIVE_PRECISION to true;");
 			}
 			vt=new VarType(tt,precision);
-			Token close=c.nextNonNullMatch(AbstractBracket.checkForParen);
+			Token close=c.nextNonNullMatch(AbstractBracket.checkForTypeargBracket);
 			if ((!(AbstractBracket.isArgTypeArg(close))) || ((Token.AbstractBracket)close).forward) throw new CompileError.UnexpectedToken(close,"')'");
 		}else {
 			vt=new VarType(tt);
-			Token close=c.nextNonNullMatch(AbstractBracket.checkForParen);
+			Token close=c.nextNonNullMatch(AbstractBracket.checkForTypeargBracket);
 			if ((!(AbstractBracket.isArgTypeArg(close))) || ((Token.AbstractBracket)close).forward) throw new CompileError.UnexpectedToken(close,"')'");
 		}
 		return new Type(line,col,vt);
 		
+	}
+	public static void closeTypeArgs(Compiler c, Matcher matcher, int line, int col) throws CompileError{
+		Token close=c.nextNonNullMatch(AbstractBracket.checkForTypeargBracket);
+		if ((!(AbstractBracket.isArgTypeArg(close))) || ((Token.AbstractBracket)close).forward) throw new CompileError.UnexpectedToken(close,"')'");
+
 	}
 	public static Type tokenizeTypeNoArgs(Compiler c, Matcher matcher, int line, int col,Token.BasicName name) throws CompileError{
 		VarType.Builtin tt=VarType.getBuiltinType(name.name);
@@ -80,7 +86,7 @@ public class Type extends Token {
 		Token t=c.nextNonNullMatch(look);
 		if (!(t instanceof BasicName)) throw new UnexpectedToken(t,"name");
 		int aftertypename=c.cursor;
-		Token t2 = c.nextNonNullMatch(Token.AbstractBracket.checkForParen);
+		Token t2 = c.nextNonNullMatch(Token.AbstractBracket.checkForTypeargBracket);
 		Type type;
 		if (t2 instanceof Token.AbstractBracket && Token.AbstractBracket.isArgTypeArg((AbstractBracket) t2)) {
 			if (!((Token.AbstractBracket) t2).forward) {

@@ -29,6 +29,11 @@ public class Function {
 	public static class FuncCallToken extends Token implements Identifiable{
 		public static FuncCallToken make(Compiler c,int line,int col,Matcher m,Token.MemberName func,RStack stack) throws CompileError {
 			FuncCallToken f=new FuncCallToken(line,col,func);
+			FuncCallToken.addArgs(c, line, col, m,  stack, f.args);
+			
+			return f;
+		}
+		public static List<? super Equation> addArgs(Compiler c,int line,int col,Matcher m,RStack stack,List<? super Equation> args) throws CompileError {
 			fargs: while(true) {
 				Equation arg=new Equation(line, col, stack);
 				arg.isAnArg=true;
@@ -37,12 +42,13 @@ public class Function {
 				if(arg.elements.size()==0) {
 					break fargs;
 				}
-				f.addArg(arg);
+				args.add(arg);
 				if(arg.end==End.CLOSEPAREN)break fargs;
 				else if(arg.end!=End.ARGSEP)throw new CompileError("unexpected arg list ended with a %s.".formatted(arg.end.name()));
 			}
-			return f;
+			return args;
 		}
+		
 		final List<String> names;
 		public final List<Equation> args=new ArrayList<Equation>();
 		Function func; public Function getFunction() {return this.func;}

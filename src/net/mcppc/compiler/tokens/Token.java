@@ -122,7 +122,7 @@ public abstract class Token {
 		
 		//KEEP THIS AS FALSE;
 		public static final boolean ARE_TYPEARGS_PARENS=false;
-		public static final Token.Factory[] checkForParen = 
+		public static final Token.Factory[] checkForTypeargBracket = 
 			{Factories.newline,Factories.comment,Factories.domment,Factories.space,
 					Statement.Domment.factory,
 					ARE_TYPEARGS_PARENS?Token.Paren.factory:TypeArgBracket.factory,

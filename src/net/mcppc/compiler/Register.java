@@ -167,13 +167,17 @@ public class Register implements Comparable<Register>{
 			Namespace ns=job.namespaces.get(this.res.namespace);
 			ns.fillMaxRegisters(this.maxSizeEver);
 		}
-		public void castRegister(PrintStream p,Compiler c,Scope s,int index,VarType newType) throws CompileError {
+		public void castRegister(PrintStream p,int index,VarType newType) throws CompileError {
 			VarType oldType=this.getVarType(index);
+			this.castRegisterValue(p, index, oldType, newType);
+			this.vartypes.put(index, newType);
+		}
+		public void castRegisterValue(PrintStream p,int index,VarType oldType,VarType newType) throws CompileError {
 			if(oldType.equals(newType))return;//skip cast
-			if(oldType.isStruct()) {
-				if(newType.struct.canCasteFrom(oldType,newType))
+			if(oldType.isStruct() || newType.isStruct()) {
+				if(newType.isStruct() && newType.struct.canCasteFrom(oldType,newType))
 					newType.struct.castRegistersFrom(p, this, index, oldType, newType);
-				else if(oldType.struct.canCasteTo(newType,oldType))
+				else if(oldType.isStruct()  && oldType.struct.canCasteTo(newType,oldType))
 					newType.struct.castRegistersTo(p,  this, index, newType, oldType);
 				else throw new CompileError.UnsupportedCast(newType, oldType);
 				
@@ -196,6 +200,29 @@ public class Register implements Comparable<Register>{
 			}
 			this.vartypes.put(index, newType);
 		}
+		//caries type with it; does not cast; is copylike (does not modify original)
+		public void move(PrintStream p,int dest,int from) throws CompileError {
+			if(dest==from)return;
+			VarType t2=this.getVarType(from);
+			//type is carried with it
+			int sz=t2.sizeOf();
+			this.move(p, dest, from, sz);
+			this.setVarType(dest, t2);
+		}
+		//does not affect types and also does not cast; is copylike (does not modify original)
+		public void move(PrintStream p,int dest,int from,int sz) throws CompileError {
+			if(dest==from)return;
+			boolean forward=dest<=from;
+			for(int i=0;i<sz;i++) {
+				int h1=dest+(forward?i:sz-i-1);
+				int h2=from+(forward?i:sz-i-1);
+				Register r1=this.getRegister(h1);
+				Register r2=this.getRegister(h2);
+				r1.operation(p, "=", r2);
+			}
+			this.estmiate(dest, this.getEstimate(from));
+		}
+		
 		public String getTempRamInCmd() {
 			return getTempRamInCmd(0);
 		}
@@ -203,7 +230,14 @@ public class Register implements Comparable<Register>{
 			return "%s %s%d".formatted(this.res,"\"$tempram\".ram",index);
 		}
 		public void setVarType(Integer dest, VarType otype) {
-			this.vartypes.put(dest, otype);
+			if(otype!=null) {
+				this.vartypes.put(dest, otype);
+				//auto clear members
+				if(this.vartypes.isEmpty())return;
+				int size=otype.sizeOf();
+				for(int i=dest+1;i<size;i++)this.vartypes.remove(i);
+			}
+			else this.vartypes.remove(dest);
 		}
 		public Number getEstimate(Integer reg) {
 			return this.regvarEstimates.get(reg);

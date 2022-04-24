@@ -22,6 +22,7 @@ public class Compiler{
 	public int cursor=0;
 	int lineStart=0;
 	int line=1;
+	public int line() {return line;}
 	public int column() {return cursor-lineStart;}
 	/**
 	 * the text of this source file

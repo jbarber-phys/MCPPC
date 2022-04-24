@@ -16,7 +16,7 @@ import net.mcppc.compiler.tokens.*;
  * stores all the information a file exports in its header
  * @author jbarb_t8a3esk
  *
- *TODO stop circular runs of libraries;
+ *TODO combine these into one class; the superclass is unused;
  */
 public class FileInterface {
 	public final ResourceLocation path;
@@ -33,10 +33,7 @@ public class FileInterface {
 		
 		}
 	}
-	void printToHeader(PrintStream h) {//depricated
-		//this is done by statements
-	}
-	public FileInterface(ResourceLocation f) {
+	private FileInterface(ResourceLocation f) {
 		this.path=f;
 	}
 	public void printmefordebug(PrintStream p,int depth,int tabs) {
@@ -50,6 +47,7 @@ public class FileInterface {
 	public static class SelfInterface extends FileInterface{
 		public SelfInterface(ResourceLocation f) {
 			super(f);
+			//this.path=f;
 		}
 		boolean hasReadLibs=false;
 		//headers to read
@@ -88,7 +86,10 @@ public class FileInterface {
 			case PRIVATE:
 				if(dec.isFunction())return this.funcsPrivate.putIfAbsent(dec.getFunction().name, dec.getFunction())==null;
 				else return this.varsPrivate.putIfAbsent(dec.getVariable().name, dec.getVariable())==null;
-			case PUBLIC:return super.add(dec);
+			case PUBLIC:{
+				if(dec.isFunction())return this.funcsPublic.putIfAbsent(dec.getFunction().name, dec.getFunction())==null;
+				else return this.varsPublic.putIfAbsent(dec.getVariable().name, dec.getVariable())==null;
+			}
 			default:
 				//CompileJob.compileMcfLog.printf("\t keyword mystery;\n");
 				return false;
@@ -133,21 +134,28 @@ public class FileInterface {
 			List<String> array=new ArrayList<String>();array.add(name);
 			return this.identifyVariable(array,null);
 		}
+
 		public  Variable identifyVariable(List<String> names,Scope s) throws CompileError {
+			return this.identifyVariable(names, s, 0);
+		}
+		protected Variable identifyVariable(List<String> names,Scope s,int start) throws CompileError {
 			if(!this.hasReadLibs)new CompileError("must load libs before identifying variables");
-			if(names.size()>2) {
+			if(names.size()>2+start) {
 				//may be struct member
+				//TODO remove this
 				throw new CompileError("var had member of member; not yet supported");
 			}
 			FileInterface lib;
 			String name;
 			Variable v=null;
-			if(names.size()==2) {
+			if(names.size()>=2+start) {
 				//TODO struct member
-				lib=this.libs.get(names.get(0));if(lib==null)throw new CompileError("library %s not found loaded.".formatted(names.get(0)));
-				name=names.get(1);
+				lib=this.libs.get(names.get(0+start));
+				
+				if(lib==null)throw new CompileError("library %s not found loaded.".formatted(names.get(0+start)));
+				name=names.get(1+start);
 			}else {
-				name=names.get(0);
+				name=names.get(0+start);
 				if(s!=null && s.isInFunctionDefine()) {
 					//function args
 					Function f=s.function;

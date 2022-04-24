@@ -119,19 +119,25 @@ public class Variable {
 		this.pointsTo=Mask.STORAGE;
 		return this;
 	}
+
 	public void setMe(PrintStream f,RStack stack,int home) throws CompileError {
+		this.setMe(f, stack, home,null);
+	}
+	public void setMe(PrintStream f,RStack stack,int home, VarType regType) throws CompileError {
+		//use this one for struct members on stack to stop complaints about register type
+		VarType type=(regType==null? stack.getVarType(home):regType);
 		if(this.type.isStruct()) {
-			if(this.type.struct.canCasteFrom(stack.getVarType(home), this.type)) {
-				this.type.struct.castRegistersFrom(f, stack, home, stack.getVarType(home), this.type);
-			}else if(stack.getVarType(home).struct.canCasteTo( this.type,stack.getVarType(home))) {
-				stack.getVarType(home).struct.castRegistersTo(f, stack, home, this.type, stack.getVarType(home));
+			if(this.type.struct.canCasteFrom(type, this.type)) {
+				this.type.struct.castRegistersFrom(f, stack, home, type, this.type);
+			}else if(stack.getVarType(home).struct.canCasteTo( this.type,type)) {
+				stack.getVarType(home).struct.castRegistersTo(f, stack, home, this.type, type);
 			}else {
-				throw new CompileError.UnsupportedCast(this.type, stack.getVarType(home));
+				throw new CompileError.UnsupportedCast(this.type, type);
 			}
 			this.type.struct.setMe(f, stack, home, this);
 		}else {
 			Register reg=stack.getRegister(home);
-			VarType regtype=stack.getVarType(home);
+			VarType regtype=type;
 			setMe(f,reg,regtype);
 		}
 	}
@@ -237,7 +243,7 @@ public class Variable {
 		}
 		return this.matchesPhrase("1b");
 	}
-	public String getJsonText() {
+	public String getJsonText() throws CompileError {
 		String edress = PrintF.ESCAPE_TAG_IN_JSON? Regexes.escape(this.address):this.address;
 		if(this.type.isStruct())return this.type.struct.getJsonTextFor(this);
 		if(this.type.isVoid())return "{\"text\": \"<void>\"}";

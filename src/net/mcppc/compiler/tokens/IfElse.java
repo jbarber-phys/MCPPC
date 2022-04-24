@@ -138,7 +138,7 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 			this.done.getMe(p, mystack, home1);
 			this.test.compileOps(p, c, s, VarType.BOOL);
 			int home2=this.test.setReg(p, c, s, VarType.BOOL);
-			this.mystack.castRegister(p, c, s, home2, VarType.BOOL);
+			this.mystack.castRegister(p, home2, VarType.BOOL);
 			
 			
 			

@@ -13,6 +13,7 @@ import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
+import net.mcppc.compiler.struct.*;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
 
 /**
@@ -171,14 +172,31 @@ public class Equation extends Token {
 				this.doesAnyOps=true;
 				Token close=c.nextNonNullMatch(lookForOperation);
 				if(close instanceof Token.Member) {
-					//TODO support static members of structs
-					throw new CompileError("static struct members not yet supported");
+					//TODO support static members of structs - test this
+					if(!((Type)v).type.isStruct()) throw new CompileError("cannot construct non-struct type: %s;".formatted(((Type)v).type.asString()));
+					Struct struct=((Type)v).type.struct;
+					Token name=c.nextNonNullMatch(lookForValue);
+					if(v instanceof Token.MemberName &&
+							(((Token.MemberName) v).names.size()==1) )
+						;
+					else throw new CompileError.UnexpectedToken(name, "static function of struct %s".formatted(v.asString()));
+					if(!struct.hasStaticBuiltinMethod((((Token.MemberName) v).names.get(0)))) 
+						throw new CompileError.UnexpectedToken(name, "static function %s not found in struct %s".formatted(name.asString(),v.asString()));
+					BuiltinStaticStructMethod bf=struct.getStatictBuiltinMethod((((Token.MemberName) v).names.get(0)), ((Type)v).type);
+					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col,this.stack, bf);
+					v=sub;
+					//throw new CompileError("static struct members not yet supported");
 				}
 				if (!(close instanceof Token.Paren)) throw new CompileError.UnexpectedToken(close,")");
 				else{
 					if(((Paren)close).forward) {
 						//TODO support constructors; figure out syntax
-						throw new CompileError.UnexpectedToken(close,")","constructors not supported yet");
+						if(!((Type)v).type.isStruct()) throw new CompileError("cannot construct non-struct type: %s;".formatted(((Type)v).type.asString()));
+						Struct struct=((Type)v).type.struct;
+						BuiltinConstructor cstr=struct.getConstructor(((Type)v).type);
+						BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col,this.stack, cstr);
+						v=sub;
+						//throw new CompileError.UnexpectedToken(close,")","constructors not supported yet");
 					}else {
 						//typecast
 						if(!this.wasOpenedWithParen)throw new CompileError("typecast must be of form (type(...)) but was missing open paren;");
@@ -260,11 +278,12 @@ public class Equation extends Token {
 						(((Token.MemberName) v).names.size()==1) &&
 						BuiltinFunction.isBuiltinFunc((((Token.MemberName) v).names.get(0)))) {
 					//a builtin function
-					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col, ((Token.MemberName) v).names.get(0));
+					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col,this.stack, ((Token.MemberName) v).names.get(0));
 					//this.elements.add(sub);
 					v=sub;
 
-				}else {
+				}
+				else {
 					if(!(v instanceof Token.MemberName)) throw new CompileError.UnexpectedToken(v, "name before '('");
 					//a normal function
 					Function.FuncCallToken ft=Function.FuncCallToken.make(c, v.line, v.col, m, (MemberName) v, this.stack);
@@ -439,7 +458,7 @@ public class Equation extends Token {
 				Token in=this.elements.get(1);
 				this.homeReg=this.putTokenToRegister(p, c, s, cast.type, in);
 				//cast register
-				this.stack.castRegister(p, c, s, this.homeReg, cast.type);
+				this.stack.castRegister(p, this.homeReg, cast.type);
 			}else if (this.elements.size()==1){
 				Token in=this.elements.get(0);
 				this.homeReg=this.putTokenToRegister(p, c, s, typeWanted, in);

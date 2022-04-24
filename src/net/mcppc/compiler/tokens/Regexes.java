@@ -104,7 +104,10 @@ public final class Regexes {
 	          .replace("\r", "\\r")
 	          .replace("\f", "\\f")
 	          .replace("\'", "\\'")
-	          .replace("\"", "\\\"");
+	          .replace("\"", "\\\"")
+	          //format (we added this)
+	          .replace("%", "%%")
+	          ;
 	}
 	/**
 	 * unescapes a string
@@ -129,6 +132,9 @@ public final class Regexes {
 		  throw new CompileError("IOException while unescaping string");
 		}
 		return result;
+	}
+	public static String formatJsonWith(String format,String... with) {
+		return "{\"translate\": \"%s\", \"with\": [%s]}".formatted(escape(format),String.join(" , ", with));
 	}
 	
 }
