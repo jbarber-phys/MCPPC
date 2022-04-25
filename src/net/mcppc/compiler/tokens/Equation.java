@@ -145,11 +145,26 @@ public class Equation extends Token {
 		if(!(this.elements.get(0) instanceof Token.MemberName))return false;
 		return true;
 	}
+	public boolean isConstRefable() {
+		if(this.isRefable())return true;
+		if(this.elements.size()!=1)return false;
+		if(!(this.elements.get(0) instanceof Function.FuncCallToken))return false;
+		return true;
+	}
 	public Variable getVarRef() throws CompileError{
 		if(!this.isRefable())throw new CompileError("attempted to pass non-trivial equation as a ref to function demanding ref arg on line %d col %d;"
 				.formatted(this.line,this.col));
 		Token.MemberName core=(MemberName) this.elements.get(0);
 		return core.var;
+	}
+	public Variable getConstVarRef() throws CompileError{
+		//a function return var
+		//warning: avoid passing to other functions as other ops may be performed
+		if(this.isRefable())return this.getVarRef();
+		if(!this.isConstRefable())throw new CompileError("attempted to pass non-trivial equation as a const-ref to builtin function on line %d col %d;"
+				.formatted(this.line,this.col));
+		Function.FuncCallToken core=(Function.FuncCallToken) this.elements.get(0);
+		return core.getRetConstRef();
 	}
 	
 	public Equation populate(Compiler c,Matcher m) throws CompileError {

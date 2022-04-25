@@ -233,7 +233,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			CompileJob.compileMcfLog.println("Declaration its a function");
 			if (BuiltinFunction.BUILTIN_FUNCTIONS.containsKey(varname.name))throw new CompileError("function name %s conflicts with a builtin function on line %d column %d.".formatted(varname.line,varname.col));
 			//d.function=new Function(varname.asString(),type.type,access,c);
-			d.function=c.myInterface.identifyFunction(varname.name);
+			d.function=c.myInterface.identifyFunction(varname.name,c.currentScope);
 			//arglist!
 			while(true) {
 				boolean isRef=d.isArgRef(c, matcher, line, col);//skip the keyword

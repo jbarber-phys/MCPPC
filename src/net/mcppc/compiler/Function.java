@@ -26,6 +26,7 @@ import net.mcppc.compiler.tokens.Token.MemberName;
  *
  */
 public class Function {
+	public static final boolean ALLOCATE_ON_CALL = false;//this is false to save lines
 	public static class FuncCallToken extends Token implements Identifiable{
 		public static FuncCallToken make(Compiler c,int line,int col,Matcher m,Token.MemberName func,RStack stack) throws CompileError {
 			FuncCallToken f=new FuncCallToken(line,col,func);
@@ -64,7 +65,7 @@ public class Function {
 		}
 		@Override
 		public int identify(Compiler c,Scope s) throws CompileError {
-			this.func=c.myInterface.identifyFunction(this);
+			this.func=c.myInterface.identifyFunction(this,s);
 			//TODO recursion warnings
 			if(this.func.args.size()!=this.args.size())throw new CompileError("wrong number of args, %d,  in function %s which takes %d args"
 					.formatted(this.args.size(),this.func.args.size(),this.func.name));
@@ -73,6 +74,7 @@ public class Function {
 
 		public void call(PrintStream p,Compiler c,Scope s,RStack stack) throws CompileError {
 			//todo call this.func.mcf
+			if(ALLOCATE_ON_CALL) this.func.allocateMyLocals(p);
 			for(int i=0;i<this.func.args.size();i++) {
 				Variable arg=this.func.args.get(i);
 				Equation eq=this.args.get(i);
@@ -82,6 +84,7 @@ public class Function {
 				eq.compileOps(p, c, s,arg.type);
 				eq.setVar(p, c, s, arg);
 			}
+
 			//actually call the function
 			p.printf("function %s\n", this.func.mcf);
 			
@@ -101,6 +104,9 @@ public class Function {
 		}
 		public void getRet(PrintStream p,Compiler c,Scope s,Variable v,RStack stack) throws CompileError {
 			Variable.directSet(p, v, this.func.returnV, stack);
+		}
+		public Variable getRetConstRef() {
+			return this.func.returnV;
 		}
 		public Number getEstimate() {
 			return null;//TODO
@@ -159,5 +165,10 @@ public class Function {
 	@Deprecated public String returnDataPhrase() {
 		//use this.
 		return "storage %s %s.%s".formatted(this.resoucrelocation,this.name,RET_TAG);
+	}
+	
+	public void allocateMyLocals(PrintStream p) throws CompileError {
+		for(Variable arg:this.args)if(arg.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))arg.allocate(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+		if(this.returnV.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.returnV.allocate(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
 	}
 }

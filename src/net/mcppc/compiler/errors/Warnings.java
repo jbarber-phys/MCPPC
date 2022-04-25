@@ -25,6 +25,9 @@ public class Warnings {
 	public static void warning(String message) {
 		warn.println(message);
 	}
+	public static void warningf(String message,Object... args) {
+		warn.println(message.formatted(args));
+	}
 	public static void warn(OneTimeWarnings w) {
 		if(!w.done.value)warn.println(w.message);
 		w.done.value=true;

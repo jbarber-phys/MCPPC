@@ -7,12 +7,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Declaration;
 import net.mcppc.compiler.tokens.Import;
 import net.mcppc.compiler.tokens.Token;
 
 public class FileInterface {
+	//if this is set to true, all mask-free vars will reset on datapack load
+	public static final boolean ALLOCATE_WITH_DEFAULT_VALUES=false;
 	public FileInterface(ResourceLocation f) {
 		this.path=f;
 	}
@@ -108,53 +111,96 @@ public class FileInterface {
 	public  Variable identifyVariable(List<String> names,Scope s) throws CompileError {
 		return this.identifyVariable(names, s, 0);
 	}
+	public boolean isSelf(Scope s) {
+		if(s==null)return true;
+		else return this.path.equals(s.resBase);
+	}
+
+	public boolean hasVar(String name,Scope s) {
+		boolean isSelf= this.isSelf(s);
+		if(isSelf && s!=null && s.isInFunctionDefine()) {
+			//function args
+			Function f=s.function;
+			for(Variable arg:f.args) {
+				if (arg.name.equals(name)) {
+					return true;
+				}
+			}//keep going
+		}
+		boolean ret=this.varsPublic.containsKey(name);
+		if(isSelf)ret=ret || this.varsPrivate.containsKey(name);
+		if(isSelf)ret=ret || this.varsExtern.containsKey(name);
+		return ret;
+	}
+	public boolean hasFunc(String name,Scope s) {
+		boolean isSelf= this.isSelf(s);
+		boolean ret=this.funcsPublic.containsKey(name);
+		if(isSelf)ret=ret || this.funcsPrivate.containsKey(name);
+		if(isSelf)ret=ret || this.funcsExtern.containsKey(name);
+		return ret;
+	}
+	public boolean hasLib(String name,Scope s) {
+		if(this.isSelf(s))return this.libs.containsKey(name);
+		else return false;
+	}
+	protected Variable getVar(String name,Scope s) {
+		boolean isSelf= this.isSelf(s);
+		if(isSelf && s!=null && s.isInFunctionDefine()) {
+			//function args
+			Function f=s.function;
+			for(Variable arg:f.args) {
+				if (arg.name.equals(name)) {
+					return arg;
+				}
+			}//keep going
+		}
+		if(this.varsPublic.containsKey(name)) return this.varsPublic.get(name);
+		if(isSelf && this.varsPrivate.containsKey(name)) return this.varsPrivate.get(name);
+		if(isSelf && this.varsExtern.containsKey(name)) return this.varsExtern.get(name);
+		return null;
+	}
+	protected Function getFunc(String name,Scope s) {
+		boolean isSelf= this.isSelf(s);
+		if(this.funcsPublic.containsKey(name)) return this.funcsPublic.get(name);
+		if(isSelf && this.funcsPrivate.containsKey(name)) return this.funcsPrivate.get(name);
+		if(isSelf && this.funcsExtern.containsKey(name)) return this.funcsExtern.get(name);
+		return null;
+	}
 	protected Variable identifyVariable(List<String> names,Scope s,int start) throws CompileError {
 		if(!this.hasReadLibs)new CompileError("must load libs before identifying variables");
-		if(names.size()>2+start) {
-			//may be struct member
-			//TODO remove this
-			throw new CompileError("var had member of member; not yet supported");
-		}
-		FileInterface lib;
-		String name;
-		Variable v=null;
-		if(names.size()>=2+start) {
-			//TODO struct member
-			lib=this.libs.get(names.get(0+start));
+		
+		String name=names.get(0+start);
+		boolean isLib=this.libs.containsKey(name);
+		boolean isVar=this.hasVar(name, s);
+
+		if(names.size()>=2+start && isLib) {
+			return this.libs.get(name).identifyVariable(names, s, start+1);
+		}else if (isVar){
+			Variable v=this.getVar(name, s);
 			
-			if(lib==null)throw new CompileError("library %s not found loaded.".formatted(names.get(0+start)));
-			name=names.get(1+start);
-		}else {
-			name=names.get(0+start);
-			if(s!=null && s.isInFunctionDefine()) {
-				//function args
-				Function f=s.function;
-				for(Variable arg:f.args) {
-					if (arg.name.equals(name)) {
-						v=arg;break;
-					}
-				}
+			for(int i=1+start;i<names.size();i++) {
+				name=names.get(i);
+				if(!v.hasField(name))throw new CompileError.VarNotFound(v.type, name);
+				v=v.getField(name);
 			}
-			if(v==null)v=this.varsPrivate.get(name);
-			if(v==null)v=this.varsExtern.get(name);
-			lib=this;
-			//CompileJob.compileMcfLog.printf("\t vars private %s;\n",this.varsPrivate.keySet());
-			//CompileJob.compileMcfLog.printf("\t vars extern %s;\n",this.varsExtern.keySet());
+			return v;
+		}else {
+			if (!isVar && names.size()>=2+start)throw new CompileError("library (or variable) %s not found loaded in scope %s.".formatted(name,s.resBase));
+			else throw new CompileError("variable (or library) %s not found in scope %s".formatted(String.join(".", names),s.resBase));
 		}
-		//CompileJob.compileMcfLog.printf("lib: %s; look for var: %s\n",lib.path,name);
-		//CompileJob.compileMcfLog.printf("\t vars public %s;\n",lib.varsPublic.keySet());
-		if(v==null)v=lib.varsPublic.get(name);
-		if(v==null)throw new CompileError("variable %s not found loaded.".formatted(String.join(".", names)));
-		return v;
 	}
-	public  Function identifyFunction(Function.FuncCallToken t) throws CompileError {
-		return this.identifyFunction(t.names);
+	public  Function identifyFunction(Function.FuncCallToken t,Scope s) throws CompileError {
+		return this.identifyFunction(t.names,s);
 	}
-	public  Function identifyFunction(String name) throws CompileError {
+	public  Function identifyFunction(String name,Scope s) throws CompileError {
 		List<String> array=new ArrayList<String>();array.add(name);
-		return this.identifyFunction(array);
+		return this.identifyFunction(array,s);
 	}
-	public  Function identifyFunction(List<String> names) throws CompileError {
+
+	public  Function identifyFunction(List<String> names,Scope s) throws CompileError {
+		return this.identifyFunction(names, s, 0);
+	}
+	public  Function identifyFunction(List<String> names,Scope s,int start) throws CompileError {
 		if(!this.hasReadLibs)new CompileError("must load libs before identifying functions");
 			
 		if(names.size()>2) {
@@ -162,21 +208,19 @@ public class FileInterface {
 			throw new CompileError("var had member of member; not yet supported");
 		}
 		FileInterface lib;
-		String name;
-		Function f=null;
-		if(names.size()==2) {
-			//TODO struct member
-			lib=this.libs.get(names.get(0));if(lib==null)throw new CompileError("library %s not found loaded.".formatted(names.get(0)));
-			name=names.get(1);
+		String name=names.get(0+start);
+		boolean isLib=this.libs.containsKey(name);
+		boolean isFunc=this.hasFunc(name, s);
+		//boolean isVar=this.hasVar(name, s);
+		if(names.size()>=2+start && isLib) {
+			return this.libs.get(name).identifyFunction(names, s, start+1);
+		}else if (isFunc){
+			Function f=this.getFunc(name, s);
+			return f;
 		}else {
-			name=names.get(0);
-			f=this.funcsPrivate.get(name);
-			if(f==null)f=this.funcsExtern.get(name);
-			lib=this;
+			if (!isFunc && names.size()>=2+start)throw new CompileError("library %s not found loaded in scope %s.".formatted(name,s.resBase));
+			else throw new CompileError("function %s not found in scope %s".formatted(String.join(".", names),s.resBase));
 		}
-		if(f==null)f=lib.funcsPublic.get(name);
-		if(f==null)throw new CompileError("variable %s not found loaded.".formatted(String.join(".", names)));
-		return f;
 	}
 	public void printmefordebug(PrintStream p) {
 		printmefordebug(p,1,0);
@@ -200,5 +244,16 @@ public class FileInterface {
 			}
 		}
 	
+	}
+	public void allocateAll(PrintStream p,Namespace ns) throws CompileError {
+		//System.err.printf("allocate vars in %s;\n", this.path);
+		for(Variable v:this.varsPublic.values()) if (v.willAllocateOnLoad(ALLOCATE_WITH_DEFAULT_VALUES)) v.allocate(p, ALLOCATE_WITH_DEFAULT_VALUES);
+		for(Variable v:this.varsPrivate.values()) if (v.willAllocateOnLoad(ALLOCATE_WITH_DEFAULT_VALUES)) v.allocate(p, ALLOCATE_WITH_DEFAULT_VALUES);
+		//for(Variable v:this.varsExtern.values()) if (v.willAllocateOnLoad()) v.allocate(p, ALLOCATE_WITH_DEFAULT_VALUES); //do not load externs
+		if(!Function.ALLOCATE_ON_CALL) {
+			for(Function f:this.funcsPublic.values()) f.allocateMyLocals(p);
+			for(Function f:this.funcsPrivate.values()) f.allocateMyLocals(p);
+			//for(Function f:this.funcsExtern.values()) f.allocateMyLocals(p); // do not load externs
+		}
 	}
 }

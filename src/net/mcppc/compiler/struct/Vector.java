@@ -16,7 +16,16 @@ import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Type;
 import net.mcppc.compiler.tokens.UnaryOp;
 import net.mcppc.compiler.tokens.UnaryOp.UOType;
-
+/**
+ * struct for dealing with directions of space; should be mappable onto an NBT array;
+ * DIM : cross product will break if it is not 3
+ * 
+ * 
+ * TODO: test operations, set tags, 
+ * 
+ * @author jbarb_t8a3esk
+ *
+ */
 public class Vector extends Struct {
 	public static final Vector vector;
 	public static final Vector vec3d;
@@ -116,6 +125,15 @@ public class Vector extends Struct {
 	@Override
 	public int sizeOf(VarType mytype) {
 		return 3*Vector.myMembType(mytype).sizeOf();
+	}
+
+	@Override
+	public void allocate(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		this.allocateArray(p, var, fillWithDefaultvalue, DIM, Vector.myMembType(var.type));
+	}
+	@Override
+	public String getDefaultValue(VarType var) {
+		return Struct.DEFAULT_LIST;
 	}
 	@Override
 	public boolean canCasteFrom(VarType from, VarType mytype) {
@@ -471,12 +489,14 @@ public class Vector extends Struct {
 
 		private static final String NEW= "\"$Vector.$new\"";
 		private Variable newobj(Compiler c) {
-			return new Variable(NEW, mytype, null,c.resourcelocation);
+			Variable v=new Variable(NEW, mytype, null,c.resourcelocation);
+			return v;
 		}
 		@Override
 		public void call(PrintStream p, Compiler c, Scope s, Args args, RStack stack) throws CompileError {
 			//default to storage
 			Variable obj=this.newobj(c);
+			obj.allocate(p, false);
 			for(int i=0;i<DIM;i++) {
 				Variable arg=Vector.componentOf(obj, i);
 				Equation eq=(Equation) ((BasicArgs)args).targs.get(i);

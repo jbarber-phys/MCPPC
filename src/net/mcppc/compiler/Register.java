@@ -68,14 +68,14 @@ public class Register implements Comparable<Register>{
 		return "score %s %s %s".formatted(this.inCMD(),op,other.inCMD());
 	}
 	public void multByFloatUsingRam(PrintStream p,RStack stack,double mult) {
-		p.printf("execute store result storage %s double %s run scoreboard players get %s\n", stack.getTempRamInCmd(),mult,this.inCMD());
+		p.printf("execute store result storage %s double %s run scoreboard players get %s\n", stack.getTempRamInCmd(),CMath.getMultiplierFor(mult),this.inCMD());
 		p.printf("execute store result score %s run data get storage %s 1\n", this.inCMD(),stack.getTempRamInCmd());
 	}
 	/**
 	 * does not account for types - that must be done manual
 	 */
 	public void multByFloatUsingRamToRaw(PrintStream p,RStack stack,double mult,Register dest) {
-		p.printf("execute store result storage %s double %s run scoreboard players get %s\n", stack.getTempRamInCmd(),mult,this.inCMD());
+		p.printf("execute store result storage %s double %s run scoreboard players get %s\n", stack.getTempRamInCmd(),CMath.getMultiplierFor(mult),this.inCMD());
 		p.printf("execute store result score %s run datadata get storage %s 1\n", dest.inCMD(),stack.getTempRamInCmd());
 	}
 	@Override

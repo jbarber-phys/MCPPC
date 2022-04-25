@@ -76,13 +76,14 @@ public class Compiler{
 		this.lineStart=index;
 		this.line++;
 	}
-	public Compiler (CompileJob job,ResourceLocation res) {
-		this(job,res,false);
+	public Compiler (CompileJob job,ResourceLocation res,CompileJob.Namespace n) {
+		this(job,res,n,false);
 	}
-	public Compiler (CompileJob job,ResourceLocation res,boolean hdrOnly) {
+	public Compiler (CompileJob job,ResourceLocation res,CompileJob.Namespace n,boolean hdrOnly) {
 		this.resourcelocation=res;
 		this.job=job;
 		this.isHeaderOnly=hdrOnly;
+		this.namespace=n;
 		this.makeFiles();
 		CompileJob.compileMcfLog.printf("new compiler at %s;\n", res);
 	}

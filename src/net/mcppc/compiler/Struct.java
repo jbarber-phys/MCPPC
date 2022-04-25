@@ -2,11 +2,14 @@ package net.mcppc.compiler;
 
 import java.io.PrintStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 
 import net.mcppc.compiler.Register.RStack;
+import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Token;
@@ -22,7 +25,22 @@ import net.mcppc.compiler.struct.*;
  * 
  * 
  * TODO it should be possible to also create a class; a struct that will interperet mcpp code as a class template and 
- * determine the behavior at compile time
+ * determine the behavior at compile time, but functions will be hard as they will need to copy this*
+ * 
+ * 
+ * FIXED list tags and compound tags need to be initialized or they wont work
+ * must run code to initialize these types
+ * example for int array (3):
+ * /data modify storage mcpptest:vectest upint set value [0,0,0]
+ * example for double array (3):
+ * /data modify storage mcpptest:vectest up set value [0.0d,0.0d,0.0d]
+ * even the suptype must match; cannot set double to float
+ * example for compound tag
+ * /data modify storage mcpptest:vectest obj set value {objfield: {subfield: {}}}
+ * 
+ * FIXED doubles & floats also dont play nice;
+ * FIXED also the d,f index comes AFTER the sci notation
+ * 
  * @author jbarb_t8a3esk
  *
  */
@@ -173,6 +191,92 @@ public abstract class Struct {
 	public void setVarToBool(PrintStream p,Compiler c,Scope s, RStack stack,boolean val,VarType myType)throws CompileError{throw new CompileError.CannotSet(myType, "bool");}
 	public void setRegistersToBool(PrintStream p,Compiler c,Scope s, RStack stack,int home,boolean val,VarType myType)throws CompileError{throw new CompileError.CannotSet(myType, "bool");}
 	
+	
+	public boolean willAllocate(Variable var, boolean fillWithDefaultvalue){
+		return true;
+	}
+	/**
+	 * function to run that will setup all the tags so that this var is safe to set (allowed changes will not fail due to the tag being the wrong type)
+	 * 
+	 * example for double array (3):
+	 * /data modify storage mcpptest:vectest up set value [0.0d,0.0d,0.0d]
+	 * even the suptype must match; cannot set double to float
+	 * example for compound tag
+	 * /data modify storage mcpptest:vectest obj set value {objfield: {subfield: {}}}
+	 * @param p
+	 * @param var
+	 * @param fillWithDefaultvalue
+	 * @throws CompileError
+	 */
+	public abstract void allocate(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError;
+	/**
+	 * an implimentation of allocate() for types stored as arrays
+	 * @param p
+	 * @param var
+	 * @param fillWithDefaultvalue
+	 * @param size
+	 * @param elementType
+	 * @throws CompileError 
+	 */
+	protected void allocateArray(PrintStream p, Variable var, boolean fillWithDefaultvalue,int size,VarType elementType) throws CompileError {
+		//can set to empty array []
+		//then append 1 element to fix the type
+		//the type is fixed once the first element is added
+		//append ops on an empty tag will make the tag a list and add the first element
+		//but index set ops do not create sub list for you
+		
+		//System.err.printf("allocateArray: %s;\n", var.name);
+		if(var.pointsTo!=Mask.STORAGE) {
+			Warnings.warningf("attempted to deallocate %s to non-storage %s;",var.name,var.pointsTo);
+			return;
+		}
+		p.printf("data modify %s set value %s\n",var.dataPhrase(), DEFAULT_LIST);
+		//TODO double check that lists within lists can have differente element types
+		String fill = elementType.defaultValue();
+		for(int i=0;i<size;i++) p.printf("data modify %s append value %s\n",var.dataPhrase(), fill);
+		//(could also prepend / insert)
+		
+		
+	}
+	protected void allocateCompound(PrintStream p, Variable var, boolean fillWithDefaultvalue,List<String> fieldNames)  throws CompileError{
+
+		//data modify <var> set value {}
+
+		if(var.pointsTo!=Mask.STORAGE) {
+			Warnings.warningf("attempted to deallocate %s to non-storage %s;",var.name,var.pointsTo);
+			return;
+		}
+		p.printf("data modify %s set value %s\n",var.dataPhrase(), DEFAULT_COMPOUND);
+		//or data remove <this> will also work, as sets to members will create sub-compounds
+		for(String name:fieldNames) if(this.hasField(name, var.type)){
+			Variable field=this.getField(var, name);
+			field.allocate(p, fillWithDefaultvalue);
+		}
+	}
+	protected void allocateString(PrintStream p, Variable var, boolean fillWithDefaultvalue)  throws CompileError{
+		//data modify <var> set value ""
+		if(var.pointsTo!=Mask.STORAGE) {
+			Warnings.warningf("attempted to deallocate %s to non-storage %s;",var.name,var.pointsTo);
+			return;
+		}
+		if(fillWithDefaultvalue)p.printf("data modify %s set value %s\n",var.dataPhrase(), DEFAULT_STRING);
+		else ;//do nothing
+	}
+	/**
+	 * execute to delete storage for this var
+	 * DO NOT CALL THIS FOR AN ARRAY MEMBER OR IT WILL CHANGE THE ARRAY SIZE
+	 * ALSO DO NOT CALL THIS METHOD FOR SUB FIELDS, it is not needed
+	 * @param p
+	 * @param var
+	 */
+	public void deallocate(PrintStream p, Variable var) {
+		var.basicdeallocate(p);
+		//data remove <var>
+	}
+	public abstract String getDefaultValue (VarType var);
+	public static final String DEFAULT_STRING="\"\"";
+	public static final String DEFAULT_LIST="[]";
+	public static final String DEFAULT_COMPOUND="{}";
 	/*
 	 * members:
 	 */

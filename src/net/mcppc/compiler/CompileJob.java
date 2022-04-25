@@ -240,10 +240,11 @@ public class CompileJob {
 			//else compile a new header
 			Path p = this.pathForInclude(res);
 			if(p==null)throw new CompileError("could not find include for %s;".formatted(res));
+			Namespace ns;
 			if (!this.namespaces.containsKey(res.namespace)) {
-				this.namespaces.put(res.namespace, new Namespace(p.toFile()));
-			}
-			c=new Compiler(this, res,true);
+				this.namespaces.put(res.namespace, ns=new Namespace(p.toFile()));
+			}else ns=this.namespaces.get(res.namespace);
+			c=new Compiler(this, res,ns,true);
 			this.headerOnlyCompilers.put(res, c);
 		}
 		if(c.areLocalsLoaded) {
@@ -290,7 +291,7 @@ public class CompileJob {
 		for(Namespace ns: srcNamespaces) {
 			this.genMcf(ns);
 		}
-		if(this.checkForCircularRuns())return;
+		if(!this.checkForCircularRuns())return;
 		this.genNamespaceFunctionsAndTags();
 	}
 	private boolean haspackmcmeta() {
@@ -338,7 +339,7 @@ public class CompileJob {
         	fileLog.println("found source %s:%s".formatted(ns.name,rp));
         	ns.srcFilesRel.add(rp);
         	ResourceLocation script=new ResourceLocation(ns,rp);
-        	this.compilers.put(script, new Compiler(this,script));
+        	this.compilers.put(script, new Compiler(this,script,ns));
         }
 	}
 	//depricated; dont use
@@ -438,6 +439,15 @@ public class CompileJob {
         return success;
 		
 	}
+	private void genNamespaceLoadFunction(PrintStream p,Namespace ns) throws CompileError {
+		Register.createAll(p, ns.maxNumRegisters);
+		for(Compiler c:this.compilers.values()) {
+			if (c.namespace==ns) {//do not include header only compilers
+				c.myInterface.allocateAll(p, ns);
+			}
+		}
+		
+	}
 	public void genNamespaceFunctionsAndTags() {
 		List<ResourceLocation> loads=new ArrayList<ResourceLocation>();
 		for(Namespace ns: this.namespaces.values()) {
@@ -451,10 +461,14 @@ public class CompileJob {
 				f.getParentFile().mkdirs();
 				f.createNewFile();
 				p=new PrintStreamLineCounting(f);
-				Register.createAll(p, ns.maxNumRegisters);
-			} catch (IOException e) {
+				this.genNamespaceLoadFunction(p, ns);
+			} 
+			catch (IOException e) {
 				e.printStackTrace();
 				CompileJob.compileMcfLog.printf("failed to make namespace %s;\n", ns.name);
+				success=false;
+			} catch (CompileError e) {
+				e.printStackTrace();
 				success=false;
 			}finally {
 				if(p!=null) {
@@ -472,7 +486,6 @@ public class CompileJob {
 		if(loads.size()==0) {
 			CompileJob.compileMcfLog.printf("didn't make any namespaces;\n");return;
 		}
-		//TODO make tag
 		PrintStream tagtick=null;
 		try {
 			File f=this.pathForTagLoad().toFile();
@@ -493,7 +506,6 @@ public class CompileJob {
 		
 		
 	}
-	//TODO dont use yet; is bugged out
 	public boolean checkForCircularRuns() {
 		List<ResourceLocation> cs=new ArrayList<ResourceLocation>();
 		for(Compiler key: this.compilers.values()) {

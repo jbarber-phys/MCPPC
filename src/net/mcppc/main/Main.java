@@ -44,7 +44,16 @@ public class Main {
 		Number ni=true?(long) 3.0:3.0;
 		Number nd=(double) 3;
 		System.out.printf("%%s : %s , %s, %s, %s, %s ;\n", i,itg,dbl,ni,nd); //uses sci. not. if it is big
-		//System.out.printf("%%d : %d, %d, %s, %d, %s ;\n", i,itg,dbl,ni,nd); // will round to 6 places
+		
+		Byte b=1;
+		Short s=1;
+		Integer in=1;
+		Long l=1l;
+		Float f=1f;
+		Double d=1d;
+		System.out.printf("%%s : %s , %s, %s, %s; %s %s ;\n", b,s,in,l,f,d); //uses sci. not. if it is big
+		//%s does not show the type letter
+		
 		
 		
 	}

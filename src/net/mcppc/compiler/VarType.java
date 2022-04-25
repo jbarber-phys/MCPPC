@@ -30,17 +30,17 @@ public class VarType {
 		return new VarType(Builtin.DOUBLE,precison);
 	}
 	public static enum Builtin{
-		BYTE("byte",true,false,false,false),
-		SHORT("short",true,false,false,false),
-		INT("int",true,false,false,false),
-		LONG("long",true,false,false,false),
+		BYTE("byte","0b",true,false,false),
+		SHORT("short","0s",true,false,false), //
+		INT("int","0",true,false,false), //int must not have suffix
+		LONG("long","0L",true,false,false),
 		
-		FLOAT("float",true,true,false,false),
-		DOUBLE("double",true,true,false,false),
+		FLOAT("float","0.0f",true,true,false),
+		DOUBLE("double","0.0d",true,true,false),
 		
-		BOOL("bool",false,false,true,false),
+		BOOL("bool","0b",false,false,true),
 		
-		STRUCT("struct",false,false,false,true),
+		STRUCT("struct",false,false,false,true,false),
 		
 		VOID("void",false,false,false,false,true);
 		public boolean isNumber;
@@ -50,13 +50,15 @@ public class VarType {
 		public boolean isVoid;
 		int sizeof = 1;//number of scores needed; currently it is always one
 		String typename;
-		Builtin(String name,boolean num,boolean flt,boolean logic,boolean st){
+		String defaultValue;
+		Builtin(String name,String value,boolean num,boolean flt,boolean logic){
 			this.isNumber=num;
 			this.isFloatP=flt;
 			this.isLogical=logic;
 			this.typename=name;
-			this.isStruct=st;
+			this.isStruct=false;
 			this.isVoid=false;
+			this.defaultValue=value;
 		}
 		Builtin(String name,boolean num,boolean flt,boolean logic,boolean st,boolean isVoid){
 			this.isNumber=num;
@@ -65,6 +67,7 @@ public class VarType {
 			this.typename=name;
 			this.isStruct=st;
 			this.isVoid=isVoid;
+			this.defaultValue="";
 		}
 		public String getTagType() throws CompileError {
 			if (this.isStruct)throw new CompileError("Struct cannot be set directly to tag");
@@ -238,6 +241,9 @@ public class VarType {
 		if(t1.isLogical()^t2.isLogical())return false;
 		return true;
 	}
+	public static boolean canDirectSetBasicTypes(VarType t1,VarType t2) {
+		return t1.type==t2.type;//must cast if not the same type; it causes trouble; casting in place not always possible
+	}
 	@Override public boolean equals(Object other) {
 		if (this==other)return true;
 		if (other==null)return false;
@@ -252,5 +258,60 @@ public class VarType {
 						this.structArgs.equals(v.structArgs));
 		
 		
+	}
+	public static Builtin fromSuffix(String suffix,boolean isFloat) {
+		VarType.Builtin b=null;
+		if (suffix!=null && suffix.length()>0) switch (suffix.toLowerCase().charAt(0)){
+		case 'b': b=VarType.Builtin.BYTE;break;
+		case 's': b=VarType.Builtin.SHORT;break;
+		case 'i': b=VarType.Builtin.INT;break;
+		case 'l': b=VarType.Builtin.LONG;break;
+		case 'f': b=VarType.Builtin.FLOAT;break;
+		case 'd': b=VarType.Builtin.DOUBLE;break;
+		default:{
+			b=isFloat?VarType.Builtin.DOUBLE:VarType.Builtin.INT;
+		}break;
+		}else {
+			b=isFloat?VarType.Builtin.DOUBLE:VarType.Builtin.INT;
+		}
+		return b;
+	}
+	public String defaultValue() throws CompileError{
+		if(this.isStruct())return this.struct.getDefaultValue(this);
+		else if (this.isVoid()) throw new CompileError("defaultValue() does not exist for void;");
+		else return this.type.defaultValue;
+	}
+	public String numToString(Number n) {
+		String suffix = "";
+		switch(this.type) {
+		case BOOL:
+			suffix="b";
+			break;
+		case BYTE:
+			suffix="b";
+			break;
+		case DOUBLE:
+			suffix="d";
+			break;
+		case FLOAT:
+			suffix="f";
+			break;
+		case INT:
+			suffix="";//mc will interperet 10i as a STRING
+			break;
+		case LONG:
+			suffix="l";
+			break;
+		case SHORT:
+			suffix="s";
+			break;
+		default:
+			break;
+		
+		}
+		return "%s%s".formatted(n,suffix);
+	}
+	public String boolToStringNumber(boolean n) {
+		return n?"1b":"0b";
 	}
 }

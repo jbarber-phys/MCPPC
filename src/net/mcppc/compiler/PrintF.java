@@ -138,20 +138,30 @@ public class PrintF extends BuiltinFunction{
 		PrintfArgs pargs=(PrintfArgs) args;
 		List<String> jsonargs=new ArrayList<String>();
 		int index=1;
+		//if set to true, vars will be passed by reference and printf will display what they show after all ops have been performed
+		boolean REFARGS=false;
 		CompileJob.compileMcfLog.printf("printf compile begun;\n");
 		for(Token t:pargs.targs) {
 			if(t instanceof Selector.SelectorToken) {
 				jsonargs.add(((Selector.SelectorToken) t).selctor().getJsonText());
 			}else {
 				Equation eq=(Equation) t;
-				eq.compileOps(p, c, s, null);
-				NbtPath anonvn=new NbtPath("\"$printf\".\"$%d\"".formatted(index));
-				Variable anon=new Variable("anon",eq.retype,null,c).maskStorage(c.resourcelocation, anonvn);
-				eq.setVar(p, c, s, anon);
-				if(eq.retype.isLogical()) {
-					convertBoolToStr(p,anon);
+				//use ref if it is given
+				if(REFARGS && eq.isRefable() && !eq.retype.isLogical()) {
+					//DO NOT take a const-only ref as later args may edit it;
+					Variable ref=eq.getVarRef();
+					jsonargs.add(ref.getJsonText());
+				}else {
+					eq.compileOps(p, c, s, null);
+					NbtPath anonvn=new NbtPath("\"$printf\".\"$%d\"".formatted(index));
+					Variable anon=new Variable("anon",eq.retype,null,c).maskStorage(c.resourcelocation, anonvn);
+					eq.setVar(p, c, s, anon);
+					if(eq.retype.isLogical()) {
+						convertBoolToStr(p,anon);
+					}
+					jsonargs.add(anon.getJsonText());
 				}
-				jsonargs.add(anon.getJsonText());
+				
 			}
 			index++;
 		}

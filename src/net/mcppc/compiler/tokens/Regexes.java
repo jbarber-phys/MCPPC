@@ -65,7 +65,9 @@ public final class Regexes {
 	//but it can have nested square brackets or it wont recognize
 	//currently allows muliline selector, jsut remember to replace \n's with spaces before inlining
 
-	public static final Pattern NUM=Pattern.compile("(\\d+)(\\.\\d*)?([fdilsbFDILSB])?([Ee]\\-?\\d+)?");// (\d+)(\.\d*)?([fdilsbFDILSB])?([Ee]\-?\d+)?
+	public static final Pattern OLD_NUM=Pattern.compile("(\\d+)(\\.\\d*)?([fdilsbFDILSB])?([Ee]\\-?\\d+)?");// (\d+)(\.\d*)?([fdilsbFDILSB])?([Ee]\-?\d+)?
+	public static final Pattern NUM=Pattern.compile("(\\d+)(\\.\\d*)?([Ee]\\-?\\d+)?([fdilsbFDILSB])?");// (\d+)(\.\d*)?([Ee]\-?\d+)?([fdilsbFDILSB])?
+
 	public static final Pattern BOOL=Pattern.compile("(true)|(false)");// (true)|(false)
 	public static final Pattern UNARY_MINUS=Pattern.compile("-");
 	public static final Pattern UNARY_NOT=Pattern.compile("!");
@@ -105,8 +107,8 @@ public final class Regexes {
 	          .replace("\f", "\\f")
 	          .replace("\'", "\\'")
 	          .replace("\"", "\\\"")
-	          //format (we added this)
-	          .replace("%", "%%")
+	          //DO NOT ESCAPE ESCAPE CHARS
+	          //.replace("%", "%%")
 	          ;
 	}
 	/**

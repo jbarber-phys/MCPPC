@@ -321,41 +321,33 @@ public abstract class Token {
 		public static final Factory factory = new Factory(Regexes.NUM) {
 			@Override
 			public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+				final int LEADDIGITS=1;
+				final int DPLACES=2;
+				final int EXP=3;//old 4
+				final int TYPE=4; // old 3
+				
 				c.cursor=matcher.end();
-				VarType.Builtin b=null;
-				if (matcher.group(3)!=null) switch (matcher.group(3).toLowerCase().charAt(0)){
-				case 'b': b=VarType.Builtin.BYTE;break;
-				case 's': b=VarType.Builtin.SHORT;break;
-				case 'i': b=VarType.Builtin.INT;break;
-				case 'l': b=VarType.Builtin.LONG;break;
-				case 'f': b=VarType.Builtin.FLOAT;break;
-				case 'd': b=VarType.Builtin.DOUBLE;break;
-				default:{
-					boolean isFloat = (matcher.group(2)!=null)||(matcher.group(4)!=null);
-					b=isFloat?VarType.Builtin.DOUBLE:VarType.Builtin.INT;
-				}break;
-				}else {
-					boolean isFloat = (matcher.group(2)!=null)||(matcher.group(4)!=null);
-					b=isFloat?VarType.Builtin.DOUBLE:VarType.Builtin.INT;
-				}
+				boolean isFloat = (matcher.group(DPLACES)!=null)||(matcher.group(EXP)!=null);
+				VarType.Builtin b=VarType.fromSuffix(matcher.group(TYPE), isFloat);
+				
 				if (b.isFloatP){
 					int precision=0;
 					int exp=0;
-					if (matcher.group(2)!=null) {
-						precision=matcher.group(2).length()-1;//correct
+					if (matcher.group(DPLACES)!=null) {
+						precision=matcher.group(DPLACES).length()-1;//correct
 					}
-					if (matcher.group(4)!=null) {
-						exp=Integer.parseInt(matcher.group(4).substring(1));//correct
+					if (matcher.group(EXP)!=null) {
+						exp=Integer.parseInt(matcher.group(EXP).substring(1));//correct
 					}
-					String s=(matcher.group(1)!=null?matcher.group(1):"")
-							+(matcher.group(2)!=null?matcher.group(2):"")
-							+(matcher.group(4)!=null?matcher.group(4):"");
+					String s=(matcher.group(LEADDIGITS)!=null?matcher.group(LEADDIGITS):"")
+							+(matcher.group(DPLACES)!=null?matcher.group(DPLACES):"")
+							+(matcher.group(EXP)!=null?matcher.group(EXP):"");
 					//CompileJob.compileMcfLog.printf("%s   %s   %s   %s;\n", matcher.group(1),matcher.group(2),matcher.group(3),matcher.group(4));
 					//CompileJob.compileMcfLog.printf("%s;\n", s);
 					Number value = Double.parseDouble(s);//should work
 					return new Num(line,col,value,new VarType(b,precision));
 				}
-				Number value = Long.parseLong(matcher.group(1));
+				Number value = Long.parseLong(matcher.group(LEADDIGITS));
 				return new Num(line,col,value,new VarType(b));
 			}
 		};

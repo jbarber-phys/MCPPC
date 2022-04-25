@@ -30,6 +30,25 @@ public abstract class CMath {
 		if(n instanceof Short)return true;
 		return false;
 	}
+	public static String getMultiplierFor(double num) {
+		//TODO there is a bug in MC: SCI NOT works in tag values but not in multipliers for /data get ... # ;  and /execute store ... # ;
+		return removeSciNot(num);
+		//String s="%s".formatted(num);
+		//return s;
+	}
+	public static String removeSciNot(double num) {
+		int MAX_DIGITS=(int) Math.ceil(Register.SCORE_BITS*Math.log10(2));
+		String f="%%-%d.%df".formatted(MAX_DIGITS,MAX_DIGITS);
+		StringBuffer s=new StringBuffer(f.formatted(num).trim());
+		int point=s.indexOf(".");if(point<0)return s.toString();
+		final int SUBS=1;
+		int size=s.length();
+		while(size>point+SUBS+1 && s.charAt(size-1)=='0') {
+			size--;
+		}
+		//TODO there is a bug in MC: SCI NOT works in tag values but not in multipliers for /data get ... # ;  and /execute store ... # ;
+		return s.substring(0, size);
+	}
 	
 	private static int[] cycleElements;
 	private static int cycleElementIndex = 0;

@@ -96,6 +96,9 @@ public class CompileError extends Exception {
 		public VarNotFound(Struct s,String field) {
 			super("Could not find Field  %s.%s;".formatted(s.name,field));
 		}
+		public VarNotFound(VarType type,String field) {
+			super("Could not find Field  %s.%s;".formatted(type.asString(),field));
+		}
 		public VarNotFound(Struct s,int index) {
 			super("Could not find index member  %s[%s];".formatted(s.name,index));
 		}

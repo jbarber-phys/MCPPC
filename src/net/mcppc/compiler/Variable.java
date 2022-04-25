@@ -151,20 +151,20 @@ public class Variable {
 		switch (this.pointsTo) {
 		case STORAGE:{
 			f.println("execute store result storage %s %s %s %s run scoreboard players get %s"
-					.formatted(this.holder,this.address,tagtype,mult,reg.inCMD()));
+					.formatted(this.holder,this.address,tagtype,CMath.getMultiplierFor(mult),reg.inCMD())); 
 		}break;
 		case BLOCK:{
 			f.println("execute store result block %s %s %s %s run scoreboard players get %s"
-					.formatted(this.holder,this.address,tagtype,mult,reg.inCMD()));
+					.formatted(this.holder,this.address,tagtype,CMath.getMultiplierFor(mult),reg.inCMD()));
 		}break;
 		case ENTITY:{
 			f.println("execute store result entity %s %s %s %s run scoreboard players get %s"
-					.formatted(this.holder,this.address,tagtype,mult,reg.inCMD()));
+					.formatted(this.holder,this.address,tagtype,CMath.getMultiplierFor(mult),reg.inCMD()));
 		}break;
 		case SCORE:{
 			mult=Math.pow(10, -regType.getPrecision()+this.type.getPrecision());
 			f.println("execute store result storage %s \"$dumps\".%s %s %s run scoreboard players get %s"
-					.formatted(this.holder,this.name,tagtype,mult,reg.inCMD()));
+					.formatted(this.holder,this.name,tagtype,CMath.getMultiplierFor(mult),reg.inCMD()));
 			f.println("execute store result score %s %s run data get storage %s \"$dumps\".%s"
 					.formatted(this.holder,this.address,this.holder,this.name));
 			
@@ -189,15 +189,15 @@ public class Variable {
 		switch (this.pointsTo) {
 		case STORAGE:{
 			f.println("execute store result score %s run data get storage %s %s %s"
-					.formatted(reg.inCMD(),this.holder,this.address,mult));
+					.formatted(reg.inCMD(),this.holder,this.address,CMath.getMultiplierFor(mult)));
 		}break;
 		case BLOCK:{
 			f.println("execute store result score %s run data get block %s %s %s"
-					.formatted(reg.inCMD(),this.holder,this.address,mult));
+					.formatted(reg.inCMD(),this.holder,this.address,CMath.getMultiplierFor(mult)));
 		}break;
 		case ENTITY:{
 			f.println("execute store result score %s run data get entity %s %s %s"
-					.formatted(reg.inCMD(),this.holder,this.address,mult));
+					.formatted(reg.inCMD(),this.holder,this.address,CMath.getMultiplierFor(mult)));
 		}break;
 		case SCORE:{
 			f.println("scoreboard players operation %s = %s %s".formatted(reg.inCMD(),this.holder,this.address));
@@ -290,10 +290,7 @@ public class Variable {
 			this.type.struct.setVarToNumber(p, c, s, stack, value,this.type);
 		} else {
 			//enforce type
-			Number n;
-			if(this.type.isFloatP())n=value.doubleValue();
-			else n=value.longValue();
-			p.printf("data modify %s set value %s\n", this.dataPhrase(),n);
+			p.printf("data modify %s set value %s\n", this.dataPhrase(),this.type.numToString(value));
 		}
 	}
 	public void setMeToBoolean(PrintStream p,Compiler c,Scope s, RStack stack,boolean value) throws CompileError {
@@ -302,13 +299,11 @@ public class Variable {
 		if(this.type.isStruct()) {
 			this.type.struct.setVarToBool(p, c, s, stack, value,this.type);
 		}else {
-			p.printf("data modify %s set value %s\n", this.dataPhrase(),value?1:0);
+			p.printf("data modify %s set value %s\n", this.dataPhrase(),this.type.boolToStringNumber(value));
 		}
 	}
 	public static void directSet(PrintStream f,Variable to,Variable from,RStack stack) throws CompileError {
-		if(to.type.isStruct())throw new CompileError("Varaible.setMe() does not yet work for structs.");
 		if(to.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
-		if(from.type.isStruct())throw new CompileError("Varaible.setMe() does not yet work for structs.");
 		if(from.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
 		if(to.type.isStruct() && to.type.struct.canCasteFrom(from.type, to.type)) {
 			to.type.struct.setMeDirect(f, stack, to, from);
@@ -321,8 +316,20 @@ public class Variable {
 		}
 			
 			
-		if(to.type.isNumeric() ^ to.type.isNumeric()) throw new CompileError.UnsupportedCast(from.type, to.type);
+		if(!VarType.areBasicTypesCompadible(to.type, from.type)) throw new CompileError.UnsupportedCast(from.type, to.type);
 		
+		if(VarType.canDirectSetBasicTypes(to.type, from.type)) {
+			willDirectSet(f, to, from, stack);
+		}else {
+			//resort to indirect set
+			int i=stack.setNext(from.type);
+			from.getMe(f, stack, i);
+			to.setMe(f, stack, i);
+			stack.pop();
+		}
+	}
+
+	private static void willDirectSet(PrintStream f,Variable to,Variable from,RStack stack) throws CompileError {
 		boolean floatp = to.type.isFloatP() || from.type.isFloatP();
 		if(to.pointsTo==Mask.SCORE) {
 			if(from.pointsTo==Mask.SCORE) {
@@ -333,25 +340,25 @@ public class Variable {
 				if(domult && floatp) {
 					int extraind=stack.getNext(stack.getTop());Register extra=stack.getRegister(extraind);
 					stack.reserve(1);
-					f.printf("scoreboard players set %s %d\n",extra.inCMD(),mult);
+					f.printf("scoreboard players set %s %d\n",extra.inCMD(),CMath.getMultiplierFor(mult));
 					if (esgn) f.printf("scoreboard players operation %s %s *=  %s\n",to.holder,to.address,extra.inCMD());
 					else f.printf("scoreboard players operation %s %s /=  %s\n",to.holder,to.address,extra.inCMD());
 				}
 			}else {
 				String data=from.dataPhrase();
 				double mult=Math.pow(10, to.type.getPrecision());//scientific notation may cause problems
-				f.printf("execute store result score %s %s run data get %s %s\n",to.holder,to.address,data,mult);
+				f.printf("execute store result score %s %s run data get %s %s\n",to.holder,to.address,data,CMath.getMultiplierFor(mult));
 			}
 		}else if(from.pointsTo==Mask.SCORE) {
 			String data=to.dataPhrase();
 			double mult=Math.pow(10, -from.type.getPrecision());//scientific notation may cause problems
-			f.printf("execute store result %s %s run scoreboard players get %s %s\n", data,mult,from.holder,from.address);
+			f.printf("execute store result %s %s run scoreboard players get %s %s\n", data,CMath.getMultiplierFor(mult),from.holder,from.address);
 		} else {
 			String dto=to.dataPhrase();
 			String dfrom=from.dataPhrase();
 			f.printf("data modify %s set from %s\n",dto,dfrom);
 		}
-		//USE STRING FORMAT EVEN FOR FLOATS - DONT USE %f BECAUSE IT ROUNDS- SCI NOTATION IS OK IN MCF
+		//USE STRING FORMAT EVEN FOR FLOATS - DONT USE %f BECAUSE IT ROUNDS- SCI NOTATION IS OK IN MCF (except for in multipliers - its a bug with mc)
 	}
 	
 	public Variable indexMyNBTPath(int index,VarType type) {
@@ -372,7 +379,18 @@ public class Variable {
 				"%s.%s".formatted(this.address,field)
 				);
 	}
-	
+	public boolean isStruct() {
+		return this.type.isStruct();
+	}
+	public boolean hasField(String name) {
+		if(!this.isStruct()) return false;
+		return this.type.struct.hasField(name, this.type);
+	}
+
+	public Variable getField(String name) throws CompileError {
+		if(!this.isStruct()) throw new CompileError.VarNotFound(type, name);
+		return this.type.struct.getField(this, name);
+	}
 	/**
 	 * Variables are considered equal if they point to the same destination and have the same type;
 	 * they need not have the same name, finality, refness, ...
@@ -395,5 +413,52 @@ public class Variable {
 	}
 	@Override public int hashCode() {
 		return Objects.hash(this.name,this.holder,this.address);
+	}
+	
+	/**
+	 * returns true if this var should allocate itself at 
+	 * 
+	 * @return true if this var has no explicit mask (masks are assumed to already be existing locations)
+	 */
+	public boolean willAllocateOnLoad(boolean fillWithDefaultvalue) {
+		if(this.type.isStruct())
+			return this.isbasic  && this.type.struct.willAllocate(this, fillWithDefaultvalue);
+		return this.isbasic  && fillWithDefaultvalue;
+	}
+	public void allocate(PrintStream p,boolean fillWithDefaultvalue) throws CompileError {
+		if(this.type.isStruct()) {
+			this.type.struct.allocate(p, this, fillWithDefaultvalue);
+			return;
+		}
+		if(!this.isbasic) {
+			Warnings.warningf("attempted to deallocate %s to non-basic %s;",this.name,this.pointsTo);
+			return;
+		}
+		if(this.pointsTo!=Mask.STORAGE) {
+			Warnings.warningf("attempted to allocate %s to non-storage %s;",this.name,this.pointsTo);
+			return;
+		}
+		p.printf("data modify %s set value %s\n",this.dataPhrase(), this.type.defaultValue());
+		
+	}
+	public void deallocate(PrintStream p) {
+		if(this.type.isStruct()) {
+			this.type.struct.deallocate(p, this);
+			return;
+		}
+		this.basicdeallocate(p);
+		
+	}
+	public void basicdeallocate(PrintStream p) {
+		if(this.pointsTo!=Mask.STORAGE) {
+			Warnings.warningf("attempted to deallocate %s to non-storage %s;",this.name,this.pointsTo);
+			return;
+		}
+		if(!this.isbasic) {
+			Warnings.warningf("attempted to deallocate %s to non-basic %s;",this.name,this.pointsTo);
+			return;
+		}
+		p.printf("data remove %s\n", this.dataPhrase());
+		
 	}
 }
