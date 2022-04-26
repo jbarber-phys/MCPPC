@@ -119,6 +119,14 @@ public class Variable {
 		this.pointsTo=Mask.STORAGE;
 		return this;
 	}
+	public Variable maskStorageAllocatable(ResourceLocation res,NbtPath path) {
+		this.isbasic=true;//can allocate
+		//equivalent to default (c.res,varname)
+		this.holder=res.toString();
+		this.address=path.toString();
+		this.pointsTo=Mask.STORAGE;
+		return this;
+	}
 
 	public void setMe(PrintStream f,RStack stack,int home) throws CompileError {
 		this.setMe(f, stack, home,null);
@@ -319,17 +327,22 @@ public class Variable {
 		if(!VarType.areBasicTypesCompadible(to.type, from.type)) throw new CompileError.UnsupportedCast(from.type, to.type);
 		
 		if(VarType.canDirectSetBasicTypes(to.type, from.type)) {
-			willDirectSet(f, to, from, stack);
+			trueDirectSet(f, to, from, stack);
 		}else {
 			//resort to indirect set
-			int i=stack.setNext(from.type);
-			from.getMe(f, stack, i);
-			to.setMe(f, stack, i);
-			stack.pop();
+			castDirectSet(f, to, from, stack);
 		}
 	}
+	private static void castDirectSet(PrintStream f,Variable to,Variable from,RStack stack) throws CompileError {
+		int i=stack.setNext(from.type);
+		from.getMe(f, stack, i);
+		to.setMe(f, stack, i);
+		stack.pop();
+		// may be able to remove intermediary score but will still need multipliers
+		
+	}
 
-	private static void willDirectSet(PrintStream f,Variable to,Variable from,RStack stack) throws CompileError {
+	private static void trueDirectSet(PrintStream f,Variable to,Variable from,RStack stack) throws CompileError {
 		boolean floatp = to.type.isFloatP() || from.type.isFloatP();
 		if(to.pointsTo==Mask.SCORE) {
 			if(from.pointsTo==Mask.SCORE) {

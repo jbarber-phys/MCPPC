@@ -302,8 +302,14 @@ public class BiOperator extends Token{
 	}
 	public void literalMultOrDiv(PrintStream p, Compiler c, Scope s, RStack stack, Integer in, Integer dest,Num other ) throws CompileError {
 		VarType itype=stack.getVarType(in);
+		if(itype.isStruct()) {
+			if(itype.struct.canDoLiteralMultDiv(this, itype, other)) {
+				itype.struct.doLiteralMultDiv(this, itype, p, c, s, stack,in, dest,other);
+				return;
+			}else throw new CompileError.UnsupportedOperation( itype,this,other); 
+		}
 		VarType otype=itype;
-		if(!itype.isNumeric())throw new CompileError.UnsupportedOperation(this, itype);
+		if(!itype.isNumeric())throw new CompileError.UnsupportedOperation( itype,this,other);
 		if(other.type.isFloatP() & !itype.isFloatP()) {
 			otype=other.type;//log correction
 		}

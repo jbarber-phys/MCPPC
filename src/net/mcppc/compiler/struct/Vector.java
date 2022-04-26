@@ -13,6 +13,7 @@ import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.Regexes;
+import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.Type;
 import net.mcppc.compiler.tokens.UnaryOp;
 import net.mcppc.compiler.tokens.UnaryOp.UOType;
@@ -56,7 +57,20 @@ public class Vector extends Struct {
 	public static final int X=0;
 	public static final int Y=1;
 	public static final int Z=2;
+	
+
+	public static final int HELICITY_LEFT=-1;
+	public static final int HELICITY_RIGHT=+1;
+	public static final int MINECRAFT_COORD_HELICITY=HELICITY_RIGHT;
+	
+	
+	
 	public final VarType defaulttype;
+	/**
+	 * states how the cross product should appear to act in game (which handedness)
+	 * defaults behavior: same as minecraft coord system (right handed, which contrasts most other games)
+	 */
+	public final int helicity=MINECRAFT_COORD_HELICITY;
 	public Vector(String name)  {
 		super(name);
 		this.defaulttype=null;
@@ -175,7 +189,7 @@ public class Vector extends Struct {
 		}
 		for(int i=0;i<DIM;i++) {
 			int id=start+i*sz;
-			stack.castRegisterValue(p, i, old, newtype);
+			stack.castRegisterValue(p, i, from, to);
 			
 		}
 		if(sz>to.sizeOf()) {
@@ -210,7 +224,11 @@ public class Vector extends Struct {
 		//uses the % operator as a cross product
 		boolean oIsVec=other.isStruct()?other.struct instanceof Vector:false;
 		boolean oIsNum=other.isStruct()?false:other.isNumeric();
-		if(op==CROSS)return oIsVec;
+		if(oIsVec && ((Vector)other.struct).helicity!=this.helicity) return false;//cannot mix right and left handed vectors
+		if(op==CROSS) {
+			//vecs must have equal helicity
+			return oIsVec;
+		}
 		switch(op) {
 		case ADD:
 		case SUB:
@@ -364,6 +382,9 @@ public class Vector extends Struct {
 		
 	}
 	
+	private int invertCrossProd() {
+		return this.helicity*Vector.MINECRAFT_COORD_HELICITY;
+	}
 
 	public void crossProd(VarType mytype, PrintStream p, Compiler c, Scope s, RStack stack, Integer home1,
 			Integer home2) throws CompileError {
@@ -374,10 +395,11 @@ public class Vector extends Struct {
 		final BiOperator MINUS=new BiOperator(c.line(), -2, BiOperator.OpType.SUB);
 		Number est1=stack.getEstimate(home1);
 		Number est2=stack.getEstimate(home2);
-		int home3=stack.reserve(te1.sizeOf()*(DIM+1));
+
+		int home3=stack.reserve(te1.sizeOf()*(DIM+2));
 		int s1=te1.sizeOf();
 		int s2=te2.sizeOf();
-
+		
 		for(int k=0;k<DIM;k++) {
 			int h1=home1+k*s1;
 			int h2=home2+k*s2;
@@ -386,19 +408,26 @@ public class Vector extends Struct {
 			stack.estmiate(h1, est1);
 			stack.estmiate(h2, est2);
 		}
+		
 		for(int k=0;k<DIM;k++) {
-			int i=(k-2)%DIM;
-			int j=(k-1)%DIM;
+			// -1 % 3 = -1 in java
+			//use Math.floormod(-1,3) = 2
+			int flip=this.invertCrossProd();
+			int i=Math.floorMod((k-2*flip),DIM);
+			int j=Math.floorMod((k-1*flip),DIM);
 			int h1i=home1+i*s1;
 			int h2j=home2+j*s2;
 			int h1j=home1+j*s1;
 			int h2i=home2+i*s2;
 			int h3k=home3+k*s1;
 			int h3kp1=h3k+s1;
+			int h3kp2=h3k+s1*2;
 			stack.move(p, h3k, h1i);
-			TIMES.perform(p, c, s, stack, h3k, h2j);
+			stack.move(p, h3kp1, h2j);
+			TIMES.perform(p, c, s, stack, h3k, h3kp1);
 			stack.move(p, h3kp1, h1j);
-			TIMES.perform(p, c, s, stack, h3kp1, h2i);
+			stack.move(p, h3kp2, h2i);
+			TIMES.perform(p, c, s, stack, h3kp1, h3kp2);
 			MINUS.perform(p, c, s, stack, h3k, h3kp1);
 			//opt.perform(p, c, s, stack, h1, h2);
 			//stack.setVarType(h2, null);
@@ -437,6 +466,21 @@ public class Vector extends Struct {
 		stack.setVarType(home, mytype);
 		stack.estmiate(home, est);
 		
+	}
+	@Override public boolean canDoLiteralMultDiv(BiOperator op,VarType mytype,Token.Num other)throws CompileError {
+		VarType memb=Vector.myMembType(mytype);
+		return memb.isStruct()?memb.struct.canDoLiteralMultDiv(op, memb, other):memb.isNumeric();
+	}
+	@Override public void doLiteralMultDiv(BiOperator op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Integer in,Integer dest,Token.Num other) throws CompileError{
+		VarType vt=mytype;
+		VarType memb=Vector.myMembType(mytype);
+		for(int i=0;i<DIM;i++) {
+			int h=in + memb.sizeOf()*i;
+			stack.setVarType(h, memb);
+			op.literalMultOrDiv(p, c, s, stack, h, h, other);
+		}
+		stack.setVarType(in, mytype);
+		stack.move(p, dest, in);
 	}
 	public static int dir(String d) {
 		for(int j=0;j<DIM;j++)if(DIMNAMES[j].equals(d))return j;
@@ -487,7 +531,7 @@ public class Vector extends Struct {
 			return a;
 		}
 
-		private static final String NEW= "\"$Vector.$new\"";
+		private static final String NEW= "\"$Vector\".\"$new\"";
 		private Variable newobj(Compiler c) {
 			Variable v=new Variable(NEW, mytype, null,c.resourcelocation);
 			return v;

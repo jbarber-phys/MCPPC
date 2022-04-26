@@ -72,6 +72,12 @@ public class CompileError extends Exception {
 		public UnsupportedOperation(Token op, VarType v2) {
 			super("Unsupported unary operation:  %s %s (line %d col %d);".formatted(op.asString(),v2.asString(),op.line,op.col));
 		}
+		public UnsupportedOperation(Token.Num v1,BiOperator.OpType op, VarType v2) {
+			super("Unsupported operation: %s %s %s ;".formatted(v1.toString(),op.s,v2.asString()));
+		}
+		public UnsupportedOperation(VarType v1,Token op, Token.Num v2) {
+			super("Unsupported operation: %s %s %s (line %d col %d);".formatted(v1.asString(),op.asString(),v2.toString(),op.line,op.col));
+		}
 		
 	}
 	public static class UnsupportedCast extends CompileError{

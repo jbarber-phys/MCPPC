@@ -183,7 +183,11 @@ public abstract class Struct {
 	public boolean canDoUnaryOp(UnaryOp.UOType op,VarType mytype,VarType other)throws CompileError {return false;}
 	public void doUnaryOp(UnaryOp.UOType op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Integer home)
 			throws CompileError{throw new CompileError.UnsupportedOperation( op, mytype);}
-
+	
+	//literal term must be after for div but can be before for mult
+	public boolean canDoLiteralMultDiv(BiOperator op,VarType mytype,Token.Num other)throws CompileError {return false;}
+	public void doLiteralMultDiv(BiOperator op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Integer in,Integer dest,Token.Num other)
+			throws CompileError{throw new CompileError.UnsupportedOperation( op, mytype);}
 	
 	
 	public void setVarToNumber(PrintStream p,Compiler c,Scope s, RStack stack,Number val,VarType myType) throws CompileError {throw new CompileError.CannotSet(myType, "number");}
@@ -224,16 +228,26 @@ public abstract class Struct {
 		//the type is fixed once the first element is added
 		//append ops on an empty tag will make the tag a list and add the first element
 		//but index set ops do not create sub list for you
+		//cannot change type of first element to change array type
 		
-		//System.err.printf("allocateArray: %s;\n", var.name);
+		
 		if(var.pointsTo!=Mask.STORAGE) {
 			Warnings.warningf("attempted to deallocate %s to non-storage %s;",var.name,var.pointsTo);
 			return;
 		}
 		p.printf("data modify %s set value %s\n",var.dataPhrase(), DEFAULT_LIST);
 		//TODO double check that lists within lists can have differente element types
-		String fill = elementType.defaultValue();
-		for(int i=0;i<size;i++) p.printf("data modify %s append value %s\n",var.dataPhrase(), fill);
+		//TODO allocate member if they are structs
+		String subname="\"$%s\".\"$allocate_fill\"".formatted(this.name);
+		Variable fill=new Variable(subname, elementType, null, new ResourceLocation("mcppc","load__allocate"));
+		if(fill.willAllocateOnLoad(fillWithDefaultvalue)) {
+			fill.allocate(p, fillWithDefaultvalue);
+			for(int i=0;i<size;i++) p.printf("data modify %s append from %s\n",var.dataPhrase(), fill.dataPhrase());
+			fill.deallocate(p);
+		}else {
+			String fillstr = elementType.defaultValue();
+			for(int i=0;i<size;i++) p.printf("data modify %s append value %s\n",var.dataPhrase(), fillstr);
+		}
 		//(could also prepend / insert)
 		
 		

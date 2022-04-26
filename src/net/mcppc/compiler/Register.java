@@ -127,7 +127,8 @@ public class Register implements Comparable<Register>{
 		}
 		//reserves extra registers without type-ing them
 		public int reserve(int numReg) {
-			if(this.maxSizeEver<this.getTop()+this.getVarType(this.getTop()).sizeOf()+numReg)this.maxSizeEver=this.getTop()+this.getVarType(this.getTop()).sizeOf()+numReg;
+			if(this.maxSizeEver<this.getTop()+this.getVarType(this.getTop()).sizeOf()+numReg)
+				this.maxSizeEver=this.getTop()+this.getVarType(this.getTop()).sizeOf()+numReg;
 			return this.getExtra();
 		}
 		public void estmiate(int reg,Number est) {
@@ -235,12 +236,15 @@ public class Register implements Comparable<Register>{
 				//auto clear members
 				if(this.vartypes.isEmpty())return;
 				int size=otype.sizeOf();
-				for(int i=dest+1;i<size;i++)this.vartypes.remove(i);
+				for(int i=dest+1;i<size+dest;i++)this.vartypes.remove(i);
 			}
 			else this.vartypes.remove(dest);
 		}
 		public Number getEstimate(Integer reg) {
 			return this.regvarEstimates.get(reg);
+		}
+		public int size() {
+			return this.getTop()+this.getVarType(this.getTop()).sizeOf();
 		}
 	}
 }

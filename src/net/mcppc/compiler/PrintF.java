@@ -154,7 +154,8 @@ public class PrintF extends BuiltinFunction{
 				}else {
 					eq.compileOps(p, c, s, null);
 					NbtPath anonvn=new NbtPath("\"$printf\".\"$%d\"".formatted(index));
-					Variable anon=new Variable("anon",eq.retype,null,c).maskStorage(c.resourcelocation, anonvn);
+					Variable anon=new Variable("anon",eq.retype,null,c).maskStorageAllocatable(c.resourcelocation, anonvn);
+					if(anon.willAllocateOnLoad(false))anon.allocate(p, false);
 					eq.setVar(p, c, s, anon);
 					if(eq.retype.isLogical()) {
 						convertBoolToStr(p,anon);
