@@ -63,3 +63,5 @@ local.properties
 
 #ignore test files
 /data/
+#ignore generated data files
+/generated/
