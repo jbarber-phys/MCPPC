@@ -5,6 +5,7 @@ import net.mcppc.compiler.tokens.*;
 import java.util.List;
 
 import net.mcppc.compiler.*;
+import net.mcppc.compiler.Const.ConstType;
 
 public class CompileError extends Exception {
 	public final String error;
@@ -49,9 +50,11 @@ public class CompileError extends Exception {
 		public DoubleDeclaration(Declaration d) {
 			super(d.isFunction()?
 					"Function '%s(...)' was declared a second time at line %d col %d.".formatted(d.getFunction().name,d.line,d.col)
-					:
-					"Variable '%s' was declared a second time at line %d col %d.".formatted(d.getVariable().name,d.line,d.col)
-					);
+					: (d.isVariable()?
+							"Variable '%s' was declared a second time at line %d col %d.".formatted(d.getVariable().name,d.line,d.col)
+							:
+							"Const '%s' was declared a second time at line %d col %d.".formatted(d.getConst(),d.line,d.col)
+					));
 		}
 		public DoubleDeclaration(Import i) {
 			super("Import alias '%s' was used twice %d col %d.".formatted(i.getAlias(),i.line,i.col)
@@ -72,10 +75,10 @@ public class CompileError extends Exception {
 		public UnsupportedOperation(Token op, VarType v2) {
 			super("Unsupported unary operation:  %s %s (line %d col %d);".formatted(op.asString(),v2.asString(),op.line,op.col));
 		}
-		public UnsupportedOperation(Token.Num v1,BiOperator.OpType op, VarType v2) {
+		public UnsupportedOperation(Num v1,BiOperator.OpType op, VarType v2) {
 			super("Unsupported operation: %s %s %s ;".formatted(v1.toString(),op.s,v2.asString()));
 		}
-		public UnsupportedOperation(VarType v1,Token op, Token.Num v2) {
+		public UnsupportedOperation(VarType v1,Token op, Num v2) {
 			super("Unsupported operation: %s %s %s (line %d col %d);".formatted(v1.asString(),op.asString(),v2.toString(),op.line,op.col));
 		}
 		
@@ -87,7 +90,13 @@ public class CompileError extends Exception {
 		public UnsupportedCast(VarType from, VarType to, String in) {
 			super("Unsupported implied cast from %s to %s in %s;".formatted(from,to,in));
 		}
-		
+		public UnsupportedCast(Const.ConstExprToken from, VarType to) {
+			super("Unsupported cast from const %s %s to %s;".formatted(from.constType().name,from.asString(),to));
+		}
+		public UnsupportedCast(ConstType ctype, ConstType... types) {
+			super("Cannot cast a const %s to one of %s;".formatted(ctype.name,
+					List.of(types).stream().map(f->f.name)));
+		}
 	}
 	public static class CannotSet extends CompileError{
 		public CannotSet(VarType set, String in) {
@@ -121,6 +130,14 @@ public class CompileError extends Exception {
 			super("Could not find Method  %s%s%s;".formatted(s.name,statc?"::":".",f));
 		}
 		
+	}
+	public static class CannotStack extends CompileError{
+		public CannotStack(VarType var) {
+			super("Cannot add a %s to the stack;".formatted(var.asString()));
+		}
+		public CannotStack(Const.ConstExprToken var) {
+			super("Cannot add %s, which is a const %s, to the stack;".formatted(var.asString(),var.constType().name));
+		}
 	}
 	
 }

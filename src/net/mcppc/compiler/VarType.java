@@ -137,6 +137,7 @@ public class VarType {
 		else return 1;//for now, extra precision is ignored
 	}
 	public int getPrecision() {
+		//TODO find all refs to this to allow template precision
 		if (this.type.isStruct)return this.struct.getPrecision(this);
 		return this.isFloatP()?this.precision:0;
 	}

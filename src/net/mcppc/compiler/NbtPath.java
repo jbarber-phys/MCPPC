@@ -2,6 +2,7 @@ package net.mcppc.compiler;
 
 import java.util.regex.Matcher;
 
+import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Regexes;
@@ -9,7 +10,7 @@ import net.mcppc.compiler.tokens.Token;
 
 public class NbtPath {
 
-	public static class NbtPathToken extends Token{
+	public static class NbtPathToken extends Const.ConstLiteralToken{
 		//for a named thing that hasn't been identified yet
 		public static final Token.Factory factory = new Token.Factory(Regexes.NBTPATH) {
 			@Override
@@ -21,15 +22,20 @@ public class NbtPath {
 		
 		NbtPath nbt;public NbtPath path() {return this.nbt;}
 		public NbtPathToken(int line, int col,Matcher m) {
-			super(line, col);
+			super(line, col,ConstType.NBT);
 			this.nbt=new NbtPath(m);
 		}
 		public NbtPathToken(int line, int col,String s) {
-			super(line, col);
+			super(line, col,ConstType.NBT);
 			this.nbt=new NbtPath(s);
 		}
 		@Override public String asString() {
 			return this.nbt.path;
+		}
+		@Override
+		public String textInHdr() {
+			// never need to worry about double braces here; const defs do not open blocks
+			return this.path().path;
 		}
 	}
 	String path;

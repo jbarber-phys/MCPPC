@@ -21,7 +21,8 @@ public enum Keyword {
 	WHILE("while"),
 	FOR("for"),
 	BREAK("break"),
-	RETURN("return");
+	RETURN("return"),
+	CONST("const");
 	
 	public static final Map<String,Keyword> VALUES = new HashMap<String, Keyword>();
 	static {

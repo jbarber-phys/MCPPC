@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 
 import net.mcppc.compiler.BuiltinFunction.Args;
+import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Equation;
@@ -107,20 +108,25 @@ public class PrintF extends BuiltinFunction{
 	public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col,RStack stack)throws CompileError {
 
 		Selector s=Selector.AT_S;
-		Token t=c.nextNonNullMatch(testForSelector);
+		Token t=Const.checkForExpression(c, matcher, line, col, ConstType.SELECTOR,ConstType.STRLIT);
+				//c.nextNonNullMatch(testForSelector);
+		
 		if(t instanceof Selector.SelectorToken) {
-			s=((Selector.SelectorToken) t).selctor();
+			s=((Selector.SelectorToken) t).selector();
 			if(!BuiltinFunction.findArgsep(c))new CompileError("not enough args in printf(...)");
+			t=Const.checkForExpression(c, matcher, line, col,ConstType.STRLIT);
 		}
-		t=c.nextNonNullMatch(nextFormatString);
+		//t=c.nextNonNullMatch(nextFormatString);
+		
 		if(!(t instanceof Token.StringToken))throw new CompileError.UnexpectedToken(t, "string literal");
 		String litFstring=((StringToken) t).literal();
 		CompileJob.compileMcfLog.printf("printf: %s, %s;\n",s,litFstring);
 		PrintfArgs args=new PrintfArgs(s,litFstring);
 		boolean moreArgs=BuiltinFunction.findArgsep(c);
 		while(moreArgs) {
-			t=c.nextNonNullMatch(testForSelector);
-			if(t instanceof Selector.SelectorToken) {
+			//t=c.nextNonNullMatch(testForSelector);
+			t=Const.checkForExpressionSafe(c, matcher, line, col, ConstType.SELECTOR);
+			if(t!=null && t instanceof Selector.SelectorToken) {
 				args.targs.add(t);
 				moreArgs =BuiltinFunction.findArgsep(c);
 			}else {
@@ -143,7 +149,7 @@ public class PrintF extends BuiltinFunction{
 		CompileJob.compileMcfLog.printf("printf compile begun;\n");
 		for(Token t:pargs.targs) {
 			if(t instanceof Selector.SelectorToken) {
-				jsonargs.add(((Selector.SelectorToken) t).selctor().getJsonText());
+				jsonargs.add(((Selector.SelectorToken) t).selector().getJsonText());
 			}else {
 				Equation eq=(Equation) t;
 				//use ref if it is given

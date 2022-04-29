@@ -3,6 +3,7 @@ package net.mcppc.compiler;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
@@ -18,20 +19,34 @@ public class Selector {
 	public static final Selector AT_A = new Selector("@a");
 	public static final Selector AT_R = new Selector("@r");
 	public static final Selector AT_E = new Selector("@e");
-	public static class SelectorToken extends Token{
+	public static class SelectorToken extends Const.ConstLiteralToken{
+		static class InvalidSelector extends CompileError{
+			public InvalidSelector(SelectorToken token) {
+				super("invalid selector '%s'; non-@ player names may not contain args in the [] (empty [] are ok)"
+						.formatted(token.selector().toCMD()));
+				// TODO Auto-generated constructor stub
+			}
+			
+		}
 		public static final Factory factory = new Factory(Regexes.SELECTOR) {
 			@Override	public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
 				c.cursor=matcher.end();
-				return new SelectorToken(line,col,matcher);
+				SelectorToken me=new SelectorToken(line,col,matcher);
+				if(me.selector().hasUnusableArgs())throw new InvalidSelector(me);
+				return me;
 			}
 		};
-		Selector val;public Selector selctor() {return this.val;}
+		Selector val;public Selector selector() {return this.val;}
 		public SelectorToken(int line, int col,Matcher m) {
-			super(line, col);
+			super(line, col,ConstType.SELECTOR);
 			val=new Selector(m);
 		}
 		@Override public String asString() {
 			return val.argsHDR;
+		}
+		@Override
+		public String textInHdr() {
+			return this.selector().toHDR();
 		}
 	}
 	String player;
@@ -39,11 +54,20 @@ public class Selector {
 	String argsCMD;
 	//skip the replace [[ ]]
 	String argsHDR;
+	boolean hasArgs() {
+		if(this.argsCMD.strip().length()==0)return false;
+		return true;
+	}
+	boolean hasUnusableArgs() {
+		//true if this is not an @ selector but still has non-empty []
+		if(!this.hasArgs())return false;
+		if(player.contains("@"))return false;
+		return true;
+	}
 	public Selector(Matcher m) {
 		this.player=m.group(1);
 		this.argsHDR=m.group(2);
 		this.argsCMD=stripDoubles(m.group(2));
-		
 	}
 	public static String stripDoubles(String hdr) {
 		StringBuffer args=new StringBuffer(hdr);
@@ -68,8 +92,14 @@ public class Selector {
 	private Selector(String plr) {
 		this(plr,"");
 	}
-	public String toCMD() {return "%s[%s]".formatted(player,argsCMD);}
-	public String toHDR() {return "%s[%s]".formatted(player,argsHDR);}
+	public String toCMD() {
+		if(this.hasArgs())return "%s[%s]".formatted(player,argsCMD);
+		else return player;
+	}
+	public String toHDR() {
+		if(this.hasArgs())return "%s[%s]".formatted(player,argsHDR);
+		else return player;
+	}
 	
 	public String getJsonText() {
 		return "{\"selector\": \"%s\"}".formatted(Regexes.escape(this.toCMD()));

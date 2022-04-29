@@ -1,0 +1,284 @@
+package net.mcppc.compiler;
+
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.stream.Collectors;
+
+import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.errors.CompileError.UnexpectedToken;
+import net.mcppc.compiler.tokens.Factories;
+import net.mcppc.compiler.tokens.Keyword;
+import net.mcppc.compiler.tokens.Num;
+import net.mcppc.compiler.tokens.Regexes;
+import net.mcppc.compiler.tokens.Token;
+import net.mcppc.compiler.tokens.Token.BasicName;
+import net.mcppc.compiler.tokens.Token.Factory;
+import net.mcppc.compiler.tokens.Token.MemberName;
+import net.mcppc.compiler.tokens.Type;
+
+/**
+ * a Const is a const-expression that can be evaluated at compile time; its not just a var that cannot be changed,
+ * 
+ * TODO templates
+ * consider creating function templates for precision
+ * consider creating consts system for template args and other consts
+ * const types: num, type, selector, string, (const) bool, (const) ref
+ * 
+ * some templates may need to make multiple files namespace__/template_...,
+ * but precision N can be put into tags valued N, 1eN, 1e-N and 1 file is maintained
+ * basic types may be workable as well or at very least format stringable
+ * 
+ * side note: based on this, precision should also be settable at runtime
+ * 
+ * @author jbarb_t8a3esk
+ *
+ */
+public class Const {
+	//const names can match actual tag literals: normally literals are prioritized but this flag turns it around for NBT addresses;
+	public static boolean CHECK_FOR_CONSTS_ON_TAGS = true;
+	public static Const.ConstExprToken checkForExpressionSafe(Compiler c, Matcher matcher, int line, int col,ConstType... types){
+		List<Const> forbidden=new ArrayList<Const>();
+		int start=c.cursor;
+		try {
+			return Const.checkForExpression(c, matcher, line, col, forbidden, types);
+		} catch (CompileError e) {
+			c.cursor=start;
+			return null;
+		}
+	}
+	public static Const.ConstExprToken checkForExpression(Compiler c, Matcher matcher, int line, int col,ConstType... types) throws CompileError{
+		List<Const> forbidden=new ArrayList<Const>();
+		return Const.checkForExpression(c, matcher, line, col, forbidden, types);
+	}
+
+		
+	public static Const.ConstExprToken checkForExpression(Compiler c, Matcher matcher, int line, int col, List<Const> forbidden,ConstType... types) throws CompileError{
+		Token.Factory[] look = new Token.Factory[4+types.length+1];
+		look[0]=Factories.newline;
+		look[1]=Factories.space;
+		look[2]=Factories.domment;
+		look[3]=Factories.comment;
+		int itype=-1;
+		Token.Factory[] look2=null;
+		for(int i=0;i<types.length;i++) {
+			if(types[i]!=ConstType.TYPE)look[4+i]=types[i].factory;
+			else {
+				itype=i;
+				look[4+i]=Token.WildChar.dontPassFactory;
+			}
+		}
+		look[4+types.length]=Token.WildChar.dontPassFactory;
+		if (itype>=0){
+			look2=new Token.Factory[types.length-itype-1];
+			for(int i=itype+1;i<types.length;i++) {
+				if(types[i]!=ConstType.TYPE)look2[i-itype-1]=types[i].factory;
+				else {
+					throw new CompileError("two type terms in checkForExpression");
+				}
+			}
+		}
+		boolean hasTagType=false;for(ConstType i:types)if(i==ConstType.NBT) {hasTagType=true;break;}
+		if(Const.CHECK_FOR_CONSTS_ON_TAGS && hasTagType) {
+			int start=c.cursor;
+			ConstVarToken cvt=ConstVarToken.checkFor(c, matcher, line, col);
+			if(cvt!=null)return cvt.constv.value;
+			else c.cursor=start;
+		}
+		
+		Token t=c.nextNonNullMatch(look);
+		if(t instanceof Token.WildChar && itype>=0) {
+			t=Type.tokenizeNextVarTypeNullable(c, matcher, line, col,forbidden);
+			if(t!=null)return (ConstExprToken) t;
+			t=c.nextNonNullMatch(look2);
+		}
+		if(!(t instanceof Token.WildChar)) {
+			return (ConstExprToken) t;
+		}
+		
+		Const vc=Const.identifyConst(c, matcher, line, col, forbidden, types);
+		return vc.value;
+	}
+	public static Const identifyConst(Compiler c, Matcher matcher, int line, int col, List<Const> forbidden,ConstType... types) throws CompileError {
+		
+		ConstVarToken cvt=Const.ConstVarToken.checkFor(c, matcher, line, col);
+		if(cvt==null) {
+			Token t=c.nextNonNullMatch(Factories.checkForMembName);
+			String[] ns=new String[types.length];for(int i=0;i<types.length;i++) ns[i]=types[i].name;
+			throw new CompileError.UnexpectedToken(t, String.join(",", ns));
+		}
+		Const cv=cvt.constv;
+		if(cv==null) {
+			Token t=c.nextNonNullMatch(Factories.checkForMembName);
+			String[] ns=new String[types.length];for(int i=0;i<types.length;i++) ns[i]=types[i].name;
+			throw new CompileError.UnexpectedToken(t, String.join(",", ns));
+		}
+		if(forbidden.contains(cv)) {
+			//const circular reference
+			forbidden.add(cv);
+			@SuppressWarnings("unchecked")
+			List<String> s=(List<String>) forbidden.stream().map(f->f.name);
+			throw new CompileError("Circular const dependance: %s".formatted(s));
+		}
+		//TODO recursively get value
+		if(cv.refsTemplate()) {
+			throw new CompileError("templates not yet supported TODO");
+		}
+		boolean correctType=false;
+		for(ConstType ct:types)if(ct==cv.ctype) {correctType=true;break;}
+		if(!correctType)throw new CompileError.UnsupportedCast(cv.ctype, types);
+		return cv;
+	}
+	public static abstract class ConstExprToken extends Token{
+		public abstract ConstType constType() ;
+		public boolean refsTemplate() {return false;}
+		public abstract String textInHdr();
+		public ConstExprToken(int line, int col) {
+			super(line, col);
+		}
+		
+	}
+	/**
+	 * token type enclosing literal expressions that Consts can evaluate to
+	 * @author jbarb_t8a3esk
+	 *
+	 */
+	public static abstract class ConstLiteralToken extends ConstExprToken{
+		private final ConstType constType__;
+		@Override public ConstType constType() {
+			return this.constType__;
+		}
+		public ConstLiteralToken(int line, int col, ConstType ctype) {
+			super(line, col);
+			this.constType__=ctype;
+		}
+		
+	}
+	//unused until templates
+	public static class ConstVarToken extends ConstExprToken{
+		public static ConstVarToken checkFor(Compiler c, Matcher m, int line, int col) throws CompileError {
+			final Factory[] lookdot=Factories.genericCheck(Token.Member.factory);
+			final Factory[] lookname=Factories.checkForBasicName;
+			int start=c.cursor;
+			Token t0=c.nextNonNullMatch(Factories.checkForBasicName);
+			if(!(t0 instanceof Token.BasicName)) {
+				return null;
+			}
+			List<String> names = new ArrayList();names.add(((Token.BasicName) t0).name);
+			FileInterface itf= c.myInterface;
+			while(true) {
+				String last=names.get(names.size()-1);
+				if(itf.hasLib(last, c.currentScope)) {
+					itf = itf.getDirectLib(last, c.currentScope);
+				}else {
+
+					try{
+						Const cv=c.myInterface.identifyConst(names, c.currentScope);
+						String path = names.stream().collect(Collectors.joining("."));
+						return new ConstVarToken(line,col,cv,path);
+					}catch (CompileError p) {
+						break;
+					}
+				}
+				Token t=c.nextNonNullMatch(lookdot);
+				if(t instanceof Token.WildChar)break;
+				else if (t instanceof Token.Member) {
+					//move on
+				}else throw new CompileError.UnexpectedToken(t,"'.' or non-name");
+				Token t2=c.nextNonNullMatch(lookname);
+				if (!(t2 instanceof BasicName))throw new CompileError.UnexpectedToken(t,"name");
+				names.add(((BasicName)t2).name);
+			}
+
+			c.cursor=start;
+			return null;
+		}
+		public final Const constv;
+		//the path used to find the string
+		public final String refpath;
+		public ConstVarToken(int line, int col, Const cnst,String refpath) {
+			super(line, col);
+			this.constv=cnst;
+			this.refpath=refpath;
+		}
+		@Override
+		public ConstType constType() {
+			return this.constv.ctype;
+		}
+		@Override
+		public String asString() {
+			return this.constv.name;
+		}
+
+		public boolean refsTemplate() {return constv.refsTemplate();}
+		@Override
+		public String textInHdr() {
+			// TODO Auto-generated method stub
+			return this.constv.inHeader();
+		}
+	}
+	public enum ConstType{
+		NUM("num",Num.factoryneg,true),
+		BOOLIT("flag",Token.Bool.factory,true),
+		STRLIT("text",Token.StringToken.factory),
+		TYPE("type",null),
+		SELECTOR("selector",Selector.SelectorToken.factory),
+		NBT("nbt",NbtPath.NbtPathToken.factory),
+		;
+		//all calls to the factories should now be const-safe
+		//refs are not known at precomp-time
+		//may need to resolve them afterward
+		//REF, 
+		//FREF
+		public final String name;
+		public final boolean stackable;
+		public final Token.Factory factory;
+		ConstType(String name,Token.Factory factory){
+			this(name,factory,false);
+		}
+		ConstType(String name,Token.Factory factory,boolean stackable){
+			this.name=name;
+			this.stackable=stackable;
+			this.factory=factory;
+		}
+		public static ConstType get(String s) {
+			for(ConstType t:values()) if(t.name.equals(s))return t;
+			return null;
+		}
+	}
+	public final String name;
+	public final ResourceLocation path;
+	public final ConstType ctype;
+	public final Keyword access;
+	ConstExprToken  value;
+	boolean isTemplate=false;//make refs to template be private
+	boolean refsTemplate() {
+		return this.isTemplate;
+	}
+	public Const(String name, ResourceLocation path,ConstType type,Keyword access, ConstExprToken value) {
+		this.name=name;
+		this.path = path;
+		this.ctype=type;
+		this.access=access;
+		this.value=value;
+	}
+	
+	@Override
+	public boolean equals(Object other) {
+		if(!(other instanceof Const))return false;
+		return this.name.equals(((Const)other).name) && this.path.equals(((Const)other).path);
+	}
+
+
+	public ConstExprToken getValue() {
+		return value;
+	}
+	public String inHeader() {
+		//TODO fixe problems with possible multiple files;
+		return this.name;
+	}
+	public void headerDeclaration(PrintStream f) throws CompileError {
+		f.printf("%s %s %s %s = %s;\n", this.access.name,Keyword.CONST.name,this.ctype.name,this.name,this.value.textInHdr());
+	}
+}

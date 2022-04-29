@@ -66,7 +66,10 @@ public final class Regexes {
 	//currently allows muliline selector, jsut remember to replace \n's with spaces before inlining
 
 	public static final Pattern OLD_NUM=Pattern.compile("(\\d+)(\\.\\d*)?([fdilsbFDILSB])?([Ee]\\-?\\d+)?");// (\d+)(\.\d*)?([fdilsbFDILSB])?([Ee]\-?\d+)?
+	//positive only:
 	public static final Pattern NUM=Pattern.compile("(\\d+)(\\.\\d*)?([Ee]\\-?\\d+)?([fdilsbFDILSB])?");// (\d+)(\.\d*)?([Ee]\-?\d+)?([fdilsbFDILSB])?
+	//can be negative:
+	public static final Pattern NUM_NEG=Pattern.compile("(-?\\d+)(\\.\\d*)?([Ee]\\-?\\d+)?([fdilsbFDILSB])?");// (-?\d+)(\.\d*)?([Ee]\-?\d+)?([fdilsbFDILSB])?
 
 	public static final Pattern BOOL=Pattern.compile("(true)|(false)");// (true)|(false)
 	public static final Pattern UNARY_MINUS=Pattern.compile("-");

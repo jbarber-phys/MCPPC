@@ -5,16 +5,16 @@ import java.util.regex.*;
 
 import net.mcppc.compiler.CompileJob;
 import net.mcppc.compiler.Compiler;
+import net.mcppc.compiler.Const;
 import net.mcppc.compiler.Scope;
 import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.Variable;
+import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.VarType.Builtin;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.struct.Str;
 
 public abstract class Token {
-	public interface ConstexprValue {//extends Token
-		//blank
-	}
 	public static abstract class Factory {
 		//may be able to due without template
 		public Pattern pattern;
@@ -122,11 +122,15 @@ public abstract class Token {
 		
 		//KEEP THIS AS FALSE;
 		public static final boolean ARE_TYPEARGS_PARENS=false;
+		public static final String TYPEOPEN = ARE_TYPEARGS_PARENS? "(":"<";
+		public static final String TYPECLOSE = ARE_TYPEARGS_PARENS? ")":">";
 		public static final Token.Factory[] checkForTypeargBracket = 
 			{Factories.newline,Factories.comment,Factories.domment,Factories.space,
 					Statement.Domment.factory,
 					ARE_TYPEARGS_PARENS?Token.Paren.factory:TypeArgBracket.factory,
 					Token.WildChar.dontPassFactory};
+
+
 
 		public static  boolean isArgTypeArg(Token t) {
 			if(ARE_TYPEARGS_PARENS)return t instanceof Paren;
@@ -159,7 +163,7 @@ public abstract class Token {
 			return forward?"<":">";
 		}
 	}
-	public static class Bool extends Token implements ConstexprValue{
+	public static class Bool extends Const.ConstLiteralToken{
 		public static final Factory factory = new Factory(Regexes.BOOL) {
 			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
 				c.cursor=matcher.end();
@@ -168,11 +172,15 @@ public abstract class Token {
 		public final boolean val;
 		public final VarType type=VarType.BOOL;
 		public Bool(int line, int col,boolean val) {
-			super(line, col);
+			super(line, col,ConstType.BOOLIT);
 			this.val=val;
 		}
 		@Override public String asString() {
 			return val?"true":"false";
+		}
+		@Override
+		public String textInHdr() {
+			return this.asString();
 		}
 	}
 	public static class CodeBlockBrace extends AbstractBracket{
@@ -238,7 +246,7 @@ public abstract class Token {
 				return new BasicName(line,col,matcher.group());
 			}
 		};
-		String name;
+		public final String name;
 		public BasicName(int line, int col,String name) {
 			super(line, col);
 			this.name=name;
@@ -247,8 +255,7 @@ public abstract class Token {
 			return this.name;
 		}
 	}
-	public static class StringToken extends Token{
-		//for a named thing that hasn't been identified yet
+	public static class StringToken extends Const.ConstLiteralToken{
 		public static final Factory factory = new Factory(Regexes.STRLIT) {
 			@Override
 			public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
@@ -256,9 +263,10 @@ public abstract class Token {
 				return new StringToken(line,col,matcher.group());
 			}
 		};
-		String literal;
+		public final VarType type=Str.STR;
+		public final String literal;
 		public StringToken(int line, int col,String name) {
-			super(line, col);
+			super(line, col,ConstType.STRLIT);
 			this.literal=name;
 		}
 		@Override public String asString() {
@@ -270,24 +278,31 @@ public abstract class Token {
 		public String getJsonText() {
 			return this.literal();
 		}
+		@Override
+		public String textInHdr() {
+			return this.literal();
+		}
 	}
 	public static class MemberName extends Token implements Identifiable{
 		//for a named thing that hasn't been identified yet
 		public static final Factory factory = new Factory(Regexes.NAME) {
-			static final Factory[] look= {Factories.newline,Factories.comment,Factories.domment,Factories.space,
-					Token.BasicName.factory,Token.Member.factory,Token.WildChar.dontPassFactory};
+			//static final Factory[] look= {Factories.newline,Factories.comment,Factories.domment,Factories.space,
+			//		Token.BasicName.factory,Token.Member.factory,Token.WildChar.dontPassFactory};
+			
 			@Override
 			public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+				final Factory[] lookdot=Factories.genericCheck(Token.Member.factory);
+				final Factory[] lookname=Factories.checkForBasicName;
 				c.cursor=matcher.end();
 				MemberName me= new MemberName(line,col,matcher.group());
 				//int pc=c.cursor;//wildchar will be smart
 				while(true) {
-					Token t=c.nextNonNullMatch(look);
+					Token t=c.nextNonNullMatch(lookdot);
 					if(t instanceof Token.WildChar)break;
 					else if (t instanceof Token.Member) {
 						//move on
 					}else throw new CompileError.UnexpectedToken(t,"'.' or non-name");
-					Token t2=c.nextNonNullMatch(look);
+					Token t2=c.nextNonNullMatch(lookname);
 					if (!(t2 instanceof BasicName))throw new CompileError.UnexpectedToken(t,"name");
 					me.names.add(((BasicName)t2).name);
 				}
@@ -316,102 +331,6 @@ public abstract class Token {
 			if(this.var!=null)this.estimate=s.getEstimate(var);
 			return 0;
 		}
-	}
-	public static class Num extends Token  implements ConstexprValue{
-		public static final Factory factory = new Factory(Regexes.NUM) {
-			@Override
-			public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
-				final int LEADDIGITS=1;
-				final int DPLACES=2;
-				final int EXP=3;//old 4
-				final int TYPE=4; // old 3
-				
-				c.cursor=matcher.end();
-				boolean isFloat = (matcher.group(DPLACES)!=null)||(matcher.group(EXP)!=null);
-				VarType.Builtin b=VarType.fromSuffix(matcher.group(TYPE), isFloat);
-				
-				if (b.isFloatP){
-					int precision=0;
-					int exp=0;
-					if (matcher.group(DPLACES)!=null) {
-						precision=matcher.group(DPLACES).length()-1;//correct
-					}
-					if (matcher.group(EXP)!=null) {
-						exp=Integer.parseInt(matcher.group(EXP).substring(1));//correct
-					}
-					String s=(matcher.group(LEADDIGITS)!=null?matcher.group(LEADDIGITS):"")
-							+(matcher.group(DPLACES)!=null?matcher.group(DPLACES):"")
-							+(matcher.group(EXP)!=null?matcher.group(EXP):"");
-					//CompileJob.compileMcfLog.printf("%s   %s   %s   %s;\n", matcher.group(1),matcher.group(2),matcher.group(3),matcher.group(4));
-					//CompileJob.compileMcfLog.printf("%s;\n", s);
-					Number value = Double.parseDouble(s);//should work
-					return new Num(line,col,value,new VarType(b,precision));
-				}
-				Number value = Long.parseLong(matcher.group(LEADDIGITS));
-				return new Num(line,col,value,new VarType(b));
-			}
-		};
-
-		public static final Factory nullfactory = new Factory(Regexes.NULL_KEYWORD) {
-
-			@Override
-			public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
-				c.cursor=matcher.end();
-				return new Num(line,col,null,VarType.DOUBLE);
-			}};
-		public final Number value;
-		public final VarType type;
-		public Num(int line, int col,Number num,VarType type) {
-			super(line, col);
-			this.value=num;
-			this.type=type;
-		}
-		@Override
-		public String asString() {
-			//TODO show sigfigs and type letter for byte short long float
-			if (this.type.isFloatP()) {
-				return value.toString();
-				
-			}else {
-				return value.toString();
-			}
-		}
-		public Num withValue(Number val,VarType type) {
-			return new Num(this.line,this.col,val,type);
-		}
-		public Num times(Num other) {
-			double n1=this.value.doubleValue();double n2=other.value.doubleValue();
-			double result=n1*n2;
-			VarType ntype=this.type;
-			if(!this.type.isFloatP()) {
-				ntype=other.type;
-			}else {
-				if(other.type.isFloatP() &&!(n1==0 || n2==0)) {
-					//2 floats
-					//use sig fig rules
-					int newPrecision=(int) Math.min(this.type.getPrecision()-Math.log10(n2), other.type.getPrecision()-Math.log10(n1));
-					ntype=VarType.doubleWith(newPrecision);
-				}
-			}
-			return new Num(this.line,this.col,result,ntype);
-		}
-		public Num divby(Num other) {
-			double n1=this.value.doubleValue();double n2=other.value.doubleValue();
-			double result=n1/n2;
-			VarType ntype=this.type;
-			if(!this.type.isFloatP()) {
-				ntype=other.type;
-			}else {
-				if(other.type.isFloatP() &&!(n1==0 || n2==0)) {
-					//2 floats
-					//use sig fig rules
-					int newPrecision=(int) Math.min(this.type.getPrecision()+Math.log10(n2), other.type.getPrecision()+2.0*Math.log10(n2)-Math.log10(n1));
-					ntype=VarType.doubleWith(newPrecision);
-				}
-			}
-			return new Num(this.line,this.col,result,ntype);
-		}
-		
 	}
 	public static List<CharSequence> asStrings(List<Token> ts) {
 		List<CharSequence> list=new ArrayList<CharSequence>();

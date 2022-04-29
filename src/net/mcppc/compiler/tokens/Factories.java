@@ -84,6 +84,9 @@ public final class Factories {
 				return Statement.Assignment.makeBreak(c, matcher, line, col);
 			case RETURN:
 				return Statement.Assignment.makeReturn(c, matcher, line, col);
+
+			case CONST:
+				throw new CompileError("keyword %s not expected at start of statement".formatted(w.name));
 			//TODO
 			case EXECUTE:
 				break;
@@ -129,11 +132,16 @@ public final class Factories {
 				
 				//? ~~
 				if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ESTIMATE) {
-					Token est=c.nextNonNullMatch(Factories.nextNumNullable);
-					if(!(est instanceof Token.Num)) throw new CompileError.UnexpectedToken(est, "number");
+					Token est=c.nextNonNullMatch(Factories.checkForNullableNumber);
+					if(!(est instanceof Num)) {
+						est=Num.tokenizeNextNumNonNull(c, matcher, line, col);
+					}
+					if(!(est instanceof Num)) {
+						throw new CompileError.UnexpectedToken(est, "number");
+					}
 					asn = c.nextNonNullMatch(Factories.nextIsLineEnd);
 					if(!(asn instanceof Token.LineEnd))new CompileError.UnexpectedToken(asn, ";");
-					Statement.Estimate stm= new Statement.Estimate(line, col, nm.var,((Token.Num)est).value);
+					Statement.Estimate stm= new Statement.Estimate(line, col, nm.var,((Num)est).value);
 					c.currentScope.addEstimate(stm.var, stm.estimate);
 					return stm;
 				}
@@ -151,7 +159,7 @@ public final class Factories {
 	};
 
 	public static final Token.Factory basicNameKeyword = new Factory(Regexes.NAME) {
-
+		
 		@Override
 		public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
 			Keyword w=Keyword.fromString(matcher.group());
@@ -206,11 +214,13 @@ public final class Factories {
 	public static final Token.Factory[] closeParen = {newline,comment,domment,space,Statement.Domment.factory,Token.Paren.factory};
 	public static final Token.Factory[] checkForParen = {newline,comment,domment,space,Statement.Domment.factory,Token.Paren.factory,Token.WildChar.dontPassFactory};
 	public static final Token.Factory[] checkForMinus = {newline,comment,domment,space,Statement.Domment.factory,UnaryOp.uminusfactory,Token.WildChar.dontPassFactory};
-	public static final Token.Factory[] checkForKeyword = {newline,comment,domment,space,Statement.Domment.factory,Factories.basicNameKeyword,Token.WildChar.dontPassFactory};
-
+	public static final Token.Factory[] checkForKeyword = Factories.genericCheck(Factories.basicNameKeyword);
+		//{newline,comment,domment,space,Statement.Domment.factory,Factories.basicNameKeyword,Token.WildChar.dontPassFactory};
+	public static final Token.Factory[] checkForMembName = Factories.genericCheck(Token.MemberName.factory);
+	public static final Token.Factory[] checkForBasicName = Factories.genericCheck(Token.BasicName.factory);
 	public static final Token.Factory[] checkForAssignlike = {newline,comment,space,Statement.Domment.factory,Token.Assignlike.factoryAssign,Token.Assignlike.factoryEstimate,Token.WildChar.dontPassFactory};
-	public static final Token.Factory[] nextNum = {newline,comment,domment,space,Token.Num.factory};
-	public static final Token.Factory[] nextNumNullable = {newline,comment,domment,space,Token.Num.factory,Token.Num.nullfactory};	
+	public static final Token.Factory[] nextNum = {newline,comment,domment,space,Num.factory};
+	public static final Token.Factory[] checkForNullableNumber = {newline,comment,domment,space,Num.factory,Num.nullfactory,Token.WildChar.dontPassFactory};	
 	//returns a nonnull WildChar after space; does this without moving past the wildchar
 	public static final Token.Factory[] skipSpace = {newline,comment,domment,space,Token.WildChar.dontPassFactory};
 	
@@ -260,7 +270,7 @@ public final class Factories {
 		,Factories.skipDoubleBlockBrace
 		,Token.CodeBlockBrace.factory//start tag canidate
 		,Token.BasicName.factory
-		,Token.Num.factory
+		,Num.factory
 		,Factories.skipMscChar
 	};
 	/**

@@ -36,36 +36,64 @@ public class FileInterface {
 
 	final Map<String,Variable> varsExtern=new HashMap<String, Variable>();
 	final Map<String,Function> funcsExtern=new HashMap<String, Function>();
+	
+	//constants
+
+	final Map<String,Const> constsPublic=new HashMap<String, Const>();
+	final Map<String,Const> constsPrivate=new HashMap<String, Const>();
+	
+	//template:
+	final List<Const> template=new ArrayList<Const>();//TODO let add to
+	
+	
+	//hypothetical: classes
+	//final Map<String,Struct> classes=new HashMap<String, Struct>();
+	public boolean hasClass(String name) {
+		//unimplimented
+		return false;
+	}
+	
 	public boolean add(Declaration dec) {
 		//cnannot match any other var/func
-		if(dec.isFunction()) {
-			//CompileJob.compileMcfLog.printf("src added adding a func %s.%s(...);\n",dec.getFunction().resoucrelocation,dec.getFunction().name);
+		switch(dec.getObjType()) {
+		case CONST:
+			for(Const cv:this.template)if(cv.name.equals(dec.getConst().name))return false;
+			if(constsPrivate.containsKey(dec.getConst().name))return false;
+			if(constsPublic.containsKey(dec.getConst().name))return false;
+			break;
+		case FUNC:
 			if(funcsPrivate.containsKey(dec.getFunction().name))return false;
 			if(funcsPublic.containsKey(dec.getFunction().name))return false;
 			if(funcsExtern.containsKey(dec.getFunction().name))return false;
-		}
-		if(!dec.isFunction()) {
-			//CompileJob.compileMcfLog.printf("src added adding a var %s.%s;\n",dec.getVariable().holder,dec.getVariable().name);
+			break;
+		case VAR:
 			if(varsPrivate.containsKey(dec.getVariable().name))return false;
 			if(varsPublic.containsKey(dec.getVariable().name))return false;
 			if(varsExtern.containsKey(dec.getVariable().name))return false;
-			
+			break;
+		default:
+			break;
+		
 		}
 		//CompileJob.compileMcfLog.printf("\t not a double\n");
 		switch (dec.access) {
-		case EXTERN:
-			if(dec.isFunction())return this.funcsExtern.putIfAbsent(dec.getFunction().name, dec.getFunction())==null;
-			else return this.varsExtern.putIfAbsent(dec.getVariable().name, dec.getVariable())==null;
-		case PRIVATE:
-			if(dec.isFunction())return this.funcsPrivate.putIfAbsent(dec.getFunction().name, dec.getFunction())==null;
-			else return this.varsPrivate.putIfAbsent(dec.getVariable().name, dec.getVariable())==null;
-		case PUBLIC:{
-			if(dec.isFunction())return this.funcsPublic.putIfAbsent(dec.getFunction().name, dec.getFunction())==null;
-			else return this.varsPublic.putIfAbsent(dec.getVariable().name, dec.getVariable())==null;
-		}
-		default:
-			//CompileJob.compileMcfLog.printf("\t keyword mystery;\n");
-			return false;
+		case EXTERN: switch(dec.getObjType()) {
+			case CONST: return false;
+			case FUNC:return this.funcsExtern.putIfAbsent(dec.getFunction().name, dec.getFunction())==null;
+			case VAR: return this.varsExtern.putIfAbsent(dec.getVariable().name, dec.getVariable())==null;
+			}return false;
+		case PRIVATE:switch(dec.getObjType()) {
+			case CONST: return this.constsPrivate.putIfAbsent(dec.getConst().name, dec.getConst())==null;
+			case FUNC:return this.funcsPrivate.putIfAbsent(dec.getFunction().name, dec.getFunction())==null;
+			case VAR: return this.varsPrivate.putIfAbsent(dec.getVariable().name, dec.getVariable())==null;
+			}return false;
+		case PUBLIC:switch(dec.getObjType()) {
+			case CONST: return this.constsPublic.putIfAbsent(dec.getConst().name, dec.getConst())==null;
+			case FUNC:return this.funcsPublic.putIfAbsent(dec.getFunction().name, dec.getFunction())==null;
+			case VAR: return this.varsPublic.putIfAbsent(dec.getVariable().name, dec.getVariable())==null;
+			}
+		default:return false;
+			
 		
 		}
 	}
@@ -139,9 +167,24 @@ public class FileInterface {
 		if(isSelf)ret=ret || this.funcsExtern.containsKey(name);
 		return ret;
 	}
+	public boolean hasConst(String name,Scope s) {
+		boolean isSelf= this.isSelf(s);
+		boolean ret=this.constsPublic.containsKey(name);
+		if(isSelf)ret=ret || this.constsPrivate.containsKey(name);
+		if(isSelf && !ret) {
+			//template
+			for(Const c:this.template)if(c.name.equals(name))return true;
+		}
+		//no extern constants
+		return ret;
+	}
 	public boolean hasLib(String name,Scope s) {
 		if(this.isSelf(s))return this.libs.containsKey(name);
 		else return false;
+	}
+	public FileInterface getDirectLib(String name,Scope s) {
+		if(this.isSelf(s))return this.libs.get(name);
+		else return null;
 	}
 	protected Variable getVar(String name,Scope s) {
 		boolean isSelf= this.isSelf(s);
@@ -166,11 +209,20 @@ public class FileInterface {
 		if(isSelf && this.funcsExtern.containsKey(name)) return this.funcsExtern.get(name);
 		return null;
 	}
+
+	protected Const getConst(String name,Scope s) {
+		boolean isSelf= this.isSelf(s);
+		if(isSelf)for(Const cv:this.template)if(cv.name.equals(name))return cv;
+		if(this.constsPublic.containsKey(name)) return this.constsPublic.get(name);
+		if(isSelf && this.constsPrivate.containsKey(name)) return this.constsPrivate.get(name);
+		return null;
+	}
 	protected Variable identifyVariable(List<String> names,Scope s,int start) throws CompileError {
 		if(!this.hasReadLibs)new CompileError("must load libs before identifying variables");
 		
 		String name=names.get(0+start);
-		boolean isLib=this.libs.containsKey(name);
+		boolean isSelf=this.isSelf(s);
+		boolean isLib=this.libs.containsKey(name) && isSelf;
 		boolean isVar=this.hasVar(name, s);
 
 		if(names.size()>=2+start && isLib) {
@@ -207,9 +259,9 @@ public class FileInterface {
 			//may be struct member
 			throw new CompileError("var had member of member; not yet supported");
 		}
-		FileInterface lib;
 		String name=names.get(0+start);
-		boolean isLib=this.libs.containsKey(name);
+		boolean isSelf=this.isSelf(s);
+		boolean isLib=this.libs.containsKey(name) && isSelf;
 		boolean isFunc=this.hasFunc(name, s);
 		//boolean isVar=this.hasVar(name, s);
 		if(names.size()>=2+start && isLib) {
@@ -222,12 +274,51 @@ public class FileInterface {
 			else throw new CompileError("function %s not found in scope %s".formatted(String.join(".", names),s.resBase));
 		}
 	}
+
+	public  Const identifyConst(Token.MemberName t,Scope s) throws CompileError {
+		return this.identifyConst(t.names,s);
+	}
+	public  Const identifyConst(String name,Scope s) throws CompileError {
+		List<String> array=new ArrayList<String>();array.add(name);
+		return this.identifyConst(array,s);
+	}
+
+	public Const identifyConst(List<String> names,Scope s) throws CompileError {
+		return this.identifyConst(names, s, 0);
+	}
+	public  Const identifyConst(List<String> names,Scope s,int start) throws CompileError {
+		if(!this.hasReadLibs)new CompileError("must load libs before identifying functions");
+			
+		if(names.size()>2) {
+			//may be struct member
+			throw new CompileError("var had member of member; not yet supported");
+		}
+		String name=names.get(0+start);
+		boolean isLib=this.libs.containsKey(name);
+		boolean isConst=this.hasConst(name, s);
+		//boolean isVar=this.hasVar(name, s);
+		if(names.size()>=2+start && isLib) {
+			return this.libs.get(name).identifyConst(names, s, start+1);
+		}else if (isConst){
+			Const cv=this.getConst(name, s);
+			return cv;
+		}else {
+			if (!isConst && names.size()>=2+start)throw new CompileError("library %s not found loaded in scope %s.".formatted(name,s.resBase));
+			else {
+				throw new CompileError("const '%s' not found in scope %s".formatted(String.join(".", names),s.resBase));
+			}
+		}
+	}
 	public void printmefordebug(PrintStream p) {
 		printmefordebug(p,1,0);
 	}
 	public void printmefordebug(PrintStream p,int depth,int tabs) {
 		StringBuffer s=new StringBuffer();while(s.length()<tabs)s.append('\t');
 		p.printf("%sinterface %s\n",s.toString(), this.path);
+		p.printf("%s\t template: %s;\n",s.toString(), this.template.stream().map(f->f.name));
+		p.printf("%s\t public consts: %s;\n",s.toString(), this.constsPublic.keySet());
+		p.printf("%s\t private consts: %s\n",s.toString(), this.constsPrivate.keySet());
+		
 		p.printf("%s\t public funcs: %s;\n",s.toString(), this.funcsPublic.keySet());
 		p.printf("%s\t private funcs: %s;\n",s.toString(), this.funcsPrivate.keySet());
 		p.printf("%s\t extern funcs: %s;\n",s.toString(), this.funcsExtern.keySet());
@@ -235,6 +326,7 @@ public class FileInterface {
 		p.printf("%s\t public vars: %s;\n",s.toString(), this.varsPublic.keySet());
 		p.printf("%s\t private vars: %s\n",s.toString(), this.varsPrivate.keySet());
 		p.printf("%s\t extern vars: %s;\n",s.toString(), this.varsExtern.keySet());
+
 		if(depth<=0) {
 			p.printf("%s\t libs %s;\n", s.toString(),this.libs.keySet());
 			

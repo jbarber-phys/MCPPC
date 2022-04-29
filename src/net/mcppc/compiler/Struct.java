@@ -6,12 +6,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 
+import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.errors.CompileError.UnsupportedCast;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Factories;
+import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.UnaryOp;
 
@@ -27,6 +30,7 @@ import net.mcppc.compiler.struct.*;
  * TODO it should be possible to also create a class; a struct that will interperet mcpp code as a class template and 
  * determine the behavior at compile time, but functions will be hard as they will need to copy this*
  * 
+ * TODO allow nonstatic functions using copy $this
  * 
  * FIXED list tags and compound tags need to be initialized or they wont work
  * must run code to initialize these types
@@ -47,15 +51,20 @@ import net.mcppc.compiler.struct.*;
 public abstract class Struct {
 	//TODO String and Vector structs
 	
-	public static final Map<String,Struct> STRUCTS=new HashMap<String,Struct>();
+	protected static final Map<String,Struct> STRUCTS=new HashMap<String,Struct>();
 	public static void register(Struct s) {
 		STRUCTS.put(s.name, s);
 	}
 	static {
 		Vector.registerAll();
+		Str.registerAll();
 	}
 	public static boolean isStruct(String name) {
 		return STRUCTS.containsKey(name);
+	}
+
+	public static Struct getStruct(String name) {
+		return STRUCTS.get(name);
 	}
 	public final String name;
 	public final boolean isNumeric;
@@ -80,7 +89,7 @@ public abstract class Struct {
 	 * @param col
 	 * @return
 	 */
-	public StructTypeParams tokenizeTypeArgs(Compiler c, Matcher matcher, int line, int col)throws CompileError {
+	public StructTypeParams tokenizeTypeArgs(Compiler c, Matcher matcher, int line, int col, List<Const> forbidden)throws CompileError {
 		//check that there are no args
 		Token t=c.nextNonNullMatch(Factories.closeParen);
 		if ((!(t instanceof Token.Paren)) || ((Token.Paren)t).forward)throw new CompileError.UnexpectedToken(t,"')'");
@@ -185,8 +194,8 @@ public abstract class Struct {
 			throws CompileError{throw new CompileError.UnsupportedOperation( op, mytype);}
 	
 	//literal term must be after for div but can be before for mult
-	public boolean canDoLiteralMultDiv(BiOperator op,VarType mytype,Token.Num other)throws CompileError {return false;}
-	public void doLiteralMultDiv(BiOperator op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Integer in,Integer dest,Token.Num other)
+	public boolean canDoLiteralMultDiv(BiOperator op,VarType mytype,Num other)throws CompileError {return false;}
+	public void doLiteralMultDiv(BiOperator op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Integer in,Integer dest,Num other)
 			throws CompileError{throw new CompileError.UnsupportedOperation( op, mytype);}
 	
 	
@@ -330,5 +339,10 @@ public abstract class Struct {
 	public BuiltinConstructor getConstructor(VarType myType) throws CompileError {
 		throw new CompileError("no constructor defined for type %s;".formatted(myType.asString()));
 	}
-	
+	public boolean canSetToExpr(ConstExprToken e) {
+		return false;
+	}
+	public void setMeToExpr(PrintStream p,RStack stack,Variable me, ConstExprToken e) throws CompileError {
+		throw new CompileError.UnsupportedCast(e, me.type);
+	}
 }

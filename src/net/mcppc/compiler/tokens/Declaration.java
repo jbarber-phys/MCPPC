@@ -1,6 +1,7 @@
 package net.mcppc.compiler.tokens;
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.Compiler;
+import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.DommentCollector.Dump;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.OutputDump;
@@ -24,7 +25,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	};
 
 	static final Token.Factory[] lookMaskHolder = {Factories.space,Factories.newline,Factories.comment,Factories.domment,
-			Coordinates.CoordToken.factory,Selector.SelectorToken.factory,ResourceLocation.ResourceToken.factory
+			Coordinates.CoordToken.factory,Selector.SelectorToken.factory,ResourceLocation.ResourceToken.factory,Token.WildChar.dontPassFactory
 	};
 	static final Token.Factory[] lookMaskOp = {Factories.space,Factories.newline,Factories.comment,Factories.domment,
 			Token.TagOf.factory,Token.ScoreOf.factory,Token.LineEnd.factory,Token.CodeBlockBrace.factory
@@ -39,7 +40,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	
 	static final Token.Factory[] lookCompiletime = {Token.BasicName.factory,Factories.space,Factories.newline,Factories.comment,Factories.domment,Token.Paren.factory,
 			Token.Assignlike.factoryMask,Token.Assignlike.factoryAssign,Token.Assignlike.factoryEstimate,
-			Token.ArgEnd.factory,Token.LineEnd.factory,Token.CodeBlockBrace.factory,Token.Num.factory
+			Token.ArgEnd.factory,Token.LineEnd.factory,Token.CodeBlockBrace.factory,Num.factory
 	};
 	
 	static final Token.Factory[] checkForRef = {Factories.space,Factories.newline,Factories.comment,Factories.domment,
@@ -56,9 +57,13 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	}
 	public void applyMask(Compiler c, Matcher matcher, int line, int col,Keyword access, boolean skip) throws CompileError {
 		Token holder=c.nextNonNullMatch(lookMaskHolder);
+		if(holder instanceof Token.WildChar) {
+			holder = Const.checkForExpression(c, matcher, line, col, ConstType.SELECTOR);//check for consts
+		}
 		if (holder instanceof Coordinates.CoordToken) {
 			//space delimited
-			Token address=c.nextNonNullMatch(lookMaskNbt);
+			Token address=Const.checkForExpression(c, matcher, line, col, ConstType.NBT);
+					//c.nextNonNullMatch(lookMaskNbt);
 			if(!(address instanceof NbtPath.NbtPathToken))throw new CompileError.UnexpectedToken(address,"nbt path");
 			if(!skip)this.variable.maskBlock(((Coordinates.CoordToken)holder).pos, ((NbtPath.NbtPathToken)address).path());
 			return;
@@ -66,20 +71,22 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		Token op=c.nextNonNullMatch(lookMaskOp);
 		if (holder instanceof Selector.SelectorToken && op instanceof Token.TagOf) {
 			//entity
-			Token address=c.nextNonNullMatch(lookMaskNbt);
+			Token address=Const.checkForExpression(c, matcher, line, col, ConstType.NBT);
+					//c.nextNonNullMatch(lookMaskNbt);
 			if(!(address instanceof NbtPath.NbtPathToken))throw new CompileError.UnexpectedToken(address,"nbt path");
-			if(!skip)this.variable.maskEntity(((Selector.SelectorToken)holder).selctor(), ((NbtPath.NbtPathToken)address).path());
+			if(!skip)this.variable.maskEntity(((Selector.SelectorToken)holder).selector(), ((NbtPath.NbtPathToken)address).path());
 			return;
 		}else if (holder instanceof Selector.SelectorToken && op instanceof Token.ScoreOf) {
 			//score
 			Token address=c.nextNonNullMatch(lookMaskScore);
 			if(!(address instanceof Token.BasicName))throw new CompileError.UnexpectedToken(address,"score");
-			if(!skip)this.variable.maskScore(((Selector.SelectorToken)holder).selctor(), ((Token.BasicName)address).name);
+			if(!skip)this.variable.maskScore(((Selector.SelectorToken)holder).selector(), ((Token.BasicName)address).name);
 			return;
 			
 		}else if (holder instanceof ResourceLocation.ResourceToken && op instanceof Token.TagOf) {
 			//storage
-			Token address=c.nextNonNullMatch(lookMaskNbt);
+			Token address=Const.checkForExpression(c, matcher, line, col, ConstType.NBT);
+					//c.nextNonNullMatch(lookMaskNbt);
 			if(!(address instanceof NbtPath.NbtPathToken))throw new CompileError.UnexpectedToken(address,"nbt path");
 			if(!skip)this.variable.maskStorage(((ResourceLocation.ResourceToken)holder).res, ((NbtPath.NbtPathToken)address).path());
 			return;
@@ -88,6 +95,37 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			//incorrect format
 			throw new CompileError.UnexpectedToken(op,"'.'");
 		}
+	}
+	public void addConst(Compiler c, Matcher matcher, int line, int col,Keyword access,boolean isReadingHeader, boolean isCompiling) throws CompileError {
+		if (isCompiling) {
+			c.nextNonNullMatch(Factories.headerSkipline);
+			return;
+		}
+		Token ctypet = c.nextNonNullMatch(Factories.checkForBasicName);
+		if(!(ctypet instanceof Token.BasicName))throw new CompileError.UnexpectedToken(ctypet, "const type name");
+		Const.ConstType ctype = Const.ConstType.get(((Token.BasicName)ctypet).name);
+		if(ctype==null)throw new CompileError.UnexpectedToken(ctypet, "const type name");
+		
+		//thing name
+		Token nm = c.nextNonNullMatch(look);
+		if (!(nm instanceof Token.BasicName))throw new UnexpectedToken(nm,"name");
+		String cname=((BasicName) nm).name;
+		//=
+		Token asn = c.nextNonNullMatch(Factories.checkForAssignlike);
+		if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ASSIGNMENT) {
+			//continue
+		}else throw new CompileError.UnexpectedToken(asn," = <const-literal>","consts must be assigned");
+		// ...
+		Const.ConstExprToken value=Const.checkForExpression(c, matcher, line, col, ctype);
+		if(value.refsTemplate()) {
+			//TODO (currently unreachable)
+		}
+		this.constv=new Const(cname, c.resourcelocation, ctype,this.access, value);
+		this.objType=DeclareObjType.CONST;
+		c.myInterface.add(this);
+		
+		c.nextNonNullMatch(Factories.nextIsLineEnd);
+		
 	}
 	public static Declaration fromSrc1(Compiler c, Matcher matcher, int line, int col,Keyword access) throws CompileError {
 		return header(c, matcher, line, col, access, false);
@@ -100,6 +138,11 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		c.dommentCollector=d;
 		//typename
 		c.cursor=matcher.end();
+		Token isConst = c.nextNonNullMatch(Factories.checkForKeyword);
+		if(isConst instanceof Token.BasicName && Keyword.fromString(((Token.BasicName)isConst).name)==Keyword.CONST) {
+			d.addConst(c, matcher, line, col, access, isReadingHeader,false);
+			return d;
+		}
 		Type type=Type.tokenizeNextVarType(c, matcher, line, col);
 		
 		Token t2 = c.nextNonNullMatch(look);
@@ -132,7 +175,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 				else if (c.cursor>=matcher.regionEnd())throw new CompileError.UnexpectedFileEnd(term.line);
 				else break;
 			}
-			d.isFunction=true;
+			d.objType=DeclareObjType.FUNC;
 			for(Variable p:d.function.args) {
 				CompileJob.compileHdrLog.println("\t parameter: %s %s".formatted(p.type.asString(),p.name));
 				
@@ -141,7 +184,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 				//-> statement for resourcelocation
 				Token asn = c.nextNonNullMatch(look);
 				if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.MASK) {
-					asn=c.nextNonNullMatch(lookMaskHolder);
+					asn=c.nextNonNullMatch(lookMaskHolder);//not looking for consts; and shouldnt ;
 					if(!(asn instanceof ResourceLocation.ResourceToken))throw new CompileError.UnexpectedToken(asn, "resource location");
 					d.function.setResourceLocation(((ResourceLocation.ResourceToken)asn).res);
 					int precursor=c.cursor;
@@ -181,6 +224,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			CompileJob.compileHdrLog.println("Declaration its a variable");
 			if (c.currentScope.isInFunctionDefine())Warnings.warning("vars declared in functions are not supported, will not act like local vars, and could misbehave.");
 			d.variable=new Variable(varname.asString(),type.type, access, c);
+			d.objType=DeclareObjType.VAR;
 			if (t3 instanceof Token.LineEnd) {
 				if(!c.myInterface.add(d)) throw new CompileError.DoubleDeclaration(d);
 				return d;//end early
@@ -215,6 +259,12 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		c.dommentCollector=DommentCollector.Dump.INSTANCE;
 		//typename
 		c.cursor=matcher.end();
+		Token isConst = c.nextNonNullMatch(Factories.checkForKeyword);
+		if(isConst instanceof Token.BasicName && Keyword.fromString(((Token.BasicName)isConst).name)==Keyword.CONST) {
+			d.addConst(c, matcher, line, col, access, false,true);
+			return null;//ignore if in header file
+			//return d;
+		}
 		Type type=Type.tokenizeNextVarType(c, matcher, line, col);
 		
 		Token t2 = c.nextNonNullMatch(look);
@@ -247,7 +297,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 				else if (c.cursor>=matcher.regionEnd())throw new CompileError.UnexpectedFileEnd(term.line);
 				else break;
 			}
-			d.isFunction=true;
+			d.objType=DeclareObjType.FUNC;
 			for(Variable p:d.function.args) {
 				CompileJob.compileMcfLog.println("\t parameter: %s%s %s".formatted(p.isReference()?"ref ":"" ,p.type.asString(),p.name));
 				
@@ -293,6 +343,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			if (c.currentScope.isInFunctionDefine())Warnings.warning("vars declared in functions are not supported, will not act like local vars, and could misbehave.");
 			//d.variable=new Variable(varname.asString(),type.type, access, c);
 			d.variable=c.myInterface.identifyVariable(varname.name);
+			d.objType=DeclareObjType.VAR;
 			if (t3 instanceof Token.LineEnd) {
 				return d;//end early
 			}
@@ -309,8 +360,11 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			//? ~~
 			if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ESTIMATE) {
 				Token est=c.nextNonNullMatch(lookCompiletime);
-				if(!(est instanceof Token.Num)) throw new CompileError.UnexpectedToken(est, "number");
-				d.estimate=((Token.Num)est).value;
+				if(!(est instanceof Num)) {
+					est=Num.tokenizeNextNumNonNull(c, matcher, line, col);
+				}
+				if(!(est instanceof Num)) throw new CompileError.UnexpectedToken(est, "number");
+				d.estimate=((Num)est).value;
 				asn = c.nextNonNullMatch(look);
 				c.currentScope.addEstimate(d.variable, d.estimate);
 			}
@@ -330,9 +384,11 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		return d;
 	}
 	public final Keyword access;
-	
+	public static enum DeclareObjType{
+		VAR,FUNC,CONST;
+	}
 	//bool + 1 obj + 1 null
-	boolean isFunction;
+	DeclareObjType objType;
 	Function function;
 	Scope defineScope=null;
 		@Override public boolean didOpenCodeBlock() {
@@ -347,9 +403,17 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		//assignment
 	Equation assignment=null;
 	Number estimate=null;
-	public boolean isFunction() {return this.isFunction;}
+	
+	boolean isConst=false; 
+	Const constv=null;
+	Const.ConstLiteralToken constValue=null;
+	
+	public boolean isFunction() {return this.objType==DeclareObjType.FUNC;}
+	public boolean isVariable() {return this.objType==DeclareObjType.VAR;}
+	public boolean isConst() {return this.objType==DeclareObjType.CONST;}
 	public Function getFunction() {return this.function;}
 	public Variable getVariable() {return this.variable;}
+	public Const getConst() {return this.constv;}
 	public boolean isPublic() {return this.access==Keyword.PUBLIC;}
 	boolean willTakeDomments=true;
 	final ArrayList<Domment> domments=new ArrayList<Domment>(); @Override public void addDomment(Domment dom) {
@@ -362,8 +426,8 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 
 	@Override
 	public void compileMe(PrintStream f,Compiler c,Scope s) throws CompileError {
-		if(this.isFunction)return;
-		if(this.assignment!=null) {
+		//do nothing
+		if(this.objType==DeclareObjType.VAR && this.assignment!=null) {
 			for(Domment d:this.domments) f.println(d.inCMD());//only if it is assigned on define
 			Assignment t=new Assignment(this.line,this.col,this.variable,this.assignment);
 			t.compileMe(f, c, s);
@@ -378,10 +442,19 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	@Override
 	public void headerMe(PrintStream f) throws CompileError {
 		for(Domment d:this.domments) f.println(d.inHeader());
-		if(this.isFunction) {
+		switch(this.objType) {
+		case CONST:
+			this.constv.headerDeclaration(f);
+			break;
+		case FUNC:
 			f.printf("public %s;\n",this.function.toHeader());
-		}else {
+			break;
+		case VAR:
 			f.printf("public %s;\n".formatted(this.variable.toHeader()));
+			break;
+		default:
+			throw new CompileError("null objType in declaration");
+		
 		}
 		
 	}
@@ -406,6 +479,9 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	@Override
 	public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
 		//do nothing
+	}
+	public DeclareObjType getObjType() {
+		return objType;
 	}
 	
 

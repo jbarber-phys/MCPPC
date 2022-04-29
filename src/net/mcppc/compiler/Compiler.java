@@ -166,7 +166,8 @@ public class Compiler{
 				}
 			}
 			if(!match) {
-				String s=this.content.substring(this.cursor, this.cursor+10);
+				String s=(this.content.length()-10>this.cursor)?this.content.substring(this.cursor, this.cursor+10)
+						: this.content.substring(this.cursor)+"<EOF>";
 				throw new CompileError("no recognized token found with pattern to match '%s'... line %d col %d.".formatted(s,this.line,this.cursor-this.lineStart));
 			}
 

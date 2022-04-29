@@ -3,11 +3,14 @@ package net.mcppc.compiler;
 import java.io.PrintStream;
 import java.util.Objects;
 
+import net.mcppc.compiler.Const.ConstExprToken;
+import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Keyword;
+import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
 
@@ -252,9 +255,12 @@ public class Variable {
 		return this.matchesPhrase("1b");
 	}
 	public String getJsonText() throws CompileError {
-		String edress = PrintF.ESCAPE_TAG_IN_JSON? Regexes.escape(this.address):this.address;
 		if(this.type.isStruct())return this.type.struct.getJsonTextFor(this);
 		if(this.type.isVoid())return "{\"text\": \"<void>\"}";
+		return this.getJsonTextBasic();
+	}
+	public String getJsonTextBasic() throws CompileError {
+		String edress = PrintF.ESCAPE_TAG_IN_JSON? Regexes.escape(this.address):this.address;
 		//format string is in vartype
 		switch(this.pointsTo) {
 		case STORAGE: return "{\"storage\": \"%s\", \"nbt\": \"%s\"}".formatted(this.holder,edress);
@@ -373,7 +379,24 @@ public class Variable {
 		}
 		//USE STRING FORMAT EVEN FOR FLOATS - DONT USE %f BECAUSE IT ROUNDS- SCI NOTATION IS OK IN MCF (except for in multipliers - its a bug with mc)
 	}
-	
+
+	public boolean canSetToExpr(ConstExprToken e) {
+		if(this.type.isStruct()) {
+			return this.type.struct.canSetToExpr(e);
+		}else if(e.constType()==ConstType.BOOLIT) return this.type.isLogical();
+		else if(e.constType()==ConstType.NUM) return this.type.isNumeric();		
+		else return false;
+	}
+	public void setMeToExpr(PrintStream p, RStack stack, ConstExprToken e) throws CompileError {
+		if(this.type.isStruct()) {
+			this.type.struct.setMeToExpr(p, stack, this, e);
+		}else if (e instanceof Token.Bool) {
+			this.setMeToBoolean(p, null, null, stack, ((Token.Bool)e).val);
+		}else if (e instanceof Num) {
+			this.setMeToNumber(p, null, null, stack, ((Num)e).value);
+		}
+		
+	}
 	public Variable indexMyNBTPath(int index,VarType type) {
 		return new Variable("%s[%s]".formatted(this.name,index),
 				type,

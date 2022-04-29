@@ -10,6 +10,7 @@ import java.util.regex.Matcher;
 
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.Compiler;
+import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
@@ -96,9 +97,10 @@ public class Equation extends Token {
 			Factories.newline,Factories.comment,Factories.domment,Factories.space,
 			UnaryOp.factory,
 			Token.Bool.factory,
-			Token.MemberName.factory,Token.Num.factory,Statement.CommandToken.factory,
+			Token.MemberName.factory,Num.factory,Statement.CommandToken.factory,
 			Token.Paren.factory,//sub-eq or caste
-			Token.LineEnd.factory, Token.CodeBlockBrace.factory,Token.ArgEnd.factory //possible terminators; unexpected
+			Token.LineEnd.factory, Token.CodeBlockBrace.factory,Token.ArgEnd.factory, //possible terminators; unexpected
+			Token.StringToken.factory//just in case of trivial equations
 	};
 	static final Token.Factory[] lookForOperation= {
 			Factories.newline,Factories.comment,Factories.domment,Factories.space,
@@ -115,27 +117,27 @@ public class Equation extends Token {
 		if(!(this.elements.get(0) instanceof UnaryOp))return null;
 		UnaryOp op=(UnaryOp) this.elements.get(0);
 		if(!op.isUminus())return null;
-		if(!(this.elements.get(1) instanceof Token.Num))return null;
-		Number n1=((Token.Num)this.elements.get(1)).value;
+		if(!(this.elements.get(1) instanceof Num))return null;
+		Number n1=((Num)this.elements.get(1)).value;
 		return CMath.uminus(n1);
 	}
 
 	public boolean isNumber() {
 		if(this.elements.size()==1) {
-			if(!(this.elements.get(0) instanceof Token.Num))return false;
+			if(!(this.elements.get(0) instanceof Num))return false;
 			return true;
 		}
 		if(this.elements.size()!=2)return false;
 		if(!(this.elements.get(0) instanceof UnaryOp))return false;
 		UnaryOp op=(UnaryOp) this.elements.get(0);
 		if(!op.isUminus())return false;
-		if(!(this.elements.get(1) instanceof Token.Num))return false;
+		if(!(this.elements.get(1) instanceof Num))return false;
 		
 		return true;
 	}
 	public Number getNumber() {
 		if(this.elements.size()==1) {
-			if((this.elements.get(0) instanceof Token.Num))return ((Token.Num)this.elements.get(0)).value;
+			if((this.elements.get(0) instanceof Num))return ((Num)this.elements.get(0)).value;
 			return null;
 		}
 		return this.getNegativeNumberLiteral();
@@ -176,18 +178,21 @@ public class Equation extends Token {
 		while(true) {
 			//look for value / unary
 			int pc=c.cursor;
-			Token v=c.nextNonNullMatch(lookForValue);
+			//Token v=c.nextNonNullMatch(lookForValue);//old
+			Token v=Const.checkForExpressionSafe(c, m, line, col, ConstType.TYPE); 
+			if(v==null) v=c.nextNonNullMatch(lookForValue);
 			//boolean willAddV=false;
-			if (v instanceof Token.MemberName &&
-					(((Token.MemberName) v).names.size()==1) &&
-					VarType.isType(((Token.MemberName) v).names.get(0))) {
+
+			//if (v instanceof Token.MemberName &&
+			//		(((Token.MemberName) v).names.size()==1) &&
+			//		VarType.isType(((Token.MemberName) v).names.get(0))) 
+			if(v instanceof Type) {
 				//typecast or constructor
-				c.cursor=pc;//setback
-				v=Type.tokenizeNextVarType(c, m,v.line , v.col);
+				//c.cursor=pc;//setback
+				//v=Type.tokenizeNextVarType(c, m,v.line , v.col);
 				this.doesAnyOps=true;
 				Token close=c.nextNonNullMatch(lookForOperation);
 				if(close instanceof Token.Member) {
-					//TODO support static members of structs - test this
 					if(!((Type)v).type.isStruct()) throw new CompileError("cannot construct non-struct type: %s;".formatted(((Type)v).type.asString()));
 					Struct struct=((Type)v).type.struct;
 					Token name=c.nextNonNullMatch(lookForValue);
@@ -205,7 +210,6 @@ public class Equation extends Token {
 				if (!(close instanceof Token.Paren)) throw new CompileError.UnexpectedToken(close,")");
 				else{
 					if(((Paren)close).forward) {
-						//TODO support constructors; figure out syntax
 						if(!((Type)v).type.isStruct()) throw new CompileError("cannot construct non-struct type: %s;".formatted(((Type)v).type.asString()));
 						Struct struct=((Type)v).type.struct;
 						BuiltinConstructor cstr=struct.getConstructor(((Type)v).type);
@@ -312,9 +316,21 @@ public class Equation extends Token {
 				op=c.nextNonNullMatch(lookForOperation);
 			}else {
 				if(v instanceof Token.MemberName) {
-					//a var
-					((Token.MemberName) v).identify(c,c.currentScope);
-					//do not add here
+					//see if it is a const
+					Const cv;
+					try{
+						cv=c.myInterface.identifyConst((MemberName) v, c.currentScope);
+					}catch  (CompileError e){
+						cv=null;
+					}
+					if(cv==null) {
+						//a var
+						((Token.MemberName) v).identify(c,c.currentScope);
+						//do not add here
+					}else {
+						v=cv.getValue();
+					}
+					
 				}
 			}
 			oploop: while(op instanceof BiOperator) {
@@ -421,10 +437,10 @@ public class Equation extends Token {
 			regnum=stack.setNext(((Token.MemberName) in).var.type);
 			((Token.MemberName) in).var.getMe(p, stack,regnum);
 			this.stack.estmiate(regnum, ((Token.MemberName) in).estimate);
-		}else if (in instanceof Token.Num) {
-			regnum=stack.setNext(((Token.Num) in).type);
-			stack.getRegister(regnum).setValue(p, ((Token.Num) in).value,((Token.Num) in).type);
-			this.stack.estmiate(regnum, ((Token.Num) in).value);
+		}else if (in instanceof Num) {
+			regnum=stack.setNext(((Num) in).type);
+			stack.getRegister(regnum).setValue(p, ((Num) in).value,((Num) in).type);
+			this.stack.estmiate(regnum, ((Num) in).value);
 		}else if (in instanceof Token.Bool) {
 			regnum=stack.setNext(((Token.Bool) in).type);
 			long score=((Token.Bool) in).val?1:0;
@@ -442,6 +458,8 @@ public class Equation extends Token {
 			this.stack.estmiate(regnum, ((BuiltinFunction.BFCallToken) in).getEstimate());
 		}else if (in instanceof Statement.CommandToken) {
 			regnum=this.storeCMD(p, c, s, typeWanted, in);
+		}else if (in instanceof Const.ConstExprToken) {
+			throw new CompileError.CannotStack((Const.ConstExprToken)in);
 		}
 		else {
 			throw new CompileError.UnexpectedToken(in, "number, equation, variable or function");
@@ -485,7 +503,7 @@ public class Equation extends Token {
 				this.homeReg=this.putTokenToRegister(p, c, s, typeWanted, first);//may be redundant but that is OK
 				if(this.elements.size()%2==0)throw new CompileError.UnexpectedTokens(elements, "an odd number of tokens alternating value, operation");
 				List<Number> exponents=new ArrayList<Number>(); 
-				Number prevNum=null;if(first instanceof Token.Num) prevNum=((Token.Num) first).value;
+				Number prevNum=null;if(first instanceof Num) prevNum=((Num) first).value;
 				for(int i=1;i<this.elements.size()-1;i+=2) {
 					Token opt=this.elements.get(i);if(!(opt instanceof BiOperator))throw new CompileError.UnexpectedToken(opt, "bi-operator");
 					BiOperator op=(BiOperator) opt;
@@ -495,12 +513,12 @@ public class Equation extends Token {
 						if(nextval instanceof Equation) {
 							e=((Equation)nextval).getNegativeNumberLiteral();
 							if(e==null) throw new CompileError.UnexpectedToken(nextval, "number or neg-number; avoid nested exp ints;");
-						}else if (nextval instanceof Token.Num) {
-							e=((Token.Num)nextval).value;
+						}else if (nextval instanceof Num) {
+							e=((Num)nextval).value;
 						}else throw new CompileError.UnexpectedToken(nextval, "number", "var-exponents not supported");
 						exponents.add(e);
 					}else {
-						Number newnum=null;if(nextval instanceof Token.Num) newnum=((Token.Num) nextval).value;
+						Number newnum=null;if(nextval instanceof Num) newnum=((Num) nextval).value;
 						if((newnum==null && prevNum==null) | (!op.canLiteralMult())) {
 							int nextreg=this.putTokenToRegister(p, c, s, typeWanted, nextval);
 							op.perform(p, c, s, stack, this.homeReg, nextreg);
@@ -551,12 +569,17 @@ public class Equation extends Token {
 				//do nothing
 
 				this.retype=((Token.MemberName)e).var.type;
-			}else if(e instanceof Token.Num) {
+			}else if(e instanceof Num) {
 				//do nothing
-				this.retype=((Token.Num)e).type;
+				this.retype=((Num)e).type;
 			}else if(e instanceof Token.Bool) {
 				//do nothing
 				this.retype=((Token.Bool)e).type;
+			
+			}else if(e instanceof Token.StringToken) {
+				//do nothing
+				this.retype=((Token.StringToken)e).type;
+			
 			}else if(e instanceof Function.FuncCallToken) {
 				((Function.FuncCallToken)e).call(p, c,s,this.stack);
 				this.retype=((Function.FuncCallToken)e).getFunction().retype;
@@ -582,13 +605,18 @@ public class Equation extends Token {
 			if(e instanceof Token.MemberName) {
 				Variable from=((Token.MemberName) e).var;
 				Variable.directSet(p, v, from, this.stack);
-			}else if(e instanceof Token.Num) {
-				v.setMeToNumber(p, c, s, stack, ((Token.Num)e).value);
+			}else if(e instanceof Num) {
+				v.setMeToNumber(p, c, s, stack, ((Num)e).value);
 			}else if(e instanceof Token.Bool) {
 				v.setMeToBoolean(p, c, s, stack, ((Token.Bool)e).val);
 			}else if(e instanceof Function.FuncCallToken) {
 				((Function.FuncCallToken)e).getRet(p, c, s, v, stack);
-			} else if(e instanceof BuiltinFunction.BFCallToken) {
+			}else if(e instanceof Const.ConstExprToken) {
+				if(v.canSetToExpr((Const.ConstExprToken)e)) {
+					v.setMeToExpr(p,this.stack,(Const.ConstExprToken)e);
+				}else throw new CompileError.UnsupportedCast((Const.ConstExprToken)e, retype);
+			}
+			else if(e instanceof BuiltinFunction.BFCallToken) {
 				((BuiltinFunction.BFCallToken)e).getRet(p, c, s, v,stack);
 			}
 		}
@@ -605,14 +633,16 @@ public class Equation extends Token {
 			if(e instanceof Token.MemberName) {
 				Variable from=((Token.MemberName) e).var;
 				from.getMe(p, stack, this.homeReg);
-			}else if(e instanceof Token.Num) {
-				stack.getRegister(this.homeReg).setValue(p, ((Token.Num)e).value, ((Token.Num)e).type);
+			}else if(e instanceof Num) {
+				stack.getRegister(this.homeReg).setValue(p, ((Num)e).value, ((Num)e).type);
 			}else if(e instanceof Token.Bool) {
 				stack.getRegister(this.homeReg).setValue(p, ((Token.Bool)e).val);
 			}else if(e instanceof Function.FuncCallToken) {
 				((Function.FuncCallToken)e).getRet(p, c, s, stack, this.homeReg);
 			} else if(e instanceof BuiltinFunction.BFCallToken) {
 				((BuiltinFunction.BFCallToken)e).getRet(p, c, s, stack, this.homeReg);
+			}else if (e instanceof Const.ConstExprToken) {
+				throw new CompileError.CannotStack((Const.ConstExprToken)e);
 			}
 			
 		}

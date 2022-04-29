@@ -1,10 +1,11 @@
 package net.mcppc.compiler;
 
+import java.util.List;
 import java.util.regex.Matcher;
 
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Factories;
-import net.mcppc.compiler.tokens.Token;
+import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.Type;
 
 public interface StructTypeParams{
@@ -25,8 +26,8 @@ public interface StructTypeParams{
 			return other instanceof MembType && this.myType.equals(((MembType)other).myType);
 		}
 		
-		public static MembType tokenizeTypeArgs(Compiler c, Matcher matcher, int line, int col) throws CompileError {
-			Type t=Type.tokenizeNextVarType(c, matcher, line, col);
+		public static MembType tokenizeTypeArgs(Compiler c, Matcher matcher, int line, int col, List<Const> forbidden) throws CompileError {
+			Type t=Type.tokenizeNextVarType(c, matcher, line, col,forbidden);
 			Type.closeTypeArgs(c, matcher, line, col);
 			return new MembType(t.type);
 		}
@@ -44,11 +45,12 @@ public interface StructTypeParams{
 			return other instanceof PrecisionType && this.precision==((PrecisionType)other).precision;
 		}
 		
-		public static PrecisionType tokenizeTypeArgs(Compiler c, Matcher matcher, int line, int col) throws CompileError {
-			Token t=c.nextNonNullMatch(Factories.nextNum);
-			if(!(t instanceof Token.Num)) throw new CompileError.UnexpectedToken(t,"number");
+		public static PrecisionType tokenizeTypeArgs(Compiler c, Matcher matcher, int line, int col, List<Const> forbidden) throws CompileError {
+			//Token t=c.nextNonNullMatch(Factories.nextNum);
+			//if(!(t instanceof Num)) throw new CompileError.UnexpectedToken(t,"number");
+			Num t=Num.tokenizeNextNumNonNull(c, matcher, line, col, forbidden);
 			Type.closeTypeArgs(c, matcher, line, col);
-			Number n=((Token.Num)t).value;
+			Number n=((Num)t).value;
 			return new PrecisionType(n.intValue());
 		}
 	}

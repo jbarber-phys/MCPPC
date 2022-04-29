@@ -230,8 +230,8 @@ public abstract class Statement extends Token {
 			if(t instanceof Token.Paren) {
 				if(!((Token.Paren) t).forward)throw new CompileError.UnexpectedToken(t, "'(' or '='");
 				t=c.nextNonNullMatch(Factories.nextNum);
-				if(!(t instanceof Token.Num))throw new CompileError.UnexpectedToken(t, "positive int number");
-				Number n=((Token.Num)t).value;
+				if(!(t instanceof Num))throw new CompileError.UnexpectedToken(t, "positive int number");
+				Number n=((Num)t).value;
 				if(!CMath.isNumberInt(n)) throw new CompileError.UnexpectedToken(t, "positive int number");
 				depth=n.intValue();
 				if (depth<0)throw new CompileError.UnexpectedToken(t, "positive int number");

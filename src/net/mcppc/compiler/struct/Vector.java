@@ -1,6 +1,7 @@
 package net.mcppc.compiler.struct;
 
 import java.io.PrintStream;
+import java.util.List;
 import java.util.regex.Matcher;
 
 import net.mcppc.compiler.*;
@@ -11,9 +12,9 @@ import net.mcppc.compiler.VarType.Builtin;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Equation;
+import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.Regexes;
-import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.Type;
 import net.mcppc.compiler.tokens.UnaryOp;
 import net.mcppc.compiler.tokens.UnaryOp.UOType;
@@ -21,9 +22,11 @@ import net.mcppc.compiler.tokens.UnaryOp.UOType;
  * struct for dealing with directions of space; should be mappable onto an NBT array;
  * DIM : cross product will break if it is not 3
  * 
- * 
- * TODO: test operations, set tags, 
- * 
+ * TODO bultin functions:
+ * Vector :: lookAt(@other, int pow)
+ * Vector . normalized() const
+ * Vector . sqrmag() const
+ * allow Vec as arg to tp for entities: either tp(@,Vector) or Vector.tp(@)
  * @author jbarb_t8a3esk
  *
  */
@@ -85,12 +88,12 @@ public class Vector extends Struct {
 		return "tag_compound";//?
 	}
 	@Override
-	public StructTypeParams tokenizeTypeArgs(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+	public StructTypeParams tokenizeTypeArgs(Compiler c, Matcher matcher, int line, int col, List<Const> forbidden) throws CompileError {
 		if(this.defaulttype==null)
-			return StructTypeParams.MembType.tokenizeTypeArgs(c, matcher, line, col);
+			return StructTypeParams.MembType.tokenizeTypeArgs(c, matcher, line, col, forbidden);
 		else  if (this.defaulttype.isFloatP()){
 			//precision
-			StructTypeParams.PrecisionType pc=StructTypeParams.PrecisionType.tokenizeTypeArgs(c, matcher, line, col);
+			StructTypeParams.PrecisionType pc=StructTypeParams.PrecisionType.tokenizeTypeArgs(c, matcher, line, col,forbidden);
 			VarType tp=this.defaulttype.withPrecision(pc.precision);
 			return new StructTypeParams.MembType(tp);
 		}else {
@@ -467,11 +470,11 @@ public class Vector extends Struct {
 		stack.estmiate(home, est);
 		
 	}
-	@Override public boolean canDoLiteralMultDiv(BiOperator op,VarType mytype,Token.Num other)throws CompileError {
+	@Override public boolean canDoLiteralMultDiv(BiOperator op,VarType mytype,Num other)throws CompileError {
 		VarType memb=Vector.myMembType(mytype);
 		return memb.isStruct()?memb.struct.canDoLiteralMultDiv(op, memb, other):memb.isNumeric();
 	}
-	@Override public void doLiteralMultDiv(BiOperator op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Integer in,Integer dest,Token.Num other) throws CompileError{
+	@Override public void doLiteralMultDiv(BiOperator op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Integer in,Integer dest,Num other) throws CompileError{
 		VarType vt=mytype;
 		VarType memb=Vector.myMembType(mytype);
 		for(int i=0;i<DIM;i++) {

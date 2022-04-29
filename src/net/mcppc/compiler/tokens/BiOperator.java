@@ -491,9 +491,15 @@ public class BiOperator extends Token{
 		int p2=type2.getPrecision();
 		if(p1!=p2){
 			int spreg=p1<p2?home1:home2;
-			double spest=stack.getEstimate(spreg).doubleValue();
-			int maxps=(int) Math.round((Register.SCORE_BITS-1)*Math.log10(2)-Math.log10(spest));
-			int pf=Math.max(Math.min(Math.max(p1, p2), maxps),Math.min(p1, p2));
+			int pf;
+			if(stack.getEstimate(spreg) !=null) {
+				double spest=stack.getEstimate(spreg).doubleValue();
+				int maxps=(int) Math.round((Register.SCORE_BITS-1)*Math.log10(2)-Math.log10(spest));
+				pf=Math.max(Math.min(Math.max(p1, p2), maxps),Math.min(p1, p2));
+			}else {
+				pf=Math.max(p1, p2);
+			}
+			
 			//CompileJob.compileMcfLog.printf("maxps: %s; pf: %s;\n", maxps,pf);
 			if(p1!=pf) {
 				String pop=(pf-p1)>0?"*=":"/=";
