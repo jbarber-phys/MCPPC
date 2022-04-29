@@ -25,6 +25,8 @@ import net.mcppc.compiler.tokens.Import;
 
 public class CompileJob {
 	public static final String DATA="data";
+	public static final String RESOURCES="resources";
+	public static final String GENERATED="generated";
 	public static final String EXT_SRC="mcpp";
 	public static final String EXT_H="mch";
 	public static final String EXT_MCF="mcfunction";
@@ -145,7 +147,8 @@ public class CompileJob {
 	Path rootDatapack;public void setRootDatapack(Path o) {
 		this.rootDatapack=o;
 	}
-	
+	public static Path getResources() { return Path.of(getCWD()).resolve(RESOURCES); }
+	public static Path getGeneratedResources() { return Path.of(getCWD()).resolve(GENERATED); }
 	
 	final boolean GEN_H_FROM_SRC=true;
 	/**
@@ -154,8 +157,11 @@ public class CompileJob {
 	public CompileJob() {
 		this.rootSrc=this.rootDatapack=this.rootHeaderOut=Path.of(getCWD());
 		if(CompileJob.INCLUDE_STDLIB) {
-			Path stdlib=Path.of(getCWD()).resolve("resources");
-			this.includePath(stdlib);
+			Path resources=getResources();
+			Path generated=getGeneratedResources();
+			
+			this.includePath(generated);
+			this.addLink(generated);
 		}
 	}
 	public CompileJob(Path root) {

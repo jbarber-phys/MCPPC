@@ -1,3 +1,4 @@
 //do nothing
 //this is blank
-public int stdint;
+import mcppc:subdep;
+public int stdint = 123+456;

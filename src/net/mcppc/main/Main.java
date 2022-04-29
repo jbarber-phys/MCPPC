@@ -57,6 +57,11 @@ public class Main {
 		
 		
 	}
+	public static void compileStdLib() {
+		CompileJob stdlib=new CompileJob(CompileJob.getResources(),CompileJob.getGeneratedResources());
+		//TODO call me
+		stdlib.compileAll();
+	}
 	public static void main(String[] args) {
 		//the project directory is the datapack level (same as pack.mcmeta)
 		//args

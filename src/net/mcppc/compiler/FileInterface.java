@@ -13,6 +13,29 @@ import net.mcppc.compiler.tokens.Declaration;
 import net.mcppc.compiler.tokens.Import;
 import net.mcppc.compiler.tokens.Token;
 
+/**
+ * contains all of the fields used by a mcpp file;
+ * 
+ * TODO figure out how templates can avoid copying file if precision is used, and if to do them altogether
+ * 
+ * activities precision is needed for:
+ * 	
+	set score to mult:		re.setValue(p, mult);
+	choose between *= and /= at runtime:		rh.operation(p, op, re);
+	get json text for raw precision
+	set  score with multiplier:
+		double mult=Math.pow(10, this.type.getPrecision());
+		f.println("execute store result score %s run data get storage %s %s %s"
+					.formatted(reg.inCMD(),this.holder,this.address,CMath.getMultiplierFor(mult)));
+		
+ * 	 get score with inv mult:
+ *  	double mult=Math.pow(10, -regType.getPrecision());
+ *  	f.println("execute store result storage %s %s %s %s run scoreboard players get %s"
+					.formatted(this.holder,this.address,tagtype,CMath.getMultiplierFor(mult),reg.inCMD())); 
+	get a string for the precision / template param name
+ * @author jbarb_t8a3esk
+ *
+ */
 public class FileInterface {
 	//if this is set to true, all mask-free vars will reset on datapack load
 	public static final boolean ALLOCATE_WITH_DEFAULT_VALUES=false;

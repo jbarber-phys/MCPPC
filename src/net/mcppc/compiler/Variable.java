@@ -196,7 +196,7 @@ public class Variable {
 
 		//non structs only; structs need their own routines possibly multiple registers)
 		//String tagtype=this.type.type.getTagType();
-		double mult=Math.pow(10, this.type.getPrecision());//scientific notation IS OK
+		double mult=Math.pow(10, this.type.getPrecision());//scientific notation IS OK - but NOT HERE, maybe?
 		switch (this.pointsTo) {
 		case STORAGE:{
 			f.println("execute store result score %s run data get storage %s %s %s"
