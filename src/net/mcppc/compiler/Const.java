@@ -20,6 +20,7 @@ import net.mcppc.compiler.tokens.Type;
 
 /**
  * a Const is a const-expression that can be evaluated at compile time; its not just a var that cannot be changed,
+ * note: consts set to other consts will not work if the other one is from a different file
  * 
  * TODO templates
  * consider creating function templates for precision

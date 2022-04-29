@@ -27,22 +27,22 @@ public class Import extends Statement implements Statement.Headerable,DommentCol
 			Token.LineEnd.factory
 	};
 
-	public static Import header(Compiler c, Matcher matcher, int line, int col, boolean isReadingHeader) throws CompileError {
-		return interperet(c, matcher, line, col, isReadingHeader,false);
+	public static Import header(Compiler c, Matcher matcher, int line, int col, boolean isHeaderOnly) throws CompileError {
+		return interperet(c, matcher, line, col, isHeaderOnly,false);
 	}
 
 	public static Import fromSrc(Compiler c, Matcher matcher, int line, int col) throws CompileError {
 		return interperet(c, matcher, line, col, false,true);
 		
 	}
-	public static Import interperet(Compiler c, Matcher matcher, int line, int col, boolean isReadingHeader,boolean isMcfCompiling) throws CompileError {
-		if (isReadingHeader) {
+	public static Import interperet(Compiler c, Matcher matcher, int line, int col, boolean isHeaderOnly,boolean isMcfCompiling) throws CompileError {
+		if (isHeaderOnly) {
 			//c.nextNonNullMatch(Factories.headerSkipline);
 			//return null;//ignore if in header file
 		}
 		c.cursor=matcher.end();
 		DommentCollector.DList dms=new DommentCollector.DList();
-		if(!isReadingHeader)c.dommentCollector=dms;
+		if(!isHeaderOnly)c.dommentCollector=dms;
 		Token a=c.nextNonNullMatch(look);
 		String alias=null;
 		boolean run=false;
@@ -68,7 +68,7 @@ public class Import extends Statement implements Statement.Headerable,DommentCol
 		Token end=c.nextNonNullMatch(look);
 		if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(a, "';'");
 		if(isMcfCompiling)return i;
-		else if(isReadingHeader) {
+		else if(isHeaderOnly) {
 			c.job.addPossibleExternalDependancy(i);
 			return null;
 		}

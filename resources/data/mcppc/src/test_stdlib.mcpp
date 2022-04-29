@@ -1,4 +1,8 @@
 //do nothing
 //this is blank
-import mcppc:subdep;
+import mcppc:subdeptest;
 public int stdint = 123+456;
+
+public int stdfunc (){
+	return = stdint+1;
+}

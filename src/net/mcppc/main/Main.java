@@ -59,13 +59,17 @@ public class Main {
 	}
 	public static void compileStdLib() {
 		CompileJob stdlib=new CompileJob(CompileJob.getResources(),CompileJob.getGeneratedResources());
-		//TODO call me
+		stdlib.setRootHeaderOut(CompileJob.getGeneratedResources());
+		stdlib.waiveMcmeta();
 		stdlib.compileAll();
+		System.out.println("successfully compiled std library;");
 	}
 	public static void main(String[] args) {
 		//the project directory is the datapack level (same as pack.mcmeta)
 		//args
 		CompileJob job=new CompileJob();
+		boolean compStd=false;
+		boolean compStdOnly=false;
 		for(int i=0;i<args.length;i++) {
 			String arg=args[i];
 			if(arg.equals("-o") && i+1<args.length) {
@@ -128,9 +132,17 @@ public class Main {
 					return;
 				}
 			}
+			if(arg.equals("-std")) {
+				compStd=true;
+			}
+			if(arg.equals("--std")) {
+				compStd=true;
+				compStdOnly=true;
+				break;
+			}
 		}
-		
-		
+		if(compStd) compileStdLib();
+		if(compStdOnly)return;
 		job.compileAll();
 		//floatFormatTest();
 		

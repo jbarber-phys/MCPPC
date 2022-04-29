@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -15,6 +17,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Stack;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -80,12 +83,18 @@ public class CompileJob {
 	public static class Namespace {
 		//TODO remember to always load the setup file for each namespace
 		String name;
+		public final boolean isExternal;
 		//File dataDir;//depricated; is asociated with multiple locations; CompileJob has methods for this instead;
 		int maxNumRegisters;
 		ArrayList<Path> srcFilesRel=new ArrayList<Path>();
 		public Namespace(File data) {
-			this.name=data.getName();
+			this(data.getName(),false);
 			//this.dataDir=data;
+		}
+		public Namespace(String name,boolean isExternal) {
+			this.name=name;
+			//this.dataDir=data;
+			this.isExternal=isExternal;
 		}
 		public ResourceLocation getLoadFunction() {
 			return new ResourceLocation(this,"mcpp__load");
@@ -102,6 +111,7 @@ public class CompileJob {
 	public boolean CLEAN_MCF_SUBDIR=true;
 	public boolean CHECK_INCLUDES_FOR_CIRCULAR_RUNS=false;
 	public final int MAX_NUM_CMDS=(int) Math.round(Math.pow(2, 15)-1);
+	private boolean waiveMcmeta=false; public void waiveMcmeta() {this.waiveMcmeta=true;}
 	
 	final Map<String,Namespace> namespaces=new HashMap<String,Namespace>();
 	
@@ -111,7 +121,8 @@ public class CompileJob {
 	final Map<ResourceLocation,Compiler> headerOnlyCompilers=new HashMap<ResourceLocation,Compiler>();
 	
 	//list any imports that could require source files with their own dependancies on linked dirs; only 
-	final List<ResourceLocation> externalImports=new ArrayList<ResourceLocation>();
+	//final List<ResourceLocation> externalImports=new ArrayList<ResourceLocation>();
+	final Stack<ResourceLocation> externalImports=new Stack<ResourceLocation>();
 	/**
 	 * primary root directory; used to locate namespaces to compile
 	 * all the other roots are secondary
@@ -162,6 +173,9 @@ public class CompileJob {
 			
 			this.includePath(generated);
 			this.addLink(generated);
+			
+			this.includePath(resources);
+			this.addLink(resources);
 		}
 	}
 	public CompileJob(Path root) {
@@ -217,6 +231,26 @@ public class CompileJob {
 		Path p=this.rootDatapack.resolve(CompileJob.DATA).resolve(res.namespace).resolve(CompileJob.SUBDIR_MCF).resolve(res.path+CompileJob.FILE_TO_SUBDIR_SUFFIX);
 		return p;
 	}
+	public Path findPathForLink(ResourceLocation res) {
+		Path p;
+		//p=this.rootDatapack.resolve(CompileJob.DATA).resolve(res.namespace).resolve(CompileJob.SUBDIR_MCF).resolve(res.path+"."+CompileJob.EXT_MCF);
+		//if(p.toFile().exists())return null;//dont circular link
+		for(Path r:this.rootLinks) {
+			p=r.resolve(CompileJob.DATA).resolve(res.namespace).resolve(CompileJob.SUBDIR_MCF).resolve(res.path+"."+CompileJob.EXT_MCF);
+			if(p.toFile().exists())return p;
+		}
+		return null;
+	}
+	public Path findPathForLinkSubfunctionsDir(ResourceLocation res) {
+		Path p;
+		//p=this.rootDatapack.resolve(CompileJob.DATA).resolve(res.namespace).resolve(CompileJob.SUBDIR_MCF).resolve(res.path+CompileJob.FILE_TO_SUBDIR_SUFFIX);
+		//if(p.toFile().exists())return null;//dont circular link
+		for(Path r:this.rootLinks) {
+			p=r.resolve(CompileJob.DATA).resolve(res.namespace).resolve(CompileJob.SUBDIR_MCF).resolve(res.path+CompileJob.FILE_TO_SUBDIR_SUFFIX);
+			if(p.toFile().exists())return p;
+		}
+		return null;
+	}
 	public Path pathForTagLoad() {
 		Path p=this.rootDatapack.resolve(CompileJob.DATA).resolve("minecraft/tags/functions").resolve("load"+"."+CompileJob.EXT_JSON);
 		return p;
@@ -237,6 +271,9 @@ public class CompileJob {
 		return false;
 	}
 	public FileInterface getFileInterfaceFor(ResourceLocation res) throws FileNotFoundException, CompileError {
+		return this.enshureCompiler(res).myInterface;
+	}
+	private Compiler enshureCompiler(ResourceLocation res) throws FileNotFoundException, CompileError {
 		Compiler c=null;
 		//CompileJob.compileMcfLog.printf("%s, %s;\n", this.compilers.keySet(),this.headerOnlyCompilers.keySet());
 		//CompileJob.compileMcfLog.printf("%s;\n", res);
@@ -248,23 +285,24 @@ public class CompileJob {
 			if(p==null)throw new CompileError("could not find include for %s;".formatted(res));
 			Namespace ns;
 			if (!this.namespaces.containsKey(res.namespace)) {
-				this.namespaces.put(res.namespace, ns=new Namespace(p.toFile()));
+				System.out.printf("linked namespace %s;\n",res.namespace);
+				this.namespaces.put(res.namespace, ns=new Namespace(res.namespace,true));
 			}else ns=this.namespaces.get(res.namespace);
 			c=new Compiler(this, res,ns,true);
 			this.headerOnlyCompilers.put(res, c);
 		}
 		if(c.areLocalsLoaded) {
-			return c.myInterface;
+			return c;
 		}else {
 			c.compile1(false);
 			c.unload();
-			return c.myInterface;
+			return c;
 			
 		}
-		
-		
 	}
 	public boolean addPossibleExternalDependancy(Import i) {
+		if(this.compilers.containsKey(i.getLib())) return false;
+		if(this.headerOnlyCompilers.containsKey(i.getLib())) return false;
 		if(this.externalImports.contains(i.getLib())) return false;
 		
 		this.externalImports.add(i.getLib());
@@ -297,10 +335,13 @@ public class CompileJob {
 		for(Namespace ns: srcNamespaces) {
 			this.genMcf(ns);
 		}
+		this.traceExternalImports();
 		if(!this.checkForCircularRuns())return;
+		this.linkAll();
 		this.genNamespaceFunctionsAndTags();
 	}
 	private boolean haspackmcmeta() {
+		if(this.waiveMcmeta)return true;
 		Path p=this.pathForPackMcmeta();
 		return p.toFile().exists();
 	}
@@ -457,17 +498,22 @@ public class CompileJob {
 	public void genNamespaceFunctionsAndTags() {
 		List<ResourceLocation> loads=new ArrayList<ResourceLocation>();
 		for(Namespace ns: this.namespaces.values()) {
-			if(ns.srcFilesRel.size()==0)continue;//skip if no src found
+			if((!ns.isExternal) && ns.srcFilesRel.size()==0)continue;//skip if no src found
 			ResourceLocation mcf=ns.getLoadFunction();
 			Path load=this.pathForMcf(mcf);
 			PrintStreamLineCounting p=null;
 			boolean success=true;
-			try {
+			if(ns.isExternal) {
+				this.copyLinkedNamespaceToDatapack(ns);
+				System.out.printf("copied load function %s;\n", mcf);
+			}
+			else try {
 				File f=load.toFile();
 				f.getParentFile().mkdirs();
 				f.createNewFile();
 				p=new PrintStreamLineCounting(f);
 				this.genNamespaceLoadFunction(p, ns);
+				
 			} 
 			catch (IOException e) {
 				e.printStackTrace();
@@ -548,4 +594,75 @@ public class CompileJob {
 
 	//TODO figure out (and when to) which external mcfs need to be copied (linking);
 		//may need to re-read headers to recursively find dependancies
+	public boolean traceExternalImports() {
+		while(!this.externalImports.isEmpty()) {
+			ResourceLocation res = this.externalImports.pop();
+			try {
+				Compiler c=this.enshureCompiler(res);
+				//do nothing with it
+			} catch (FileNotFoundException e) {
+				//ignore, this is OK
+			} catch (CompileError e) {
+				e.printStackTrace();
+			}
+			
+		}
+		return true;
+		
+	}
+	public static void copyDirectory(Path dirFrom, Path dirTo) 
+			  throws IOException {
+		String sourceDirectoryLocation = dirFrom.toString();
+		String destinationDirectoryLocation = dirTo.toString();
+		Files.walk(dirTo)
+	      .forEach(old -> {
+	          old.toFile().delete();
+	      });
+	    Files.walk(dirFrom)
+	      .forEach(source -> {
+	          Path destination = Paths.get(destinationDirectoryLocation, source.toString()
+	            .substring(sourceDirectoryLocation.length()));
+	          try {
+	              Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+	          } catch (IOException e) {
+	              e.printStackTrace();
+	          }
+	      });
+	}
+	public void copyLinkToDatapack(Compiler c) {
+		ResourceLocation res=c.resourcelocation;
+		Path from = this.findPathForLink(res);
+		Path fromsub = this.findPathForLinkSubfunctionsDir(res);
+		Path to = this.pathForMcf(res);
+		Path tosub = this.pathForMcfSubfunctionsDir(res);
+	    if(from!=null)try {
+			to.toFile().getParentFile().mkdirs();
+			Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
+			if(fromsub!=null) {
+				//tosub.toFile().delete();
+				copyDirectory(fromsub,tosub);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	public void copyLinkedNamespaceToDatapack(Namespace ns) {
+		ResourceLocation res=ns.getLoadFunction();
+		Path from = this.findPathForLink(res);
+		Path to = this.pathForMcf(res);
+		if(from!=null)try {
+			to.toFile().getParentFile().mkdirs();
+			Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	public boolean linkAll() {
+		
+		for(Compiler c:this.headerOnlyCompilers.values()) {
+			this.copyLinkToDatapack(c);
+		}
+		return true;
+		
+	}
 }

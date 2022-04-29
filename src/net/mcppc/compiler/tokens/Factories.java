@@ -29,7 +29,7 @@ public final class Factories {
 			case PUBLIC:return Declaration.header(c, matcher, line, col, w,c.isHeaderOnly());
 			case PRIVATE:return Declaration.fromSrc1(c, matcher, line, col, w);
 			case EXTERN:return Declaration.fromSrc1(c, matcher, line, col, w);
-			case IMPORT:return Import.header(c, matcher, line, col,false);
+			case IMPORT:return Import.header(c, matcher, line, col,c.isHeaderOnly());
 			//flow must change scope
 			case IF:
 				return IfElse.skipMe(c, matcher, line, col, w);

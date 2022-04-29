@@ -55,6 +55,15 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		//else it is wildchar
 		return false;
 	}
+	private boolean isNextCloseParen(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+		Token t=c.nextNonNullMatch(Factories.checkForParen);
+		if (t instanceof Token.Paren && !((Token.Paren) t).forward) {
+			//CompileJob.compileMcfLog.println("found a ref arg;");
+			return true;
+		}
+		//else it is wildchar
+		return false;
+	}
 	public void applyMask(Compiler c, Matcher matcher, int line, int col,Keyword access, boolean skip) throws CompileError {
 		Token holder=c.nextNonNullMatch(lookMaskHolder);
 		if(holder instanceof Token.WildChar) {
@@ -163,7 +172,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			d.function=new Function(varname.asString(),type.type,access,c);
 			
 			//arglist!
-			while(true) {
+			if(!d.isNextCloseParen(c, matcher, line, col))while(true) {
 				boolean isRef=d.isArgRef(c, matcher, line, col);
 				Type pt=Type.tokenizeNextVarType(c, matcher, line, col);
 				Token pname=c.nextNonNullMatch(look);
@@ -285,7 +294,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			//d.function=new Function(varname.asString(),type.type,access,c);
 			d.function=c.myInterface.identifyFunction(varname.name,c.currentScope);
 			//arglist!
-			while(true) {
+			if(!d.isNextCloseParen(c, matcher, line, col))while(true) {
 				boolean isRef=d.isArgRef(c, matcher, line, col);//skip the keyword
 				Type pt=Type.tokenizeNextVarType(c, matcher, line, col);
 				Token pname=c.nextNonNullMatch(look);
