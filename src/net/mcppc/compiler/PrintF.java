@@ -4,6 +4,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
+import java.util.stream.Stream;
 
 import net.mcppc.compiler.BuiltinFunction.Args;
 import net.mcppc.compiler.Const.ConstType;
@@ -108,13 +109,13 @@ public class PrintF extends BuiltinFunction{
 	public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col,RStack stack)throws CompileError {
 
 		Selector s=Selector.AT_S;
-		Token t=Const.checkForExpression(c, matcher, line, col, ConstType.SELECTOR,ConstType.STRLIT);
+		Token t=Const.checkForExpression(c,c.currentScope, matcher, line, col, ConstType.SELECTOR,ConstType.STRLIT);
 				//c.nextNonNullMatch(testForSelector);
 		
 		if(t instanceof Selector.SelectorToken) {
 			s=((Selector.SelectorToken) t).selector();
 			if(!BuiltinFunction.findArgsep(c))new CompileError("not enough args in printf(...)");
-			t=Const.checkForExpression(c, matcher, line, col,ConstType.STRLIT);
+			t=Const.checkForExpression(c,c.currentScope, matcher, line, col,ConstType.STRLIT);
 		}
 		//t=c.nextNonNullMatch(nextFormatString);
 		
@@ -125,7 +126,7 @@ public class PrintF extends BuiltinFunction{
 		boolean moreArgs=BuiltinFunction.findArgsep(c);
 		while(moreArgs) {
 			//t=c.nextNonNullMatch(testForSelector);
-			t=Const.checkForExpressionSafe(c, matcher, line, col, ConstType.SELECTOR);
+			t=Const.checkForExpressionSafe(c,c.currentScope, matcher, line, col, ConstType.SELECTOR);
 			if(t!=null && t instanceof Selector.SelectorToken) {
 				args.targs.add(t);
 				moreArgs =BuiltinFunction.findArgsep(c);
@@ -139,8 +140,12 @@ public class PrintF extends BuiltinFunction{
 		
 	}
 	public static boolean ESCAPE_TAG_IN_JSON = true;//TODO test in mc to see what should be done
+
 	@Override
 	public void call(PrintStream p, Compiler c, Scope s, Args args, RStack stack) throws CompileError {
+		this.call(p, c, s, args, stack, "");
+	}
+	public void call(PrintStream p, Compiler c, Scope s, Args args, RStack stack,String prefix) throws CompileError {
 		PrintfArgs pargs=(PrintfArgs) args;
 		List<String> jsonargs=new ArrayList<String>();
 		int index=1;
@@ -176,7 +181,8 @@ public class PrintF extends BuiltinFunction{
 		
 		CharSequence[] subtags = new CharSequence[jsonargs.size()];jsonargs.toArray(subtags);
 		String argstr=String.join(" , ", jsonargs);//
-		p.printf("tellraw %s {\"translate\": %s, \"with\": [%s], \"color\": \"%s\"}\n"
+		p.printf("%stellraw %s {\"translate\": %s, \"with\": [%s], \"color\": \"%s\"}\n"
+				,prefix
 				,pargs.s.toCMD()
 				,pargs.lit
 				, argstr
@@ -187,5 +193,20 @@ public class PrintF extends BuiltinFunction{
 		p.printf("execute unless %s run data modify %s set value \"true\"\n", var.matchesPhrase("0"),var.dataPhrase());
 		p.printf("execute unless %s run data modify %s set value \"false\"\n", var.matchesPhrase("\"true\""),var.dataPhrase());
 	}
-	
+	public void printf(PrintStream p, String format,Variable... args) throws CompileError {
+		this.printf(p,Selector.AT_S, format, args);
+	}
+	public void printf(PrintStream p, Selector subject, String format,Variable... args) throws CompileError {
+		this.printf(p,"", subject, format, args);
+	}
+	public void printf(PrintStream p, String prefix,Selector subject, String format,Variable... args) throws CompileError {
+		String argstr=String.join(" , ",   List.of(args).stream().map(var ->var.getJsonTextSafe()).toList());//
+		p.printf("%stellraw %s {\"translate\": %s, \"with\": [%s], \"color\": \"%s\"}\n"
+				,prefix
+				,subject
+				,format
+				, argstr
+				,this.color
+				);
+	}
 }

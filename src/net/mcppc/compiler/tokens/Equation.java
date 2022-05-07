@@ -179,7 +179,7 @@ public class Equation extends Token {
 			//look for value / unary
 			int pc=c.cursor;
 			//Token v=c.nextNonNullMatch(lookForValue);//old
-			Token v=Const.checkForExpressionSafe(c, m, line, col, ConstType.TYPE); 
+			Token v=Const.checkForExpressionSafe(c,c.currentScope, m, line, col, ConstType.TYPE); 
 			if(v==null) v=c.nextNonNullMatch(lookForValue);
 			//boolean willAddV=false;
 
@@ -289,6 +289,15 @@ public class Equation extends Token {
 			
 			//now look for operation
 			pc=c.cursor;
+			//check for function template 
+			TemplateArgsToken tempargs=null;
+			if(v instanceof MemberName) {
+				Function f=c.myInterface.checkForFunctionWithTemplate(((MemberName) v).names, c.currentScope);
+				if(f!=null) {
+					tempargs=TemplateArgsToken.checkForArgs(c, c.currentScope, m);
+					if(tempargs==null)c.cursor=pc;
+				}
+			}
 			Token op=c.nextNonNullMatch(lookForOperation);
 			if (op instanceof Token.Paren && ((Token.Paren) op).forward) {
 				//function call
@@ -298,6 +307,7 @@ public class Equation extends Token {
 						BuiltinFunction.isBuiltinFunc((((Token.MemberName) v).names.get(0)))) {
 					//a builtin function
 					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col,this.stack, ((Token.MemberName) v).names.get(0));
+					if(tempargs!=null)sub.withTemplate(tempargs);
 					//this.elements.add(sub);
 					v=sub;
 
@@ -307,6 +317,7 @@ public class Equation extends Token {
 					//a normal function
 					Function.FuncCallToken ft=Function.FuncCallToken.make(c, v.line, v.col, m, (MemberName) v, this.stack);
 					ft.identify(c,c.currentScope);
+					if(tempargs!=null)ft.withTemplate(tempargs);
 					//this.elements.add(ft);
 					v=ft;
 				}
@@ -435,16 +446,16 @@ public class Equation extends Token {
 			regnum=((Equation) in).setReg(p, c, s, typeWanted);
 		}else if (in instanceof Token.MemberName) {
 			regnum=stack.setNext(((Token.MemberName) in).var.type);
-			((Token.MemberName) in).var.getMe(p, stack,regnum);
+			((Token.MemberName) in).var.getMe(p,s, stack,regnum);
 			this.stack.estmiate(regnum, ((Token.MemberName) in).estimate);
 		}else if (in instanceof Num) {
 			regnum=stack.setNext(((Num) in).type);
-			stack.getRegister(regnum).setValue(p, ((Num) in).value,((Num) in).type);
+			stack.getRegister(regnum).setValue(p,s, ((Num) in).value,((Num) in).type);
 			this.stack.estmiate(regnum, ((Num) in).value);
 		}else if (in instanceof Token.Bool) {
 			regnum=stack.setNext(((Token.Bool) in).type);
 			long score=((Token.Bool) in).val?1:0;
-			stack.getRegister(regnum).setValue(p, score,((Token.Bool) in).type);
+			stack.getRegister(regnum).setValue(p,s, score,((Token.Bool) in).type);
 			this.stack.estmiate(regnum, null);
 		}else if (in instanceof Function.FuncCallToken) {
 			regnum=stack.setNext(((Function.FuncCallToken) in).getFunction().retype);
@@ -478,6 +489,9 @@ public class Equation extends Token {
 	//flag for if to attempt to do inline mult for literal numbers
 	@SuppressWarnings("unused")
 	public void compileOps(PrintStream p,Compiler c,Scope s,VarType typeWanted) throws CompileError {
+		if(this.isTopLevel) {
+			this.stack.clear();
+		}
 		if(this.doesAnyOps || !(this.isTopLevel || this.isAnArg)) {
 			//do sub ops on registers
 			if(this.elements.get(0) instanceof UnaryOp) {
@@ -491,7 +505,8 @@ public class Equation extends Token {
 				Token in=this.elements.get(1);
 				this.homeReg=this.putTokenToRegister(p, c, s, cast.type, in);
 				//cast register
-				this.stack.castRegister(p, this.homeReg, cast.type);
+				System.err.printf("Equation: casting %s -> %s", stack.getVarType(this.homeReg).asString(),cast.type.asString());
+				this.stack.castRegister(p,s, this.homeReg, cast.type);
 			}else if (this.elements.size()==1){
 				Token in=this.elements.get(0);
 				this.homeReg=this.putTokenToRegister(p, c, s, typeWanted, in);
@@ -521,6 +536,7 @@ public class Equation extends Token {
 						Number newnum=null;if(nextval instanceof Num) newnum=((Num) nextval).value;
 						if((newnum==null && prevNum==null) | (!op.canLiteralMult())) {
 							int nextreg=this.putTokenToRegister(p, c, s, typeWanted, nextval);
+							//stack.debugOut(System.err);
 							op.perform(p, c, s, stack, this.homeReg, nextreg);
 							CompileJob.compileMcfLog.printf("homeReg: %s;\n", this.homeReg);
 							stack.cap(this.homeReg);//remove unused register IF it was created
@@ -550,7 +566,7 @@ public class Equation extends Token {
 					if(first instanceof Num && Equation.PRE_EVAL_EXP) {
 						e=CMath.pow(((Num)first).value, e);
 						int precison=(int) (5-Math.round(Math.log10( e.doubleValue())));
-						stack.getRegister(this.homeReg).setValue(p, e,VarType.doubleWith(precison));
+						stack.getRegister(this.homeReg).setValue(p,s, e,VarType.doubleWith(precison));
 						this.stack.estmiate(this.homeReg, e);
 					}else {
 						BiOperator.exp(p, c, s, stack, homeReg, e);
@@ -596,7 +612,7 @@ public class Equation extends Token {
 	public void setVar(PrintStream p,Compiler c,Scope s,Variable v) throws CompileError {
 		if(this.hasSetToReg) {
 			//CompileJob.compileMcfLog.println("#homereg set from");
-			v.setMe(p, stack,this.homeReg);
+			v.setMe(p,s, stack,this.homeReg);
 			this.stack.pop();
 		}else {
 			if (this.elements.size()==0)return;//done
@@ -604,7 +620,7 @@ public class Equation extends Token {
 			Token e=this.elements.get(0);
 			if(e instanceof Token.MemberName) {
 				Variable from=((Token.MemberName) e).var;
-				Variable.directSet(p, v, from, this.stack);
+				Variable.directSet(p,s, v, from, this.stack);
 			}else if(e instanceof Num) {
 				v.setMeToNumber(p, c, s, stack, ((Num)e).value);
 			}else if(e instanceof Token.Bool) {
@@ -632,9 +648,9 @@ public class Equation extends Token {
 			Token e=this.elements.get(0);
 			if(e instanceof Token.MemberName) {
 				Variable from=((Token.MemberName) e).var;
-				from.getMe(p, stack, this.homeReg);
+				from.getMe(p,s, stack, this.homeReg);
 			}else if(e instanceof Num) {
-				stack.getRegister(this.homeReg).setValue(p, ((Num)e).value, ((Num)e).type);
+				stack.getRegister(this.homeReg).setValue(p,s, ((Num)e).value, ((Num)e).type);
 			}else if(e instanceof Token.Bool) {
 				stack.getRegister(this.homeReg).setValue(p, ((Token.Bool)e).val);
 			}else if(e instanceof Function.FuncCallToken) {

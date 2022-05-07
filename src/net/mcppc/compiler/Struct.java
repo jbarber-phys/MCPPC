@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 
+import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.Variable.Mask;
@@ -17,7 +18,7 @@ import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.UnaryOp;
-
+import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.struct.*;
 
 /**
@@ -49,7 +50,6 @@ import net.mcppc.compiler.struct.*;
  *
  */
 public abstract class Struct {
-	//TODO String and Vector structs
 	
 	protected static final Map<String,Struct> STRUCTS=new HashMap<String,Struct>();
 	public static void register(Struct s) {
@@ -89,7 +89,7 @@ public abstract class Struct {
 	 * @param col
 	 * @return
 	 */
-	public StructTypeParams tokenizeTypeArgs(Compiler c, Matcher matcher, int line, int col, List<Const> forbidden)throws CompileError {
+	public StructTypeParams tokenizeTypeArgs(Compiler c,Scope s, Matcher matcher, int line, int col, List<Const> forbidden)throws CompileError {
 		//check that there are no args
 		Token t=c.nextNonNullMatch(Factories.closeParen);
 		if ((!(t instanceof Token.Paren)) || ((Token.Paren)t).forward)throw new CompileError.UnexpectedToken(t,"')'");
@@ -109,7 +109,7 @@ public abstract class Struct {
 	public String headerTypeString(VarType varType){//no throws
 		return this.name;
 	}
-	public abstract int getPrecision(VarType mytype);//no throws
+	public abstract int getPrecision(VarType mytype, Scope s) throws CompileError;//no throws
 	/**
 	 * used for custom print settings for /tellraw
 	 * @param variable the variable to be displayed
@@ -129,42 +129,44 @@ public abstract class Struct {
 		//do nothing if they are equal
 		return from.equals(mytype);
 		}
-	public void castRegistersFrom(PrintStream p, RStack stack,int start,VarType old,VarType mytype) throws CompileError{
+	public void castRegistersFrom(PrintStream p, Scope s,RStack stack,int start,VarType old, VarType mytype) throws CompileError{
 		//do nothing
 	}
-	protected void castVarFrom(PrintStream p, RStack stack,Variable vtag,VarType old,VarType mytype) throws CompileError{
+	protected void castVarFrom(PrintStream p, Scope s ,RStack stack,Variable vtag,VarType old, VarType mytype) throws CompileError{
 		//do nothing
 	}
 	
 	public boolean canCasteTo(VarType to,VarType mytype) { return mytype.equals(mytype); }
-	public void castRegistersTo(PrintStream p, RStack stack,int start,VarType newType,VarType mytype) throws CompileError{
+	public void castRegistersTo(PrintStream p, Scope s,RStack stack,int start,VarType newType, VarType mytype) throws CompileError{
 		//do nothing
 	}
-	protected void castVarTo(PrintStream p, RStack stack,Variable vtag,VarType mytype,VarType newType) throws CompileError{
+	protected void castVarTo(PrintStream p, Scope s,RStack stack,Variable vtag,VarType mytype, VarType newType) throws CompileError{
 		//do nothing
 	}
 	/**
 	 * sets some registers to the value of the struct
 	 * @param p
+	 * @param s TODO
 	 * @param stack
 	 * @param home
 	 * @param me
 	 * @throws CompileError
 	 */
-	public abstract void getMe(PrintStream p,RStack stack,int home,Variable me)throws CompileError;
+	public abstract void getMe(PrintStream p,Scope s,RStack stack,int home, Variable me)throws CompileError;
 	/**
 	 * gets some registers to set a variable of this struct
 	 * @param p
+	 * @param s TODO
 	 * @param stack
 	 * @param home
 	 * @param me
 	 * @throws CompileError
 	 */
-	public abstract void setMe(PrintStream p,RStack stack,int home,Variable me)throws CompileError;
-	public void getMeDirect(PrintStream p,RStack stack,Variable to,Variable me)throws CompileError{
+	public abstract void setMe(PrintStream p,Scope s,RStack stack,int home, Variable me)throws CompileError;
+	public void getMeDirect(PrintStream p,Scope s,RStack stack,Variable to, Variable me)throws CompileError{
 		Struct.basicSetDirect(p, to, me);
 	}
-	public void setMeDirect(PrintStream p,RStack stack,Variable me,Variable from)throws CompileError{
+	public void setMeDirect(PrintStream p,Scope s,RStack stack,Variable me, Variable from)throws CompileError{
 		Struct.basicSetDirect(p, me, from);
 	}
 	///public abstract boolean isCompadible(VarType type2)throws CompileError;//same as can cast to
@@ -189,6 +191,9 @@ public abstract class Struct {
 	public void doBiOpSecond(BiOperator.OpType op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Integer home1,Integer home2)
 			throws CompileError{throw new CompileError.UnsupportedOperation(stack.getVarType(home1), op, mytype);}
 
+	public void exp(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Number exponent) throws CompileError {
+		throw new CompileError.UnsupportedOperation(stack.getVarType(home1), OpType.EXP, VarType.INT);
+	}
 	public boolean canDoUnaryOp(UnaryOp.UOType op,VarType mytype,VarType other)throws CompileError {return false;}
 	public void doUnaryOp(UnaryOp.UOType op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Integer home)
 			throws CompileError{throw new CompileError.UnsupportedOperation( op, mytype);}
@@ -199,9 +204,9 @@ public abstract class Struct {
 			throws CompileError{throw new CompileError.UnsupportedOperation( op, mytype);}
 	
 	
-	public void setVarToNumber(PrintStream p,Compiler c,Scope s, RStack stack,Number val,VarType myType) throws CompileError {throw new CompileError.CannotSet(myType, "number");}
+	public void setVarToNumber(PrintStream p,Compiler c,Scope s, RStack stack,Number val,Variable self) throws CompileError {throw new CompileError.CannotSet(self.type, "number");}
 	public void setRegistersToNumber(PrintStream p,Compiler c,Scope s, RStack stack,int home,Number val,VarType myType)throws CompileError {throw new CompileError.CannotSet(myType, "number");}
-	public void setVarToBool(PrintStream p,Compiler c,Scope s, RStack stack,boolean val,VarType myType)throws CompileError{throw new CompileError.CannotSet(myType, "bool");}
+	public void setVarToBool(PrintStream p,Compiler c,Scope s, RStack stack,boolean val,Variable self)throws CompileError{throw new CompileError.CannotSet(self.type, "bool");}
 	public void setRegistersToBool(PrintStream p,Compiler c,Scope s, RStack stack,int home,boolean val,VarType myType)throws CompileError{throw new CompileError.CannotSet(myType, "bool");}
 	
 	
@@ -344,5 +349,13 @@ public abstract class Struct {
 	}
 	public void setMeToExpr(PrintStream p,RStack stack,Variable me, ConstExprToken e) throws CompileError {
 		throw new CompileError.UnsupportedCast(e, me.type);
+	}
+
+	public boolean isReady(VarType varType) {
+		return varType.structArgs==null?true:varType.structArgs.isReady();
+	}
+
+	public VarType withTemplatePrecision(VarType varType, String pc) throws CompileError{
+		return varType;//do nothing
 	}
 }

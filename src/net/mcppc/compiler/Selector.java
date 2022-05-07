@@ -1,5 +1,6 @@
 package net.mcppc.compiler;
 
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,6 +49,15 @@ public class Selector {
 		public String textInHdr() {
 			return this.selector().toHDR();
 		}
+
+		@Override
+		public String resSuffix() {
+			return "slctr_%s_%x".formatted(this.val.playerResCase(),this.valueHash());
+		}
+		@Override
+		public int valueHash() {
+			return this.val.hashCode();
+		}
 	}
 	String player;
 	//ready to be added to cmd
@@ -89,7 +99,7 @@ public class Selector {
 		this.argsCMD=stripDoubles(argsHDR);
 		
 	}
-	private Selector(String plr) {
+	public Selector(String plr) {
 		this(plr,"");
 	}
 	public String toCMD() {
@@ -107,6 +117,15 @@ public class Selector {
 	@Override
 	public String toString() {
 		return this.toHDR();
+	}
+	private static final Pattern NONWORD=Pattern.compile("[^\\w]");// [^\w]
+	String playerResCase() {
+		String s=this.player.toLowerCase();
+		String p=s.charAt(0)=='@'?"at":"";
+		return  p+NONWORD.matcher(s).replaceAll("_");
+	}
+	@Override public int hashCode() {
+		return Objects.hash(this.player,this.argsCMD);
 	}
 	
 }

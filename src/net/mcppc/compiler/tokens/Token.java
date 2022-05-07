@@ -1,6 +1,7 @@
 package net.mcppc.compiler.tokens;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.*;
 
 import net.mcppc.compiler.CompileJob;
@@ -129,7 +130,12 @@ public abstract class Token {
 					Statement.Domment.factory,
 					ARE_TYPEARGS_PARENS?Token.Paren.factory:TypeArgBracket.factory,
 					Token.WildChar.dontPassFactory};
-
+		public static final Token.Factory[] checkForTypeargSep = 
+			{Factories.newline,Factories.comment,Factories.domment,Factories.space,
+					Statement.Domment.factory,
+					ARE_TYPEARGS_PARENS?Token.Paren.factory:TypeArgBracket.factory,
+							Token.ArgEnd.factory,
+					Token.WildChar.dontPassFactory};
 
 
 		public static  boolean isArgTypeArg(Token t) {
@@ -179,8 +185,16 @@ public abstract class Token {
 			return val?"true":"false";
 		}
 		@Override
-		public String textInHdr() {
+		public String textInHdr(){
 			return this.asString();
+		}
+		@Override
+		public int valueHash() {
+			return Objects.hash(val);
+		}
+		@Override
+		public String resSuffix() {
+			return "bool_%s".formatted(this.asString());
 		}
 	}
 	public static class CodeBlockBrace extends AbstractBracket{
@@ -282,6 +296,21 @@ public abstract class Token {
 		public String textInHdr() {
 			return this.literal();
 		}
+		@Override
+		public int valueHash() {
+			return this.literal.hashCode();
+		}
+
+		private static final Pattern NONWORD=Pattern.compile("[^\\w]");// [^\w]
+		String resCase() {
+			String s=this.literal.toLowerCase();
+			return  NONWORD.matcher(s).replaceAll("_");
+		}
+		@Override
+		public String resSuffix() {
+			// TODO Auto-generated method stub
+			return "str_%s".formatted(this.resCase());
+		}
 	}
 	public static class MemberName extends Token implements Identifiable{
 		//for a named thing that hasn't been identified yet
@@ -347,6 +376,18 @@ public abstract class Token {
 			super(line, col);
 		}
 		@Override public String asString() { return "ref";
+		}
+	}
+	public static class RangeSep extends Token{
+		public static final Factory factory=new Factory(Regexes.RANGESEP) {
+			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+				c.cursor=matcher.end();
+				return new RangeSep(line,col);
+			}};
+		public RangeSep(int line, int col) {
+			super(line, col);
+		}
+		@Override public String asString() { return "..";
 		}
 	}
 }

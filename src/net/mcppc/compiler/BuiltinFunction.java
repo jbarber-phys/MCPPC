@@ -7,10 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 
+import net.mcppc.compiler.Function.FuncCallToken;
 import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Factories;
+import net.mcppc.compiler.tokens.TemplateArgsToken;
 import net.mcppc.compiler.tokens.Token;
 
 /**
@@ -54,6 +56,7 @@ public abstract class BuiltinFunction {
 			return this.f;
 		}
 		Args args;
+		private TemplateArgsToken tempArgs=null;
 		public BFCallToken(int line, int col,BuiltinFunction f) {
 			super(line, col);
 			this.f=f;
@@ -76,6 +79,13 @@ public abstract class BuiltinFunction {
 		}
 		public Number getEstimate() {
 			return this.f.getEstimate(args);
+		}
+
+		public boolean hasTemplate() {
+			return this.tempArgs!=null;
+		}
+		public BFCallToken withTemplate(TemplateArgsToken tgs) {
+			this.tempArgs=tgs;return this;
 		}
 		
 	}

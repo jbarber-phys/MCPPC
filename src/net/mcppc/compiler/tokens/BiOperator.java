@@ -98,7 +98,7 @@ public class BiOperator extends Token{
 			return null;
 		}
 		public final String s;
-		final OperationOrder order;
+		public final OperationOrder order;
 		OpType(String s,OperationOrder op){
 			this.s=s;
 			this.order=op;
@@ -114,7 +114,7 @@ public class BiOperator extends Token{
 			c.cursor=matcher.end();
 			return new BiOperator(line,col,matcher);
 		}};
-	final OpType op;
+	public final OpType op;
 	public BiOperator(int line, int col,Matcher m) {
 		super(line, col);
 		this.op=OpType.fromMatch(m);
@@ -151,10 +151,10 @@ public class BiOperator extends Token{
 
 		VarType typef=type1;
 		if(!type1.isFloatP() && type2.isFloatP())typef=type2;//log estimate correction
-		int dp1=typef.getPrecision()-type1.getPrecision();
+		int dp1=typef.getPrecision(s)-type1.getPrecision(s);
 		long mult1=Math.round(Math.pow(10, Math.abs(dp1)));
 		String pop1=dp1>0?"*=":"/=";
-		int dp2=typef.getPrecision()-type2.getPrecision();
+		int dp2=typef.getPrecision(s)-type2.getPrecision(s);
 		long mult2=Math.round(Math.pow(10, Math.abs(dp2)));
 		String pop2=dp2>0?"*=":"/=";
 		
@@ -178,7 +178,7 @@ public class BiOperator extends Token{
 		VarType type1=stack.getVarType(home1);
 		VarType type2=stack.getVarType(home2);
 		this.assertNumeric(type1, type2);
-		double mult = Math.pow(10, type1.getPrecision()+type2.getPrecision());
+		double mult = Math.pow(10, type1.getPrecision(s)+type2.getPrecision(s));
 		boolean hasafloat = type1.isFloatP() || type2.isFloatP();
 		if( (	stack.getEstimate(home1)!=null
 				&&stack.getEstimate(home2)!=null
@@ -226,7 +226,7 @@ public class BiOperator extends Token{
 		//boolean doPrecision2=type2.getPrecision()!=0;
 		//long mult2 = Math.round(Math.pow(10, Math.abs(type2.getPrecision())));
 		
-		double finpmult = Math.pow(10, finalType.getPrecision()-type1.getPrecision()-type2.getPrecision());
+		double finpmult = Math.pow(10, finalType.getPrecision(s)-type1.getPrecision(s)-type2.getPrecision(s));
 		
 		double placeMult=Math.pow(2, ((Register.SCORE_BITS-2)/2)); //assert placeMult%2==0;//check for rounding errors; should be 32768
 		//use Math.round(
@@ -234,7 +234,7 @@ public class BiOperator extends Token{
 		//reg_place.setValue(p, Math.round(placeMult));//unused
 		//reg_mult_1.setValue(p, mult1);
 		//reg_mult_2.setValue(p, mult2);
-		
+		reg_place.setValue(p, Math.round(placeMult));
 		reg_1x.operation(p, "=", h1);
 		reg_1x.operation(p, "/=", reg_place);
 		reg_1o.operation(p, "=", h1);
@@ -284,7 +284,7 @@ public class BiOperator extends Token{
 		if(!type1.isFloatP() && type2.isFloatP())finalType=type2;//log estimate correction
 		//CompileJob.compileMcfLog.printf("shortMult typef %s;\n", finalType.asString());
 		
-		int fppow=finalType.getPrecision()-type1.getPrecision()-type2.getPrecision();
+		int fppow=finalType.getPrecision(s)-type1.getPrecision(s)-type2.getPrecision(s);
 		String precop=fppow>0?"*=":"/=";
 		long finpmult = Math.round(Math.pow(10, Math.abs(fppow)));
 		boolean doPrecision=fppow!=0;
@@ -314,7 +314,7 @@ public class BiOperator extends Token{
 			otype=other.type;//log correction
 		}
 		double mult=this.op==OpType.MULT?other.value.doubleValue():1.0/other.value.doubleValue();
-		double timespow=Math.pow(10, otype.getPrecision()-itype.getPrecision());
+		double timespow=Math.pow(10, otype.getPrecision(s)-itype.getPrecision(s));
 		Register regIn=stack.getRegister(in);
 		Register regOut=stack.getRegister(dest);
 		stack.setVarType(dest,otype);
@@ -330,7 +330,7 @@ public class BiOperator extends Token{
 		else throw new CompileError("op %s was not * or /;".formatted(this.op.name()));
 		VarType otype=result.type;
 		Register regOut=stack.getRegister(dest);
-		regOut.setValue(p, result.value,result.type);
+		regOut.setValue(p,s, result.value,result.type);
 		stack.setVarType(dest,otype);
 		stack.estmiate(dest, result.value);
 		return result;
@@ -360,7 +360,7 @@ public class BiOperator extends Token{
 		this.assertNumeric(type1, type2);
 		VarType typef=type1;
 		if(!type1.isFloatP() && type2.isFloatP())typef=type2;//log estimate correction
-		int topplace=typef.getPrecision()-type1.getPrecision()+type2.getPrecision();
+		int topplace=typef.getPrecision(s)-type1.getPrecision(s)+type2.getPrecision(s);
 		int bottomPlace=0;
 		if(stack.getEstimate(home1)!=null) {
 			double est1=stack.getEstimate(home1).doubleValue();
@@ -399,10 +399,10 @@ public class BiOperator extends Token{
 		// (a 10^-p)%(b 10^-q) = 10^-w (a 10^(-p+w)%b 10^(-q+w))
 		VarType typef=type1;
 		if(!type1.isFloatP() && type2.isFloatP())typef=type2;//log estimate correction
-		int dp1=typef.getPrecision()-type1.getPrecision();
+		int dp1=typef.getPrecision(s)-type1.getPrecision(s);
 		long mult1=Math.round(Math.pow(10, Math.abs(dp1)));
 		String pop1=dp1>0?"*=":"/=";
-		int dp2=typef.getPrecision()-type2.getPrecision();
+		int dp2=typef.getPrecision(s)-type2.getPrecision(s);
 		long mult2=Math.round(Math.pow(10, Math.abs(dp2)));
 		String pop2=dp2>0?"*=":"/=";
 		
@@ -429,6 +429,11 @@ public class BiOperator extends Token{
 	//note for sqrt(1), a and a^-1 are equally good guesses
 	public static void exp(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Number exponent) throws CompileError {
 		VarType type1=stack.getVarType(home1);
+		if(type1.isStruct()) {
+			if(type1.struct.canDoBiOp(OpType.EXP, type1, VarType.INT, true)) {
+				
+			}else throw new CompileError.UnsupportedOperation(type1, OpType.EXP, VarType.INT);
+		}
 		Register reg1=stack.getRegister(home1);
 		int exp=exponent.intValue();
 		if(Math.abs(exp-exponent.doubleValue())>0.1)Warnings.warning("Warning: rounded exponent %s to an integer;".formatted(exponent));
@@ -439,10 +444,10 @@ public class BiOperator extends Token{
 		if(Math.abs(exp)<Register.SCORE_BITS) {
 			//repeat mult
 			String expop=exp>0?"*=":"/=";
-			String pop=type1.getPrecision()*exp>0?"/=":"*=";
-			boolean doPrecision=type1.getPrecision()!=0;
-			boolean reverse = (type1.getPrecision()>0) && exp<0;
-			long mult = (long) Math.pow(10, Math.abs(type1.getPrecision()));
+			String pop=type1.getPrecision(s)*exp>0?"/=":"*=";
+			boolean doPrecision=type1.getPrecision(s)!=0;
+			boolean reverse = (type1.getPrecision(s)>0) && exp<0;
+			long mult = (long) Math.pow(10, Math.abs(type1.getPrecision(s)));
 			int extra1=stack.reserve(2);
 			int extra2=extra1+1;
 			Register rex1=stack.getRegister(extra1);
@@ -487,8 +492,8 @@ public class BiOperator extends Token{
 		this.assertNumeric(type1, type2);
 		int extra=stack.reserve(1);Register regE=stack.getRegister(extra);
 		//prep reg for compare
-		int p1=type1.getPrecision();
-		int p2=type2.getPrecision();
+		int p1=type1.getPrecision(s);
+		int p2=type2.getPrecision(s);
 		if(p1!=p2){
 			int spreg=p1<p2?home1:home2;
 			int pf;

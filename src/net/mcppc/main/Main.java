@@ -57,12 +57,13 @@ public class Main {
 		
 		
 	}
-	public static void compileStdLib() {
+	public static boolean compileStdLib() {
 		CompileJob stdlib=new CompileJob(CompileJob.getResources(),CompileJob.getGeneratedResources());
 		stdlib.setRootHeaderOut(CompileJob.getGeneratedResources());
-		stdlib.waiveMcmeta();
-		stdlib.compileAll();
+		stdlib.stdLib();
+		boolean success=stdlib.compileAll();
 		System.out.println("successfully compiled std library;");
+		return success;
 	}
 	public static void main(String[] args) {
 		//the project directory is the datapack level (same as pack.mcmeta)
@@ -141,9 +142,11 @@ public class Main {
 				break;
 			}
 		}
-		if(compStd) compileStdLib();
+		boolean stdSuccess=true;
+		if(compStd) stdSuccess=compileStdLib();
 		if(compStdOnly)return;
 		job.compileAll();
+		if(!stdSuccess)System.err.println("compilation of stdlib failed;");
 		//floatFormatTest();
 		
 		//C:\Users\jbarb_t8a3esk\AppData\Roaming\.minecraft\saves\Mcpp_test_world\datapacks\

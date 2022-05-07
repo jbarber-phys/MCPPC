@@ -39,23 +39,27 @@ import net.mcppc.compiler.tokens.Type;
 public class Const {
 	//const names can match actual tag literals: normally literals are prioritized but this flag turns it around for NBT addresses;
 	public static boolean CHECK_FOR_CONSTS_ON_TAGS = true;
-	public static Const.ConstExprToken checkForExpressionSafe(Compiler c, Matcher matcher, int line, int col,ConstType... types){
+	public static Const.ConstExprToken checkForExpressionSafe(Compiler c,Scope s, Matcher matcher, int line, int col,ConstType... types){
 		List<Const> forbidden=new ArrayList<Const>();
 		int start=c.cursor;
 		try {
-			return Const.checkForExpression(c, matcher, line, col, forbidden, types);
+			return Const.checkForExpression(c,s, matcher, line, col, forbidden, types);
 		} catch (CompileError e) {
 			c.cursor=start;
 			return null;
 		}
 	}
-	public static Const.ConstExprToken checkForExpression(Compiler c, Matcher matcher, int line, int col,ConstType... types) throws CompileError{
+	static final ConstType[] CONSTTYPESINORDER = ConstType.values();//values are in order
+	public static Const.ConstExprToken checkForExpressionAny(Compiler c,Scope s, Matcher matcher, int line, int col){
+		return Const.checkForExpressionSafe(c,s, matcher, line, col, CONSTTYPESINORDER);
+	}
+	public static Const.ConstExprToken checkForExpression(Compiler c,Scope s, Matcher matcher, int line, int col,ConstType... types) throws CompileError{
 		List<Const> forbidden=new ArrayList<Const>();
-		return Const.checkForExpression(c, matcher, line, col, forbidden, types);
+		return Const.checkForExpression(c,s, matcher, line, col, forbidden, types);
 	}
 
 		
-	public static Const.ConstExprToken checkForExpression(Compiler c, Matcher matcher, int line, int col, List<Const> forbidden,ConstType... types) throws CompileError{
+	public static Const.ConstExprToken checkForExpression(Compiler c,Scope s, Matcher matcher, int line, int col, List<Const> forbidden,ConstType... types) throws CompileError{
 		Token.Factory[] look = new Token.Factory[4+types.length+1];
 		look[0]=Factories.newline;
 		look[1]=Factories.space;
@@ -83,27 +87,30 @@ public class Const {
 		boolean hasTagType=false;for(ConstType i:types)if(i==ConstType.NBT) {hasTagType=true;break;}
 		if(Const.CHECK_FOR_CONSTS_ON_TAGS && hasTagType) {
 			int start=c.cursor;
-			ConstVarToken cvt=ConstVarToken.checkFor(c, matcher, line, col);
+			ConstVarToken cvt=ConstVarToken.checkFor(c,s, matcher, line, col);
 			if(cvt!=null)return cvt.constv.value;
 			else c.cursor=start;
 		}
 		
 		Token t=c.nextNonNullMatch(look);
 		if(t instanceof Token.WildChar && itype>=0) {
-			t=Type.tokenizeNextVarTypeNullable(c, matcher, line, col,forbidden);
+			t=Type.tokenizeNextVarTypeNullable(c,s, matcher, line, col,forbidden);
 			if(t!=null)return (ConstExprToken) t;
 			t=c.nextNonNullMatch(look2);
 		}
 		if(!(t instanceof Token.WildChar)) {
 			return (ConstExprToken) t;
 		}
-		
-		Const vc=Const.identifyConst(c, matcher, line, col, forbidden, types);
-		return vc.value;
+
+		ConstVarToken cvt=Const.identifyConst(c,s, matcher, line, col, forbidden, types);
+		Const vc=cvt.constv;
+		if(vc.refsTemplate())
+			return cvt;
+		else return vc.value;
 	}
-	public static Const identifyConst(Compiler c, Matcher matcher, int line, int col, List<Const> forbidden,ConstType... types) throws CompileError {
+	public static ConstVarToken identifyConst(Compiler c,Scope s, Matcher matcher, int line, int col, List<Const> forbidden,ConstType... types) throws CompileError {
 		
-		ConstVarToken cvt=Const.ConstVarToken.checkFor(c, matcher, line, col);
+		ConstVarToken cvt=Const.ConstVarToken.checkFor(c,s, matcher, line, col);
 		if(cvt==null) {
 			Token t=c.nextNonNullMatch(Factories.checkForMembName);
 			String[] ns=new String[types.length];for(int i=0;i<types.length;i++) ns[i]=types[i].name;
@@ -119,22 +126,23 @@ public class Const {
 			//const circular reference
 			forbidden.add(cv);
 			@SuppressWarnings("unchecked")
-			List<String> s=(List<String>) forbidden.stream().map(f->f.name);
-			throw new CompileError("Circular const dependance: %s".formatted(s));
+			List<String> st=(List<String>) forbidden.stream().map(f->f.name);
+			throw new CompileError("Circular const dependance: %s".formatted(st));
 		}
-		//TODO recursively get value
 		if(cv.refsTemplate()) {
-			throw new CompileError("templates not yet supported TODO");
+			//throw new CompileError("templates not yet supported TODOo");
+			//should be OK
 		}
 		boolean correctType=false;
 		for(ConstType ct:types)if(ct==cv.ctype) {correctType=true;break;}
 		if(!correctType)throw new CompileError.UnsupportedCast(cv.ctype, types);
-		return cv;
+		return cvt;
 	}
 	public static abstract class ConstExprToken extends Token{
 		public abstract ConstType constType() ;
 		public boolean refsTemplate() {return false;}
 		public abstract String textInHdr();
+		public abstract String resSuffix() ;//used in streams: cannot throw
 		public ConstExprToken(int line, int col) {
 			super(line, col);
 		}
@@ -154,11 +162,12 @@ public class Const {
 			super(line, col);
 			this.constType__=ctype;
 		}
+		public abstract int valueHash();
 		
 	}
 	//unused until templates
 	public static class ConstVarToken extends ConstExprToken{
-		public static ConstVarToken checkFor(Compiler c, Matcher m, int line, int col) throws CompileError {
+		public static ConstVarToken checkFor(Compiler c,Scope s, Matcher m, int line, int col) throws CompileError {
 			final Factory[] lookdot=Factories.genericCheck(Token.Member.factory);
 			final Factory[] lookname=Factories.checkForBasicName;
 			int start=c.cursor;
@@ -166,16 +175,16 @@ public class Const {
 			if(!(t0 instanceof Token.BasicName)) {
 				return null;
 			}
-			List<String> names = new ArrayList();names.add(((Token.BasicName) t0).name);
+			List<String> names = new ArrayList<String>();names.add(((Token.BasicName) t0).name);
 			FileInterface itf= c.myInterface;
 			while(true) {
 				String last=names.get(names.size()-1);
-				if(itf.hasLib(last, c.currentScope)) {
-					itf = itf.getDirectLib(last, c.currentScope);
+				if(itf.hasLib(last, s)) {
+					itf = itf.getDirectLib(last, s);
 				}else {
 
 					try{
-						Const cv=c.myInterface.identifyConst(names, c.currentScope);
+						Const cv=c.myInterface.identifyConst(names,s);
 						String path = names.stream().collect(Collectors.joining("."));
 						return new ConstVarToken(line,col,cv,path);
 					}catch (CompileError p) {
@@ -215,11 +224,15 @@ public class Const {
 		public boolean refsTemplate() {return constv.refsTemplate();}
 		@Override
 		public String textInHdr() {
-			// TODO Auto-generated method stub
 			return this.constv.inHeader();
+		}
+		@Override public String resSuffix() {
+			if(this.constv.value!=null)return this.constv.value.resSuffix();
+			else return "null";
 		}
 	}
 	public enum ConstType{
+		//values are in order that prevents conflict
 		NUM("num",Num.factoryneg,true),
 		BOOLIT("flag",Token.Bool.factory,true),
 		STRLIT("text",Token.StringToken.factory),
@@ -253,8 +266,8 @@ public class Const {
 	public final ConstType ctype;
 	public final Keyword access;
 	ConstExprToken  value;
-	boolean isTemplate=false;//make refs to template be private
-	boolean refsTemplate() {
+	public boolean isTemplate=false;//make refs to template be private
+	public boolean refsTemplate() {
 		return this.isTemplate;
 	}
 	public Const(String name, ResourceLocation path,ConstType type,Keyword access, ConstExprToken value) {
@@ -263,7 +276,7 @@ public class Const {
 		this.ctype=type;
 		this.access=access;
 		this.value=value;
-	}
+	} 
 	
 	@Override
 	public boolean equals(Object other) {
@@ -275,11 +288,11 @@ public class Const {
 	public ConstExprToken getValue() {
 		return value;
 	}
-	public String inHeader() {
-		//TODO fixe problems with possible multiple files;
+	public String inHeader()  {
+		//yes, this is scope-safe as out of scope vars never are in headers
 		return this.name;
 	}
-	public void headerDeclaration(PrintStream f) throws CompileError {
-		f.printf("%s %s %s %s = %s;\n", this.access.name,Keyword.CONST.name,this.ctype.name,this.name,this.value.textInHdr());
+	public void headerDeclaration(PrintStream p) throws CompileError {
+		p.printf("%s %s %s %s = %s;\n", this.access.name,Keyword.CONST.name,this.ctype.name,this.name,this.value.textInHdr());
 	}
 }

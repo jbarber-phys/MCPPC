@@ -56,11 +56,16 @@ public class Register implements Comparable<Register>{
 	public String setValueStr(boolean value) {
 		return "scoreboard players set %s %d".formatted(this.inCMD(),value?1:0);
 	}
-	public void setValue(PrintStream p,Number value,VarType type) {
-		long val=(long) (value.doubleValue()*Math.pow(10, type.getPrecision()));
+	public void setValue(PrintStream p,Scope s,Number value,VarType type) throws CompileError {
+		long val=(long) (value.doubleValue()*Math.pow(10, type.getPrecision(s)));
 		p.printf("scoreboard players set %s %d\n", this.inCMD(),val);
 	}
-	
+	public void increment(PrintStream p,long ammount) {
+		p.printf("scoreboard players add %s %d\n", this.inCMD(),ammount);
+	}
+	public void decrement(PrintStream p, long ammount) {
+		p.printf("scoreboard players remove %s %d\n", this.inCMD(),ammount);
+	}
 	public void operation(PrintStream p,String op,Register other) {
 		p.printf("scoreboard players operation %s %s %s\n", this.inCMD(),op,other.inCMD());
 	}
@@ -166,26 +171,40 @@ public class Register implements Comparable<Register>{
 		}
 		public void finish(CompileJob job) {
 			Namespace ns=job.namespaces.get(this.res.namespace);
+			this.finish(ns);
+		}
+		public void finish(Namespace ns) {
 			ns.fillMaxRegisters(this.maxSizeEver);
 		}
-		public void castRegister(PrintStream p,int index,VarType newType) throws CompileError {
+		public void castRegister(PrintStream p,Scope s,int index,VarType newType) throws CompileError {
 			VarType oldType=this.getVarType(index);
-			this.castRegisterValue(p, index, oldType, newType);
-			this.vartypes.put(index, newType);
+			this.castRegisterValue(p,s, index, oldType, newType);
+			this.setVarType(index, newType);
+			//this.vartypes.put(index, newType);
 		}
-		public void castRegisterValue(PrintStream p,int index,VarType oldType,VarType newType) throws CompileError {
+		private void castRegisterValue(PrintStream p,Scope s,int index,VarType oldType,VarType newType) throws CompileError {
 			if(oldType.equals(newType))return;//skip cast
 			if(oldType.isStruct() || newType.isStruct()) {
+				int oldSize = oldType.sizeOf();
+				int newSize = newType.sizeOf();
+				if(newSize>oldSize) {
+					//grow
+					this.pad(p, index, oldSize, newSize);
+				}
 				if(newType.isStruct() && newType.struct.canCasteFrom(oldType,newType))
-					newType.struct.castRegistersFrom(p, this, index, oldType, newType);
+					newType.struct.castRegistersFrom(p, s, this, index, oldType, newType);
 				else if(oldType.isStruct()  && oldType.struct.canCasteTo(newType,oldType))
-					newType.struct.castRegistersTo(p,  this, index, newType, oldType);
+					newType.struct.castRegistersTo(p,  s, this, index, newType, oldType);
 				else throw new CompileError.UnsupportedCast(newType, oldType);
+				if(newSize<oldSize) {
+					//shrink
+					this.pad(p, index, oldSize, newSize);
+				}
 				
 			}else {
 				if (oldType.isNumeric() ^ newType.isNumeric())throw new CompileError.UnsupportedCast(newType, oldType);
 				else if (oldType.isFloatP() || newType.isFloatP()) {
-					int dp=newType.getPrecision()-oldType.getPrecision();
+					int dp=newType.getPrecision(s)-oldType.getPrecision(s);
 					String op = (dp>0)?"*=":"/=";
 					long mult=(long) Math.pow(10, Math.abs(dp));
 					if(dp!=0) {
@@ -199,7 +218,8 @@ public class Register implements Comparable<Register>{
 					}
 				}
 			}
-			this.vartypes.put(index, newType);
+			//this.vartypes.put(index, newType);
+			this.setVarType(index, newType);
 		}
 		//caries type with it; does not cast; is copylike (does not modify original)
 		public void move(PrintStream p,int dest,int from) throws CompileError {
@@ -223,7 +243,31 @@ public class Register implements Comparable<Register>{
 			}
 			this.estmiate(dest, this.getEstimate(from));
 		}
-		
+		public void pad(PrintStream p,int start, int oldSize, int newSize) throws CompileError {
+			if(newSize==oldSize)return;
+			if(this.vartypes.isEmpty() || this.vartypes.lastKey()<=start)return;
+			if(newSize>oldSize) {
+				int i=this.vartypes.lastKey();
+				int ds=newSize-oldSize;
+				while(i>=start+oldSize) {
+					int h1=i+ds;
+					int h2=i;
+					this.move(p, h1, h2);
+					if(this.vartypes.subMap(0, i).isEmpty())break;
+					i=this.vartypes.subMap(0, i).lastKey();
+				}
+			}else if(newSize<oldSize) {
+				int i=this.vartypes.subMap(start+oldSize, this.vartypes.lastKey()).firstKey();
+				int ds=newSize-oldSize;
+				while(i>=start+oldSize) {
+					int h1=i+ds;
+					int h2=i;
+					this.move(p, h1, h2);
+					if(this.vartypes.subMap(i+1, this.vartypes.lastKey()).isEmpty())break;
+					i=this.vartypes.subMap(i+1, this.vartypes.lastKey()).firstKey();
+				}
+			}
+		}
 		public String getTempRamInCmd() {
 			return getTempRamInCmd(0);
 		}
@@ -232,7 +276,10 @@ public class Register implements Comparable<Register>{
 		}
 		public void setVarType(Integer dest, VarType otype) {
 			if(otype!=null) {
+				//boolean strace=this.vartypes.get(dest)==null?false:this.vartypes.get(dest).isStruct();
 				this.vartypes.put(dest, otype);
+				//System.err.printf("setVarType ( %s , %s ) ;\n", dest,otype.headerString());
+				//if(strace)Thread.dumpStack();
 				//auto clear members
 				if(this.vartypes.isEmpty())return;
 				int size=otype.sizeOf();
@@ -245,6 +292,9 @@ public class Register implements Comparable<Register>{
 		}
 		public int size() {
 			return this.getTop()+this.getVarType(this.getTop()).sizeOf();
+		}
+		public void debugOut(PrintStream p) {
+			p.printf("%s, \n %s ;\n", this.vartypes,this.regvarEstimates);
 		}
 	}
 }

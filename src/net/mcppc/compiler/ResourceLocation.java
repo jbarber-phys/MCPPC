@@ -89,4 +89,5 @@ public class ResourceLocation {
 		//this is needed to be a key in a hashmap
 		return this.toString().hashCode();
 	}
+	
 }

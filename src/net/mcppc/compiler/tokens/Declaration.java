@@ -67,11 +67,11 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	public void applyMask(Compiler c, Matcher matcher, int line, int col,Keyword access, boolean skip) throws CompileError {
 		Token holder=c.nextNonNullMatch(lookMaskHolder);
 		if(holder instanceof Token.WildChar) {
-			holder = Const.checkForExpression(c, matcher, line, col, ConstType.SELECTOR);//check for consts
+			holder = Const.checkForExpression(c,c.currentScope, matcher, line, col, ConstType.SELECTOR);//check for consts
 		}
 		if (holder instanceof Coordinates.CoordToken) {
 			//space delimited
-			Token address=Const.checkForExpression(c, matcher, line, col, ConstType.NBT);
+			Token address=Const.checkForExpression(c,c.currentScope, matcher, line, col, ConstType.NBT);
 					//c.nextNonNullMatch(lookMaskNbt);
 			if(!(address instanceof NbtPath.NbtPathToken))throw new CompileError.UnexpectedToken(address,"nbt path");
 			if(!skip)this.variable.maskBlock(((Coordinates.CoordToken)holder).pos, ((NbtPath.NbtPathToken)address).path());
@@ -80,7 +80,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		Token op=c.nextNonNullMatch(lookMaskOp);
 		if (holder instanceof Selector.SelectorToken && op instanceof Token.TagOf) {
 			//entity
-			Token address=Const.checkForExpression(c, matcher, line, col, ConstType.NBT);
+			Token address=Const.checkForExpression(c,c.currentScope, matcher, line, col, ConstType.NBT);
 					//c.nextNonNullMatch(lookMaskNbt);
 			if(!(address instanceof NbtPath.NbtPathToken))throw new CompileError.UnexpectedToken(address,"nbt path");
 			if(!skip)this.variable.maskEntity(((Selector.SelectorToken)holder).selector(), ((NbtPath.NbtPathToken)address).path());
@@ -94,7 +94,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			
 		}else if (holder instanceof ResourceLocation.ResourceToken && op instanceof Token.TagOf) {
 			//storage
-			Token address=Const.checkForExpression(c, matcher, line, col, ConstType.NBT);
+			Token address=Const.checkForExpression(c,c.currentScope, matcher, line, col, ConstType.NBT);
 					//c.nextNonNullMatch(lookMaskNbt);
 			if(!(address instanceof NbtPath.NbtPathToken))throw new CompileError.UnexpectedToken(address,"nbt path");
 			if(!skip)this.variable.maskStorage(((ResourceLocation.ResourceToken)holder).res, ((NbtPath.NbtPathToken)address).path());
@@ -105,7 +105,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			throw new CompileError.UnexpectedToken(op,"'.'");
 		}
 	}
-	public void addConst(Compiler c, Matcher matcher, int line, int col,Keyword access,boolean isReadingHeader, boolean isCompiling) throws CompileError {
+	public void addConst(Compiler c,Scope s, Matcher matcher, int line, int col,Keyword access,boolean isReadingHeader, boolean isCompiling) throws CompileError {
 		if (isCompiling) {
 			c.nextNonNullMatch(Factories.headerSkipline);
 			return;
@@ -125,7 +125,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			//continue
 		}else throw new CompileError.UnexpectedToken(asn," = <const-literal>","consts must be assigned");
 		// ...
-		Const.ConstExprToken value=Const.checkForExpression(c, matcher, line, col, ctype);
+		Const.ConstExprToken value=Const.checkForExpression(c,s, matcher, line, col, ctype);
 		if(value.refsTemplate()) {
 			//TODO (currently unreachable)
 		}
@@ -149,10 +149,14 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		c.cursor=matcher.end();
 		Token isConst = c.nextNonNullMatch(Factories.checkForKeyword);
 		if(isConst instanceof Token.BasicName && Keyword.fromString(((Token.BasicName)isConst).name)==Keyword.CONST) {
-			d.addConst(c, matcher, line, col, access, isReadingHeader,false);
+			d.addConst(c,c.currentScope, matcher, line, col, access, isReadingHeader,false);
 			return d;
 		}
-		Type type=Type.tokenizeNextVarType(c, matcher, line, col);
+
+		TemplateDefToken template = TemplateDefToken.checkForDef(c,c.currentScope, matcher);
+		Scope typescope=template==null?c.currentScope:c.currentScope.defTemplateScope(template);
+		
+		Type type=Type.tokenizeNextVarType(c,typescope, matcher, line, col);
 		
 		Token t2 = c.nextNonNullMatch(look);
 		
@@ -170,11 +174,13 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			CompileJob.compileHdrLog.println("Declaration its a function");
 			if (BuiltinFunction.BUILTIN_FUNCTIONS.containsKey(varname.name))throw new CompileError("function name %s conflicts with a builtin function on line %d column %d.".formatted(varname.line,varname.col));
 			d.function=new Function(varname.asString(),type.type,access,c);
+			d.function.withTemplate(template);
+			//Scope subscope=c.currentScope.subscope(d.function);
 			
 			//arglist!
 			if(!d.isNextCloseParen(c, matcher, line, col))while(true) {
 				boolean isRef=d.isArgRef(c, matcher, line, col);
-				Type pt=Type.tokenizeNextVarType(c, matcher, line, col);
+				Type pt=Type.tokenizeNextVarType(c,typescope, matcher, line, col);
 				Token pname=c.nextNonNullMatch(look);
 				if (!(pname instanceof Token.BasicName))throw new UnexpectedToken(pname,"name");
 				d.function.withArg(new Variable(((Token.BasicName)pname).name, pt.type, Keyword.PRIVATE, c), c,isRef);
@@ -229,7 +235,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			return d;
 		}else {
 			if (type.type.isVoid())throw new CompileError("unexpected type void for variable %s on line %d col %d.".formatted(varname.name,varname.line,varname.col));
-
+			if(template!=null)throw new CompileError ("varaible definition cannot contain template");
 			CompileJob.compileHdrLog.println("Declaration its a variable");
 			if (c.currentScope.isInFunctionDefine())Warnings.warning("vars declared in functions are not supported, will not act like local vars, and could misbehave.");
 			d.variable=new Variable(varname.asString(),type.type, access, c);
@@ -270,11 +276,15 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		c.cursor=matcher.end();
 		Token isConst = c.nextNonNullMatch(Factories.checkForKeyword);
 		if(isConst instanceof Token.BasicName && Keyword.fromString(((Token.BasicName)isConst).name)==Keyword.CONST) {
-			d.addConst(c, matcher, line, col, access, false,true);
+			d.addConst(c,c.currentScope, matcher, line, col, access, false,true);
 			return null;//ignore if in header file
 			//return d;
 		}
-		Type type=Type.tokenizeNextVarType(c, matcher, line, col);
+
+		TemplateDefToken template = TemplateDefToken.checkForDef(c,c.currentScope, matcher);
+		Scope typescope=template==null?c.currentScope:c.currentScope.defTemplateScope(template);
+		
+		Type type=Type.tokenizeNextVarType(c,typescope, matcher, line, col);
 		
 		Token t2 = c.nextNonNullMatch(look);
 		
@@ -296,7 +306,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			//arglist!
 			if(!d.isNextCloseParen(c, matcher, line, col))while(true) {
 				boolean isRef=d.isArgRef(c, matcher, line, col);//skip the keyword
-				Type pt=Type.tokenizeNextVarType(c, matcher, line, col);
+				Type pt=Type.tokenizeNextVarType(c,typescope, matcher, line, col);//check subscope for type consts
 				Token pname=c.nextNonNullMatch(look);
 				if (!(pname instanceof Token.BasicName))throw new UnexpectedToken(pname,"name");
 				//d.function.withArg(new Variable(((Token.BasicName)pname).name, pt.type, Keyword.PRIVATE, c), c);
@@ -370,7 +380,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ESTIMATE) {
 				Token est=c.nextNonNullMatch(lookCompiletime);
 				if(!(est instanceof Num)) {
-					est=Num.tokenizeNextNumNonNull(c, matcher, line, col);
+					est=Num.tokenizeNextNumNonNull(c,typescope, matcher, line, col);
 				}
 				if(!(est instanceof Num)) throw new CompileError.UnexpectedToken(est, "number");
 				d.estimate=((Num)est).value;

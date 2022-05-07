@@ -11,10 +11,16 @@ import java.util.Map;
 
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Statement;
+import net.mcppc.compiler.tokens.TemplateArgsToken;
+import net.mcppc.compiler.tokens.TemplateDefToken;
 
 /**
  * tells the code inside what stack to use; for flow statements, where to store flags, 
  * also holds var estmates built up sequentially
+ * 
+ * TODO local consts and local vars (local vars needed because they may require template params)
+ * TODO add a directive to set the scope to not use long multiplication, add a templatable boolean arg
+ * TODO consider a const ifelse statement
  * @author jbarb_t8a3esk
  *
  */
@@ -23,7 +29,7 @@ public class Scope {
 	Function function=null;
 	Scope parent=null;
 	final Map<Variable,Number> varEstimates=new HashMap<Variable,Number>();
-	//TODO flow file name information
+	
 	boolean hasExtraSuffix=false;
 	final int myFlowNumber;
 	String flowType;
@@ -82,9 +88,38 @@ public class Scope {
 		StringBuffer path=new StringBuffer();
 		path.append(base.path);
 		path.append(CompileJob.FILE_TO_SUBDIR_SUFFIX);
-		path.append(f.name);
+		path.append(f.name.toLowerCase());//warning: function name case may cause problems
 		return new ResourceLocation(base.namespace,path.toString());
 	}
+	@Deprecated
+	public static void appendSubRes(StringBuffer buff,Function f) {
+		buff.append(CompileJob.FILE_TO_SUBDIR_SUFFIX);
+		buff.append(f.name.toLowerCase());//warning: function name case may cause problems
+	}
+	private static void appendSubResSubFunc(StringBuffer buff,Function f, TemplateArgsToken template ) {
+		buff.append(f.name.toLowerCase());//warning: function name case may cause problems
+		//System.err.println(path);
+		if(template!=null) {
+			//System.err.printf("templateBound: %s\n",buff.toString());
+			TemplateArgsToken tpargs;
+			try {
+				if(f.template==null) throw new CompileError("catch me");
+				tpargs = template;//.defaultArgs();
+				Scope.appendTemplate(buff, tpargs);
+			} catch (CompileError e) {
+				e.printStackTrace();
+				buff.append("_null_");
+			}
+		}
+		//System.err.println(path);
+	}
+
+	public static void appendTemplate(StringBuffer buff,TemplateArgsToken template) {
+		if(template==null)return;
+		buff.append(CompileJob.FILE_TO_SUBDIR_SUFFIX);
+		buff.append(template.inresPath());
+	}
+	
 	public static ResourceLocation getSubRes(ResourceLocation base,String fname) {
 		StringBuffer path=new StringBuffer();
 		path.append(base.path);
@@ -97,15 +132,28 @@ public class Scope {
 		StringBuffer path=new StringBuffer();
 		path.append(res.path);
 		path.append(CompileJob.FILE_TO_SUBDIR_SUFFIX);
-		
+		//System.err.println(path);
 		if(function!=null) {
-			path.append(this.function.name);
+			try { Scope.appendSubResSubFunc(path, function,this.templateBound==null?null:this.templateBound.defaultArgs());}
+			catch (CompileError e) {
+				e.printStackTrace();
+				path.append("_null_");
+			}
+			
 			
 		}
 		int index=path.length();
 		boolean f=this.appendExSuff(path);
 		if(f && function!=null)path.insert(index, "___");
+		//System.err.println(path);
 		return new ResourceLocation(res.namespace,path.toString().toLowerCase());
+	}
+	public void appendFunction(StringBuffer path) {
+		path.append(this.function.name);
+		if(this.templateBound!=null) {
+			path.append("_");
+			path.append(this.templateBound);
+		}
 	}
 	public boolean appendExSuff(StringBuffer buff) {
 		boolean b=false;
@@ -143,9 +191,34 @@ public class Scope {
 	private Scope(Scope s,Function f) {
 		this.parent=s;
 		this.function=f;
+		this.template=f.template;
 		this.myFlowNumber=0;
 		this.resBase=s.resBase;
 		s.children.add(this);
+		this.isBreakable=false;
+		this.isFuncBase=true;
+	}
+	private TemplateDefToken template=null;//can be def or args
+	private TemplateDefToken templateBound=null;//can be def or args
+	private boolean isBound=false;//true if this scope has assigned values for all 
+	private boolean isFuncBase=false;
+	private Scope(Scope scope, TemplateDefToken templateDef) {
+		this.parent=scope.parent;
+		this.function=null;
+		this.myFlowNumber=scope.myFlowNumber;
+		this.resBase=scope.resBase;
+		template=templateDef;
+		templateBound=template;
+		this.isBreakable=false;
+	}
+	@Deprecated
+	private Scope(Scope scope, TemplateArgsToken tempargs) throws CompileError {
+		this.parent=scope.parent;
+		this.function=scope.function;
+		this.myFlowNumber=scope.myFlowNumber;
+		this.resBase=scope.resBase;
+		template=scope.template.bind(tempargs) ;
+		templateBound=template;
 		this.isBreakable=false;
 	}
 	private Scope(Scope s,Statement.Flow flow) {
@@ -200,4 +273,37 @@ public class Scope {
 		if(this.parent==null)return null;
 		return this.parent.getBreakVarInMe(depth);
 	}
+	public Scope defTemplateScope(TemplateDefToken templateDef) throws CompileError {
+		if(this.parent!=null) throw new CompileError("template defs inside flow / functions not (yet) supproted");
+		if(this.isInFunctionDefine()) throw new CompileError("templates inside functions not yet supproted");
+		return new Scope(this,templateDef);
+	}
+	public Const checkForTemplate(String name) {
+		if(this.templateBound==null && this.temporaryTemplate==null)return null;
+		if(this.temporaryTemplate!=null)for(Const c:this.temporaryTemplate.params)if(c.name.equals(name))return c;
+		if(this.templateBound!=null)for(Const c:this.templateBound.params)if(c.name.equals(name))return c;
+		if(this.parent==null)return null;
+		return this.parent.checkForTemplate(name);
+	}
+	public void bindTemplateToMe (TemplateArgsToken args) throws CompileError {
+		this.templateBound=this.template.bind(args);
+	}
+	private TemplateDefToken temporaryTemplate = null;
+	public void addTemplateConstsTemporarily (Function f, TemplateArgsToken args) throws CompileError {
+		System.err.printf("f.template = %s;\n args = %s;", f.template.inHDR(),args.values);
+		this.temporaryTemplate=f.template.bind(args);
+	}
+	public void removeTemporaryConsts () throws CompileError {
+		this.temporaryTemplate = null;
+	}
+	
+	public boolean hasTemplate() {return this.template!=null;}
+	public List<TemplateArgsToken> getAllDefaultTemplateArgs() throws CompileError {
+		List<TemplateArgsToken> all = new ArrayList<TemplateArgsToken>();
+		if(this.template!=null)all.addAll(this.template.getAllDefaultArgs());
+		if(this.function!=null)all.addAll(this.function.getRequestedTemplateBinds());
+		return all;
+	}
+	//TODO make function blocks use template
+	//check for template arg num
 }

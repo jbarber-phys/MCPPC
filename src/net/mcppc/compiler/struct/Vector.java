@@ -88,13 +88,13 @@ public class Vector extends Struct {
 		return "tag_compound";//?
 	}
 	@Override
-	public StructTypeParams tokenizeTypeArgs(Compiler c, Matcher matcher, int line, int col, List<Const> forbidden) throws CompileError {
+	public StructTypeParams tokenizeTypeArgs(Compiler c,Scope s, Matcher matcher, int line, int col, List<Const> forbidden) throws CompileError {
 		if(this.defaulttype==null)
-			return StructTypeParams.MembType.tokenizeTypeArgs(c, matcher, line, col, forbidden);
+			return StructTypeParams.MembType.tokenizeTypeArgs(c,s, matcher, line, col, forbidden);
 		else  if (this.defaulttype.isFloatP()){
 			//precision
-			StructTypeParams.PrecisionType pc=StructTypeParams.PrecisionType.tokenizeTypeArgs(c, matcher, line, col,forbidden);
-			VarType tp=this.defaulttype.withPrecision(pc.precision);
+			StructTypeParams.PrecisionType pc=StructTypeParams.PrecisionType.tokenizeTypeArgs(c,s, matcher, line, col,forbidden);
+			VarType tp=pc.impose(this.defaulttype);
 			return new StructTypeParams.MembType(tp);
 		}else {
 			Type.closeTypeArgs(c, matcher, line, col);
@@ -112,26 +112,35 @@ public class Vector extends Struct {
 		return new VarType(this, pms);
 	}
 	@Override
+	public VarType withTemplatePrecision(VarType vt,String pc) throws CompileError {
+		StructTypeParams pms=((MembType) vt.structArgs).withTemplatePrecision(pc);
+		return new VarType(this, pms);
+	}
+	@Override
 	public String asString(VarType varType) {
 		return this.headerTypeString(varType);
 	}
 	@Override
 	public String headerTypeString(VarType varType) {
 		if(this.defaulttype==null) {
-			return VarType.HDRFORMAT.formatted(this.name,((MembType)varType.structArgs).myType.headerString());
+			return VarType.HDRFORMATNOTREADY.formatted(this.name,((MembType)varType.structArgs).myType.headerString());
 		}else  if (this.defaulttype.isFloatP()){
 			//precision
-			return VarType.HDRFORMAT.formatted(this.name,((MembType)varType.structArgs).myType.getPrecision());
+			//System.err.printf("%s\n",((MembType)varType.structArgs).myType.headerString());
+			//System.err.printf("%s\n",((MembType)varType.structArgs).myType.precisionTemplateName);
+			//System.err.printf("%s,%s\n",((MembType)varType.structArgs).myType.isReady(),((MembType)varType.structArgs).myType.getPrecisionStr());
+			return VarType.HDRFORMATNOTREADY.formatted(this.name,((MembType)varType.structArgs).myType.getPrecisionStr());
 		}else {
 			return this.name;
 		}
 	}
 	private static VarType myMembType(VarType mytype) {
+		//TODO add scope to find full-template type
 		return ((MembType) mytype.structArgs).myType;
 	}
 	@Override
-	public int getPrecision(VarType mytype) {
-		return Vector.myMembType(mytype).getPrecision();
+	public int getPrecision(VarType mytype, Scope s) throws CompileError {
+		return Vector.myMembType(mytype).getPrecision(s);
 	}
 	@Override
 	protected String getJsonTextFor(Variable self) throws CompileError {
@@ -166,20 +175,21 @@ public class Vector extends Struct {
 		}else return false;
 	}
 	@Override
-	public void castRegistersTo(PrintStream p, RStack stack, int start, VarType newType, VarType mytype)
+	public void castRegistersTo(PrintStream p, Scope s, RStack stack, int start, VarType newType, VarType mytype)
 			throws CompileError {
-		this.castElementwize(p, stack, start, mytype, newType);
+		this.castElementwize(p,s, stack, start, mytype, newType);
 	}
 
 	@Override
-	public void castRegistersFrom(PrintStream p, RStack stack, int start, VarType old, VarType mytype)
+	public void castRegistersFrom(PrintStream p, Scope s, RStack stack, int start, VarType old, VarType mytype)
 			throws CompileError {
-		this.castElementwize(p, stack, start, old, mytype);
+		this.castElementwize(p,s, stack, start, old, mytype);
 	}
-	protected void castElementwize(PrintStream p, RStack stack, int start, VarType old, VarType newtype)
+	protected void castElementwize(PrintStream p,Scope s, RStack stack, int start, VarType old, VarType newtype)
 			throws CompileError {
 		VarType from = Vector.myMembType(old);
 		VarType to = Vector.myMembType(newtype);
+		//System.err.printf("vector cast start %s -> %s \n ",from.headerString(),to.headerString());
 		int sz=from.sizeOf();
 		if(from.sizeOf()<to.sizeOf()) {
 			//grow in advance
@@ -192,7 +202,13 @@ public class Vector extends Struct {
 		}
 		for(int i=0;i<DIM;i++) {
 			int id=start+i*sz;
-			stack.castRegisterValue(p, i, from, to);
+			stack.setVarType(id, from);
+		}
+		for(int i=0;i<DIM;i++) {
+			int id=start+i*sz;
+			//System.err.printf("%d : %s \n ",id,stack.getVarType(id));
+			
+			stack.castRegister(p,s, id, to);
 			
 		}
 		if(sz>to.sizeOf()) {
@@ -203,22 +219,25 @@ public class Vector extends Struct {
 				stack.move(p, id1, id2,from.sizeOf());
 			}
 		}
-		
+		//System.err.printf("vector cast %s -> %s;\n",old.headerString(),newtype.headerString());
+		//stack.setVarType(start, newtype);
+		//stack.debugOut(System.err);
 	}
 	@Override
-	public void getMe(PrintStream p, RStack stack, int home, Variable me) throws CompileError {
+	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me) throws CompileError {
 		for(int j=0;j<DIM;j++) {
 			Variable cpn=this.getComponent(me, j);
 			int hj=home+j*cpn.type.sizeOf();
-			cpn.getMe(p, stack, hj);
+			cpn.getMe(p,s, stack, hj);
 		}
+		stack.setVarType(home, me.type);
 	}
 	@Override
-	public void setMe(PrintStream p, RStack stack, int home, Variable me) throws CompileError {
+	public void setMe(PrintStream p, Scope s, RStack stack, int home, Variable me) throws CompileError {
 		for(int j=0;j<DIM;j++) {
 			Variable cpn=this.getComponent(me, j);
 			int hj=home+j*cpn.type.sizeOf();
-			cpn.setMe(p, stack, hj,cpn.type);
+			cpn.setMe(p,s, stack, hj,cpn.type);
 		}
 	}
 	public static final OpType CROSS=OpType.MOD;//use mod for cross product
@@ -226,7 +245,7 @@ public class Vector extends Struct {
 	public boolean canDoBiOp(OpType op, VarType mytype, VarType other, boolean isFirst) throws CompileError {
 		//uses the % operator as a cross product
 		boolean oIsVec=other.isStruct()?other.struct instanceof Vector:false;
-		boolean oIsNum=other.isStruct()?false:other.isNumeric();
+		boolean oIsNum=other.isNumeric();//other.isStruct()?false:other.isNumeric();
 		if(oIsVec && ((Vector)other.struct).helicity!=this.helicity) return false;//cannot mix right and left handed vectors
 		if(op==CROSS) {
 			//vecs must have equal helicity
@@ -257,7 +276,7 @@ public class Vector extends Struct {
 		}
 		VarType other=stack.getVarType(home2);
 		boolean oIsVec=other.isStruct()?other.struct instanceof Vector:false;
-		boolean oIsNum=other.isStruct()?false:other.isNumeric();
+		boolean oIsNum=other.isNumeric();//other.isStruct()?false:other.isNumeric();
 		if(oIsVec) {
 			this.elementwize(op, p, c, s, stack, home1, home2);
 			switch(op) {
@@ -279,7 +298,7 @@ public class Vector extends Struct {
 				//+ -
 				//cast vector elements
 				VarType typef = stack.getVarType(home1+X);//x-coord
-				for(int i=0;i<DIM;i++)stack.castRegister(p, home1+i, typef);
+				for(int i=0;i<DIM;i++)stack.castRegister(p,s, home1+i, typef);
 				Number estf2=(est1==null||est2==null)? null : Math.hypot(est2.doubleValue(),est2.doubleValue());
 				stack.estmiate(home1, estf2);
 				stack.setVarType(home1, Vector.vectorOf(typef));
@@ -290,7 +309,7 @@ public class Vector extends Struct {
 		}else {
 			this.elementwizeHalf(op, p, c, s, stack, home1, home2);
 			VarType typef = stack.getVarType(home1+X);//x-coord
-			for(int i=0;i<DIM;i++)stack.castRegister(p, home1+i, typef);
+			for(int i=0;i<DIM;i++)stack.castRegister(p,s, home1+i, typef);
 			switch(op) {
 			case MULT:
 				Number estf=(est1==null||est2==null)? null : est1.doubleValue()*est2.doubleValue();
@@ -363,7 +382,7 @@ public class Vector extends Struct {
 	private void elementwizeHalf(OpType op, PrintStream p, Compiler c, Scope s, RStack stack, Integer homevec,
 			Integer homescalar) throws CompileError{
 		VarType tev=Vector.myMembType(stack.getVarType(homevec));
-		VarType tes=Vector.myMembType(stack.getVarType(homescalar));
+		//VarType tes=Vector.myMembType(stack.getVarType(homescalar));
 		BiOperator opt=new BiOperator(c.line(), -1, op);
 		for(int j=0;j<DIM;j++) {
 			int hv=homevec+j*tev.sizeOf();
@@ -442,7 +461,7 @@ public class Vector extends Struct {
 		}
 		//cast vector elements
 		VarType typef = stack.getVarType(home1+X);//x-coord
-		for(int i=0;i<DIM;i++)stack.castRegister(p, home1+i, typef);
+		for(int i=0;i<DIM;i++)stack.castRegister(p,s, home1+i, typef);
 		Number estf2=(est1==null||est2==null)? null : est2.doubleValue()*est2.doubleValue();
 		stack.estmiate(home1, estf2);
 		stack.setVarType(home1, Vector.vectorOf(typef));
@@ -557,14 +576,14 @@ public class Vector extends Struct {
 		public void getRet(PrintStream p, Compiler c, Scope s, Args args, RStack stack, int stackstart)
 				throws CompileError {
 			Variable obj=this.newobj(c);
-			obj.getMe(p, stack, stackstart);
+			obj.getMe(p,s, stack, stackstart);
 		}
 
 		@Override
 		public void getRet(PrintStream p, Compiler c, Scope s, Args args, Variable v, RStack stack)
 				throws CompileError {
 			Variable obj=this.newobj(c);
-			Variable.directSet(p, v, obj, stack);
+			Variable.directSet(p,s, v, obj, stack);
 		}
 
 		@Override

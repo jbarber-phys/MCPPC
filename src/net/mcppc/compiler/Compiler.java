@@ -120,7 +120,7 @@ public class Compiler{
 		
 	}
 	public PrintStream matchOut=OutputDump.out;
-	public Token nextMatch(Token.Factory[] mode) throws CompileError {
+	@Deprecated private Token nextMatch(Token.Factory[] mode) throws CompileError {
 		if(cursor>= matcher.regionEnd()) throw new CompileError("unexpected end of source");
 		matcher.region(cursor, matcher.regionEnd());
 		for (Token.Factory f: mode) {
@@ -384,7 +384,7 @@ public class Compiler{
 		List<Statement> compiledLines=this.CompileCodeNoScope();
 		
 		for(Statement s:compiledLines) {
-			s.printStatementTree(CompileJob.compileMcfLog, 0);
+			//s.printStatementTree(CompileJob.compileMcfLog, 0);//
 		}
 
 		CompileJob.compileMcfLog.println("namespace '%s'".formatted(this.baseScope.resBase.namespace));
@@ -408,6 +408,7 @@ public class Compiler{
 			((CodeBlock) block).compileMyBlock(this);
 		}
 		this.currentScope=this.baseScope;
+		this.hasCompiled=true;
 	}
 	public boolean isHeaderOnly() {
 		return isHeaderOnly;

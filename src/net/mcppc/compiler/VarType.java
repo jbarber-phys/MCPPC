@@ -3,9 +3,11 @@ package net.mcppc.compiler;
 import java.io.PrintStream;
 import java.util.regex.Matcher;
 
+import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.BiOperator;
+import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.UnaryOp;
 /**
@@ -80,6 +82,12 @@ public class VarType {
 	public final Builtin type;
 	
 	private final int precision; //does not affect structs
+	public final String precisionTemplateName;
+	public boolean isReady(){
+		if(this.isStruct())return this.struct.isReady(this);
+		else return this.precisionTemplateName==null;
+	}//false if there are unknown template args
+	
 	public final StructTypeParams structArgs;
 	
 	public final Struct struct;//name of the struct if it is one
@@ -87,12 +95,22 @@ public class VarType {
 	public VarType(Builtin type) {
 		this.type = type;
 		this.precision=type.isFloatP? DEFAULT_PRECISION:0;
+		this.precisionTemplateName=null;
 		this.struct=null;
 		this.structArgs=null;
 	}
 	public VarType(Builtin type,int precision) {
 		this.type = type;
 		this.precision=precision;
+		this.precisionTemplateName=null;
+		this.struct=null;
+		this.structArgs=null;
+		
+	}
+	public VarType(Builtin type,String precisionTemplate) {
+		this.type = type;
+		this.precision=0;
+		this.precisionTemplateName=precisionTemplate;
 		this.struct=null;
 		this.structArgs=null;
 		
@@ -102,6 +120,17 @@ public class VarType {
 		this.struct=type;
 		this.structArgs=params;
 		this.precision=type.isFloatP? DEFAULT_PRECISION:0;
+		this.precisionTemplateName=null;
+		
+	}
+	//only for unready types
+	public VarType(Builtin type,Const precision) {
+		this.type = type;
+		
+		this.precision=0;
+		this.precisionTemplateName=precision.name;
+		this.struct=null;
+		this.structArgs=null;
 		
 	}
 	public boolean isNumeric() {
@@ -136,10 +165,22 @@ public class VarType {
 		//else if (this.isVoid()) return 0;
 		else return 1;//for now, extra precision is ignored
 	}
-	public int getPrecision() {
-		//TODO find all refs to this to allow template precision
-		if (this.type.isStruct)return this.struct.getPrecision(this);
+	public int getPrecision(Scope s)  throws CompileError{
+		if(s!=null && !this.isReady()) {
+			Const c= s.checkForTemplate(this.precisionTemplateName);
+			if(c==null)throw new CompileError("Vartype %s nont binded in time".formatted(this.asString()));
+			if(c.ctype!=ConstType.NUM) throw new CompileError("Vartype %s binded to a non-number const".formatted(this.asString()));
+			Num n= (Num) c.getValue();
+			return (int) n.value.intValue();
+		}
+		if (this.type.isStruct)return this.struct.getPrecision(this, null);
 		return this.isFloatP()?this.precision:0;
+	}
+	public String getPrecisionStr(){
+		//TODO add arg scope
+		if(!this.isReady()) {
+			return this.precisionTemplateName;
+		}else return Integer.toString(this.precision);
 	}
 	public VarType floatify() {
 		switch(this.type) {
@@ -167,6 +208,12 @@ public class VarType {
 		}
 		return new VarType(this.type,newPrecision);
 	}
+	public VarType withTemplatePrecision(String pc) throws CompileError {
+		if (this.isStruct()){
+			return this.struct.withTemplatePrecision(this,pc);
+		}
+		return new VarType(this.type,pc);
+	}
 	public String getNBTTagType() throws CompileError {
 		if(this.isStruct())return this.struct.getNBTTagType(this);
 		else return this.type.getTagType();
@@ -187,16 +234,23 @@ public class VarType {
 	}
 	//must be 
 	public static final String HDRFORMAT=Token.AbstractBracket.ARE_TYPEARGS_PARENS?"%s(%d)":"%s<%d>";
+	public static final String HDRFORMATNOTREADY=Token.AbstractBracket.ARE_TYPEARGS_PARENS?"%s(%s)":"%s<%s>";
 	public String asString(){
 		
 		if(this.type.isStruct) return this.struct.asString(this);
-		else if(this.type.isFloatP) return HDRFORMAT.formatted(this.type.typename,this.precision);
+		else if(this.type.isFloatP) {
+			if(this.isReady())return HDRFORMAT.formatted(this.type.typename,this.precision);
+			else return HDRFORMATNOTREADY.formatted(this.type.typename,this.precisionTemplateName); 
+		}
 		else return this.type.typename;
 	}
 	@Override public String toString() {return this.asString();}
 	public String headerString(){
 		if(this.type.isStruct) return this.struct.headerTypeString(this);
-		else if(this.type.isFloatP) return HDRFORMAT.formatted(this.type.typename,this.precision);
+		else if(this.type.isFloatP) {
+			if(this.isReady())return HDRFORMAT.formatted(this.type.typename,this.precision);
+			else return HDRFORMATNOTREADY.formatted(this.type.typename,this.precisionTemplateName); 
+		}
 		else return this.type.typename;
 	}
 	public String getFormatString() {
@@ -250,9 +304,12 @@ public class VarType {
 		if (other==null)return false;
 		if(!(other instanceof VarType))return false;
 		VarType v=(VarType) other;
+		boolean precisionEqual =( this.isReady() == v.isReady());
+		if (precisionEqual) precisionEqual = this.isReady()? (this.precision==v.precision) 
+				: this.precisionTemplateName.equals(v.precisionTemplateName);
 		return this.type==v.type
 				&& this.struct==v.struct
-				&& this.precision==v.precision
+				&& precisionEqual
 				&&(this.structArgs==null?
 						v.structArgs==null
 						:

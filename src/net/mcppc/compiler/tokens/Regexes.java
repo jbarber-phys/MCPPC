@@ -30,7 +30,9 @@ public final class Regexes {
 	public static final Pattern ESTIMATE=Pattern.compile("~~");// ~~
 	//the ~~ operator is used to estimate the value of a float-p to inform the compilers rounding decisions
 	public static final Pattern MASK=Pattern.compile("->");// ->
-	public static final Pattern MEMBER=Pattern.compile("\\.");// \.
+	//public static final Pattern MEMBER=Pattern.compile("\\.");// \.
+	public static final Pattern MEMBER=Pattern.compile("\\.(?=[^.]|$)");// \.(?=[^.]|$)
+	public static final Pattern RANGESEP=Pattern.compile("\\.\\.");// \.\.
 	public static final Pattern SCOREOF=Pattern.compile("::");// ::
 	public static final Pattern TAGOF=Pattern.compile("\\.");// \.
 	public static final Pattern NAME=Pattern.compile("[A-Za-z]\\w*");// [A-Za-z]\w*

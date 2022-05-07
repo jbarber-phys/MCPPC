@@ -37,6 +37,14 @@ public class NbtPath {
 			// never need to worry about double braces here; const defs do not open blocks
 			return this.path().path;
 		}
+		@Override
+		public String resSuffix() {
+			return "nbt_%x".formatted(this.valueHash());
+		}
+		@Override
+		public int valueHash() {
+			return this.nbt.hashCode();
+		}
 	}
 	String path;
 	public NbtPath(String s) {
@@ -46,6 +54,7 @@ public class NbtPath {
 		path=m.group().trim();
 	}
 	@Override public String toString() {return this.path;}
+	@Override public int hashCode() {return this.path.hashCode();}
 
 	public static NbtPathToken nextNbtCarefull (Compiler c, Matcher matcher) throws CompileError {
 		return nextNbtCarefull(c,matcher,false);

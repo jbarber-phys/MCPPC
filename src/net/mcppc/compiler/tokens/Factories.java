@@ -134,7 +134,7 @@ public final class Factories {
 				if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ESTIMATE) {
 					Token est=c.nextNonNullMatch(Factories.checkForNullableNumber);
 					if(!(est instanceof Num)) {
-						est=Num.tokenizeNextNumNonNull(c, matcher, line, col);
+						est=Num.tokenizeNextNumNonNull(c,c.currentScope, matcher, line, col);
 					}
 					if(!(est instanceof Num)) {
 						throw new CompileError.UnexpectedToken(est, "number");
@@ -218,6 +218,7 @@ public final class Factories {
 		//{newline,comment,domment,space,Statement.Domment.factory,Factories.basicNameKeyword,Token.WildChar.dontPassFactory};
 	public static final Token.Factory[] checkForMembName = Factories.genericCheck(Token.MemberName.factory);
 	public static final Token.Factory[] checkForBasicName = Factories.genericCheck(Token.BasicName.factory);
+	public static final Token.Factory[] checkForRangesep = Factories.genericCheck(Token.RangeSep.factory);
 	public static final Token.Factory[] checkForAssignlike = {newline,comment,space,Statement.Domment.factory,Token.Assignlike.factoryAssign,Token.Assignlike.factoryEstimate,Token.WildChar.dontPassFactory};
 	public static final Token.Factory[] nextNum = {newline,comment,domment,space,Num.factory};
 	public static final Token.Factory[] checkForNullableNumber = {newline,comment,domment,space,Num.factory,Num.nullfactory,Token.WildChar.dontPassFactory};	

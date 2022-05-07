@@ -1,27 +1,66 @@
 package net.mcppc.compiler.tokens;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Const;
+import net.mcppc.compiler.Scope;
 import net.mcppc.compiler.VarType;
+import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Token.Factory;
 
 public class Num extends Const.ConstLiteralToken{
 	//do not use these functiosn in equations
-
-	public static Num tokenizeNextNumNonNull(Compiler c, Matcher matcher, int line, int col) throws CompileError  {
-		Num ret=(Num) Const.checkForExpression(c, matcher, line, col, ConstType.NUM);
+	public static class Numrange extends Num{
+		///use with care, not all behavior is polymorphic;
+		//use for ints only
+		//use only in TemplateDefToken 's
+		Num end;
+		public Numrange(Num prev, Num end) {
+			super(prev.line, prev.col, prev.value, prev.type);
+			this.end=end;
+		}
+		@Override
+		public String textInHdr() {
+			String s = super.textInHdr();
+			String s2= end.textInHdr();
+			return "%s .. %s".formatted(s,s2);
+		}
+		public List<Num> getAll(){
+			//inclusive
+			Number n1=this.value;
+			Number n2=end.value;
+			List<Num> all = new ArrayList<Num>();
+			if(Math.round(n2.doubleValue()-n1.doubleValue()) ==0) {
+				all.add(end);return all;
+			}
+			int step = (int) Math.round(Math.signum(n2.doubleValue()-n1.doubleValue()));
+			int n=n1.intValue();
+			while ((n-n2.intValue()*step <= 0)) {
+				all.add(new Num(this.line,this.col,n,VarType.INT));
+				n+=step;
+			}
+			return all;
+		}
+	}
+	public static ConstExprToken tokenizeNextNumNonNull(Compiler c,Scope s, Matcher matcher, int line, int col) throws CompileError  {
+		ConstExprToken ret= Const.checkForExpression(c,s, matcher, line, col, ConstType.NUM);
+		if (ret instanceof Num && ((Num) ret).value==null)throw new CompileError.UnexpectedToken(ret,"non null number literal/constant");
+		return ret;
+	}
+	@Deprecated
+	public static Num tokenizeNextNumNonNull2(Compiler c,Scope s, Matcher matcher, int line, int col, List<Const> forbidden) throws CompileError  {
+		Num ret=(Num) Const.checkForExpression(c,s, matcher, line, col, forbidden, ConstType.NUM);
 		if (ret.value==null)throw new CompileError.UnexpectedToken(ret,"non null number literal/constant");
 		return ret;
 	}
-	public static Num tokenizeNextNumNonNull(Compiler c, Matcher matcher, int line, int col, List<Const> forbidden) throws CompileError  {
-		Num ret=(Num) Const.checkForExpression(c, matcher, line, col, forbidden, ConstType.NUM);
-		if (ret.value==null)throw new CompileError.UnexpectedToken(ret,"non null number literal/constant");
+	public static ConstExprToken tokenizeNextNumNonNull(Compiler c,Scope s, Matcher matcher, int line, int col, List<Const> forbidden) throws CompileError  {
+		ConstExprToken ret=Const.checkForExpression(c,s, matcher, line, col, forbidden, ConstType.NUM);
 		return ret;
 	}
 	public static final class Factory extends Token.Factory{
@@ -103,7 +142,13 @@ public class Num extends Const.ConstLiteralToken{
 			if(other.type.isFloatP() &&!(n1==0 || n2==0)) {
 				//2 floats
 				//use sig fig rules
-				int newPrecision=(int) Math.min(this.type.getPrecision()-Math.log10(n2), other.type.getPrecision()-Math.log10(n1));
+				int newPrecision;
+				try {
+					newPrecision = (int) Math.min(this.type.getPrecision(null)-Math.log10(n2), other.type.getPrecision(null)-Math.log10(n1));
+				} catch (CompileError e) {
+					e.printStackTrace();
+					newPrecision=0;
+				}
 				ntype=VarType.doubleWith(newPrecision);
 			}
 		}
@@ -119,7 +164,14 @@ public class Num extends Const.ConstLiteralToken{
 			if(other.type.isFloatP() &&!(n1==0 || n2==0)) {
 				//2 floats
 				//use sig fig rules
-				int newPrecision=(int) Math.min(this.type.getPrecision()+Math.log10(n2), other.type.getPrecision()+2.0*Math.log10(n2)-Math.log10(n1));
+				int newPrecision;
+				try {
+					newPrecision = (int) Math.min(this.type.getPrecision(null)+Math.log10(n2), other.type.getPrecision(null)+2.0*Math.log10(n2)-Math.log10(n1));
+				} catch (CompileError e) {
+					e.printStackTrace();
+					//unreachable
+					newPrecision=0;
+				}
 				ntype=VarType.doubleWith(newPrecision);
 			}
 		}
@@ -129,6 +181,21 @@ public class Num extends Const.ConstLiteralToken{
 	public String textInHdr() {
 		if(this.value==null)return "null";
 		return this.type.numToString(this.value);
+	}
+	@Override
+	public int valueHash() {
+		return this.value.hashCode();
+	}
+
+	private static final Pattern NONWORD=Pattern.compile("[^\\w]");// [^\w]
+	String resCase() {
+		String s=this.value.toString().toLowerCase();
+		//System.err.printf("num value: %s -> '%s'\n",s,NONWORD.matcher(s).replaceAll("_"));
+		return  NONWORD.matcher(s).replaceAll("_");
+	}
+	@Override
+	public String resSuffix() {
+		return "num%s".formatted(this.resCase());
 	}
 	
 }

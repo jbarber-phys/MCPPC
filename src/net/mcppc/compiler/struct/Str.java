@@ -35,7 +35,7 @@ public class Str extends Struct{
 		return "tag_string";
 	}
 	@Override
-	public int getPrecision(VarType mytype) {
+	public int getPrecision(VarType mytype, Scope s) throws CompileError {
 		return 0;
 	}
 	@Override
@@ -47,11 +47,11 @@ public class Str extends Struct{
 		return -1;//cannot stack
 	}
 	@Override
-	public void getMe(PrintStream p, RStack stack, int home, Variable me) throws CompileError {
+	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me) throws CompileError {
 		throw new CompileError.CannotStack(me.type);
 	}
 	@Override
-	public void setMe(PrintStream p, RStack stack, int home, Variable me) throws CompileError {
+	public void setMe(PrintStream p, Scope s, RStack stack, int home, Variable me) throws CompileError {
 		throw new CompileError.CannotStack(me.type);
 	}
 	@Override

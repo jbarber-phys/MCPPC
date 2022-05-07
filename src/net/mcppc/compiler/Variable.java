@@ -65,7 +65,7 @@ public class Variable {
 		this.holder=res.toString();
 		this.pointsTo=Mask.STORAGE;
 	}
-	Variable(String name,VarType vt, Keyword access,Mask pointsTo, String holder,String address) {
+	public Variable(String name,VarType vt, Keyword access,Mask pointsTo, String holder,String address) {
 		this.name = name;
 		this.type = vt;
 		this.access=access;
@@ -131,33 +131,35 @@ public class Variable {
 		return this;
 	}
 
-	public void setMe(PrintStream f,RStack stack,int home) throws CompileError {
-		this.setMe(f, stack, home,null);
+	public void setMe(PrintStream f,Scope s,RStack stack,int home) throws CompileError {
+		this.setMe(f,s, stack, home,null);
 	}
-	public void setMe(PrintStream f,RStack stack,int home, VarType regType) throws CompileError {
+	public void setMe(PrintStream f,Scope s,RStack stack,int home, VarType regType) throws CompileError {
 		//use this one for struct members on stack to stop complaints about register type
 		VarType type=(regType==null? stack.getVarType(home):regType);
 		if(this.type.isStruct()) {
 			if(this.type.struct.canCasteFrom(type, this.type)) {
-				this.type.struct.castRegistersFrom(f, stack, home, type, this.type);
+				this.type.struct.castRegistersFrom(f, s, stack, home, type, this.type);
 			}else if(stack.getVarType(home).struct.canCasteTo( this.type,type)) {
-				stack.getVarType(home).struct.castRegistersTo(f, stack, home, this.type, type);
+				stack.getVarType(home).struct.castRegistersTo(f, s, stack, home, this.type, type);
 			}else {
 				throw new CompileError.UnsupportedCast(this.type, type);
 			}
-			this.type.struct.setMe(f, stack, home, this);
+			stack.setVarType(home, this.type);
+			this.type.struct.setMe(f, s, stack, home, this);
 		}else {
 			Register reg=stack.getRegister(home);
 			VarType regtype=type;
-			setMe(f,reg,regtype);
+			stack.setVarType(home, this.type);//dont need to actually cast the register, private setMe handles this
+			setMe(f,s,reg,regtype);
 		}
 	}
-	private void setMe(PrintStream f,Register reg,VarType regType) throws CompileError {
+	private void setMe(PrintStream f,Scope s,Register reg,VarType regType) throws CompileError {
 		if(this.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
 		if(!VarType.areBasicTypesCompadible(this.type, regType)) throw new CompileError.UnsupportedCast(this.type, regType);
 		//non structs only; structs need their own routines possibly multiple registers)
 		String tagtype=this.type.getNBTTagType();
-		double mult=Math.pow(10, -regType.getPrecision());//scientific notation may cause problems
+		double mult=Math.pow(10, -regType.getPrecision(s));//scientific notation may cause problems
 		
 		switch (this.pointsTo) {
 		case STORAGE:{
@@ -173,7 +175,7 @@ public class Variable {
 					.formatted(this.holder,this.address,tagtype,CMath.getMultiplierFor(mult),reg.inCMD()));
 		}break;
 		case SCORE:{
-			mult=Math.pow(10, -regType.getPrecision()+this.type.getPrecision());
+			mult=Math.pow(10, -regType.getPrecision(s)+this.type.getPrecision(s));
 			f.println("execute store result storage %s \"$dumps\".%s %s %s run scoreboard players get %s"
 					.formatted(this.holder,this.name,tagtype,CMath.getMultiplierFor(mult),reg.inCMD()));
 			f.println("execute store result score %s %s run data get storage %s \"$dumps\".%s"
@@ -182,21 +184,21 @@ public class Variable {
 		}break;
 		}
 	}
-	public void getMe(PrintStream p,RStack stack,int home) throws CompileError {
+	public void getMe(PrintStream p,Scope s,RStack stack,int home) throws CompileError {
 		if(this.type.isStruct()) {
-			this.type.struct.getMe(p, stack, home, this);
+			this.type.struct.getMe(p, s, stack, home, this);
 		}else {
 			Register reg=stack.getRegister(home);
-			getMe(p,reg);
+			getMe(p,s,reg);
 		}
 		
 	}
-	private void getMe(PrintStream f,Register reg) throws CompileError {
+	private void getMe(PrintStream f,Scope s,Register reg) throws CompileError {
 		if(this.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
 
 		//non structs only; structs need their own routines possibly multiple registers)
 		//String tagtype=this.type.type.getTagType();
-		double mult=Math.pow(10, this.type.getPrecision());//scientific notation IS OK - but NOT HERE, maybe?
+		double mult=Math.pow(10, this.type.getPrecision(s));//scientific notation IS OK - but NOT HERE, maybe?
 		switch (this.pointsTo) {
 		case STORAGE:{
 			f.println("execute store result score %s run data get storage %s %s %s"
@@ -232,6 +234,8 @@ public class Variable {
 		}
 	}
 	public String matchesPhrase(String matchtag) {
+		//TODO bug {"$printf"."$1": 0} -> {"$printf": {"$1": 0}}
+		//also TODO {array[1]: 123} ->? (not array[2]: val)
 		switch (this.pointsTo) {
 		case STORAGE:{
 			return "data storage %s {%s: %s}".formatted(this.holder,this.address,matchtag);
@@ -254,6 +258,14 @@ public class Variable {
 		}
 		return this.matchesPhrase("1b");
 	}
+	public String getJsonTextSafe() {
+		try {
+			return this.getJsonText();
+		} catch (CompileError e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
 	public String getJsonText() throws CompileError {
 		if(this.type.isStruct())return this.type.struct.getJsonTextFor(this);
 		if(this.type.isVoid())return "{\"text\": \"<void>\"}";
@@ -270,7 +282,7 @@ public class Variable {
 			//TODO will need to change selector to not display multiplies value
 			Warnings.warning("getJsonText not yet valid for var with mask SCORE");
 			String score="{\"score\": {\"name\": \"%s\", \"objective\": \"%s\"}}".formatted(this.holder,edress);
-			String meta="{\"translate\": \"%%se-%%s\",with: [%s,%s]}".formatted(score,this.type.getPrecision());
+			String meta="{\"translate\": \"%%se-%%s\",with: [%s,%s]}".formatted(score,this.type.getPrecisionStr());
 			return meta;
 		
 		}
@@ -301,7 +313,7 @@ public class Variable {
 		if(!this.type.isNumeric()) throw new CompileError("cannot set variable %s to a number value %s;"
 				.formatted(this.toHeader(),value));
 		if(this.type.isStruct()) {
-			this.type.struct.setVarToNumber(p, c, s, stack, value,this.type);
+			this.type.struct.setVarToNumber(p, c, s, stack, value,this);
 		} else {
 			//enforce type
 			p.printf("data modify %s set value %s\n", this.dataPhrase(),this.type.numToString(value));
@@ -311,21 +323,21 @@ public class Variable {
 		if(this.type.isNumeric()) throw new CompileError("cannot set variable %s to a boolean value %s;"
 				.formatted(this.toHeader(),value));
 		if(this.type.isStruct()) {
-			this.type.struct.setVarToBool(p, c, s, stack, value,this.type);
+			this.type.struct.setVarToBool(p, c, s, stack, value,this);
 		}else {
 			p.printf("data modify %s set value %s\n", this.dataPhrase(),this.type.boolToStringNumber(value));
 		}
 	}
-	public static void directSet(PrintStream f,Variable to,Variable from,RStack stack) throws CompileError {
+	public static void directSet(PrintStream f,Scope s,Variable to,Variable from,RStack stack) throws CompileError {
 		if(to.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
 		if(from.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
 		if(to.type.isStruct() && to.type.struct.canCasteFrom(from.type, to.type)) {
-			to.type.struct.setMeDirect(f, stack, to, from);
-			to.type.struct.castVarFrom(f, stack, from, from.type, to.type);
+			to.type.struct.setMeDirect(f, s, stack, to, from);
+			to.type.struct.castVarFrom(f, s, stack, from, from.type, to.type);
 			return;
 		}else if(from.type.isStruct() && from.type.struct.canCasteTo(to.type, from.type)) {
-			from.type.struct.getMeDirect(f, stack, to, from);
-			from.type.struct.castVarTo(f, stack, from, from.type, to.type);
+			from.type.struct.getMeDirect(f, s, stack, to, from);
+			from.type.struct.castVarTo(f, s, stack, from, from.type, to.type);
 			return;
 		}
 			
@@ -333,28 +345,28 @@ public class Variable {
 		if(!VarType.areBasicTypesCompadible(to.type, from.type)) throw new CompileError.UnsupportedCast(from.type, to.type);
 		
 		if(VarType.canDirectSetBasicTypes(to.type, from.type)) {
-			trueDirectSet(f, to, from, stack);
+			trueDirectSet(f,s, to, from, stack);
 		}else {
 			//resort to indirect set
-			castDirectSet(f, to, from, stack);
+			castDirectSet(f,s, to, from, stack);
 		}
 	}
-	private static void castDirectSet(PrintStream f,Variable to,Variable from,RStack stack) throws CompileError {
+	private static void castDirectSet(PrintStream f,Scope s,Variable to,Variable from,RStack stack) throws CompileError {
 		int i=stack.setNext(from.type);
-		from.getMe(f, stack, i);
-		to.setMe(f, stack, i);
+		from.getMe(f,s, stack, i);
+		to.setMe(f,s, stack, i);
 		stack.pop();
 		// may be able to remove intermediary score but will still need multipliers
 		
 	}
 
-	private static void trueDirectSet(PrintStream f,Variable to,Variable from,RStack stack) throws CompileError {
+	private static void trueDirectSet(PrintStream f,Scope s,Variable to,Variable from,RStack stack) throws CompileError {
 		boolean floatp = to.type.isFloatP() || from.type.isFloatP();
 		if(to.pointsTo==Mask.SCORE) {
 			if(from.pointsTo==Mask.SCORE) {
-				boolean esgn=(to.type.getPrecision()-from.type.getPrecision())>=0;
-				boolean domult=(to.type.getPrecision()-from.type.getPrecision())!=0;
-				int mult=(int) Math.pow(10, Math.abs(to.type.getPrecision()-from.type.getPrecision()));//scientific notation may cause problems
+				boolean esgn=(to.type.getPrecision(s)-from.type.getPrecision(s))>=0;
+				boolean domult=(to.type.getPrecision(s)-from.type.getPrecision(s))!=0;
+				int mult=(int) Math.pow(10, Math.abs(to.type.getPrecision(s)-from.type.getPrecision(s)));//scientific notation may cause problems
 				f.printf("scoreboard players operation %s %s =  %s %s\n",to.holder,to.address,from.holder,from.address);
 				if(domult && floatp) {
 					int extraind=stack.getNext(stack.getTop());Register extra=stack.getRegister(extraind);
@@ -365,12 +377,12 @@ public class Variable {
 				}
 			}else {
 				String data=from.dataPhrase();
-				double mult=Math.pow(10, to.type.getPrecision());//scientific notation may cause problems
+				double mult=Math.pow(10, to.type.getPrecision(s));//scientific notation may cause problems
 				f.printf("execute store result score %s %s run data get %s %s\n",to.holder,to.address,data,CMath.getMultiplierFor(mult));
 			}
 		}else if(from.pointsTo==Mask.SCORE) {
 			String data=to.dataPhrase();
-			double mult=Math.pow(10, -from.type.getPrecision());//scientific notation may cause problems
+			double mult=Math.pow(10, -from.type.getPrecision(s));//scientific notation may cause problems
 			f.printf("execute store result %s %s run scoreboard players get %s %s\n", data,CMath.getMultiplierFor(mult),from.holder,from.address);
 		} else {
 			String dto=to.dataPhrase();
@@ -467,7 +479,7 @@ public class Variable {
 			return;
 		}
 		if(!this.isbasic) {
-			Warnings.warningf("attempted to deallocate %s to non-basic %s;",this.name,this.pointsTo);
+			Warnings.warningf("attempted to allocate %s to non-basic %s;",this.name,this.pointsTo);
 			return;
 		}
 		if(this.pointsTo!=Mask.STORAGE) {
@@ -475,6 +487,18 @@ public class Variable {
 			return;
 		}
 		p.printf("data modify %s set value %s\n",this.dataPhrase(), this.type.defaultValue());
+		
+	}
+	public void makeObjective(PrintStream p) throws CompileError {
+		if(this.type.isStruct()) {
+			Warnings.warningf("attempted to make objective %s for struct %s;",this.name,this.type.asString());
+			return;
+		}
+		if(this.pointsTo!=Mask.SCORE) {
+			Warnings.warningf("attempted to make objective %s to non-score %s;",this.name,this.pointsTo);
+			return;
+		}
+		p.printf("scoreboard objectives add %s dummy\n",this.address);
 		
 	}
 	public void deallocate(PrintStream p) {

@@ -29,15 +29,31 @@ public class CodeBlock extends Statement {
 		// do nothing; code will be compiled in different file
 	}
 	public void compileMyBlock(Compiler c) throws CompileError, FileNotFoundException{
-		c.currentScope=this.scope;
-		this.scope.open(c.job);
-		for(Statement s:this.statements) {
-			//s.printStatementTree(CompileJob.compileMcfLog, 0);
-			s.compileMe(this.scope.out, c, scope);
+		Scope s=this.scope;
+		//TODO find all requests
+		int i=1;
+		//System.err.printf("block at %s\n",this.scope.getSubRes());
+		if(s.hasTemplate())  
+		for(TemplateArgsToken targs:s.getAllDefaultTemplateArgs()) {
+			//System.err.printf("block has an %dth template template\n",i++);
+			s.bindTemplateToMe(targs);
+			compileAScope(c,s);
+		}else {
+			//System.err.printf("block has no template\n");
+			compileAScope(c,s);
 		}
-		if(this.opener!=null)opener.addToEndOfMyBlock(this.scope.out, c, this.scope);
+	}
+	private void compileAScope(Compiler c,Scope s) throws CompileError, FileNotFoundException{
+		c.currentScope=s;
+		s.open(c.job);
+		for(Statement st:this.statements) {
+			//s.printStatementTree(CompileJob.compileMcfLog, 0);
+			st.compileMe(s.out, c, s);
+		}
+		if(this.opener!=null)opener.addToEndOfMyBlock(s.out, c, s);
 		
-		this.scope.closeJustMyFiles();
+		s.closeJustMyFiles();
+		
 		for(Statement block:this.statements) if (block instanceof CodeBlock){
 			((CodeBlock) block).compileMyBlock(c);
 		}

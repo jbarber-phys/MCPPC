@@ -6,33 +6,22 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Declaration;
 import net.mcppc.compiler.tokens.Import;
+import net.mcppc.compiler.tokens.Keyword;
 import net.mcppc.compiler.tokens.Token;
 
 /**
  * contains all of the fields used by a mcpp file;
  * 
- * TODO figure out how templates can avoid copying file if precision is used, and if to do them altogether
- * 
- * activities precision is needed for:
- * 	
-	set score to mult:		re.setValue(p, mult);
-	choose between *= and /= at runtime:		rh.operation(p, op, re);
-	get json text for raw precision
-	set  score with multiplier:
-		double mult=Math.pow(10, this.type.getPrecision());
-		f.println("execute store result score %s run data get storage %s %s %s"
-					.formatted(reg.inCMD(),this.holder,this.address,CMath.getMultiplierFor(mult)));
-		
- * 	 get score with inv mult:
- *  	double mult=Math.pow(10, -regType.getPrecision());
- *  	f.println("execute store result storage %s %s %s %s run scoreboard players get %s"
-					.formatted(this.holder,this.address,tagtype,CMath.getMultiplierFor(mult),reg.inCMD())); 
-	get a string for the precision / template param name
+ * TODO figure out how templates
+ * add which params accepted to FileInterface
+ * add tokens with template params to other stuff
+ * allow Compiler::compile2 to be bound to template args
  * @author jbarb_t8a3esk
  *
  */
@@ -65,8 +54,8 @@ public class FileInterface {
 	final Map<String,Const> constsPublic=new HashMap<String, Const>();
 	final Map<String,Const> constsPrivate=new HashMap<String, Const>();
 	
-	//template:
-	final List<Const> template=new ArrayList<Const>();//TODO let add to
+	//template: const value is their default
+	final List<Const> template=new ArrayList<Const>();
 	
 	
 	//hypothetical: classes
@@ -192,6 +181,16 @@ public class FileInterface {
 	}
 	public boolean hasConst(String name,Scope s) {
 		boolean isSelf= this.isSelf(s);
+		if(s.checkForTemplate(name)!=null)return true;
+		if(isSelf && s!=null && s.isInFunctionDefine()) {
+			//function args
+			Function f=s.function;
+			if(f.template!=null)for(Const arg:f.template.params) {
+				if (arg.name.equals(name)) {
+					return true;
+				}
+			}//keep going
+		}
 		boolean ret=this.constsPublic.containsKey(name);
 		if(isSelf)ret=ret || this.constsPrivate.containsKey(name);
 		if(isSelf && !ret) {
@@ -235,6 +234,15 @@ public class FileInterface {
 
 	protected Const getConst(String name,Scope s) {
 		boolean isSelf= this.isSelf(s);
+		if(isSelf && s!=null && s.isInFunctionDefine()) {
+			//function args
+			Function f=s.function;
+			if(f.template!=null)for(Const arg:f.template.params) {
+				if (arg.name.equals(name)) {
+					return arg;
+				}
+			}//keep going
+		}
 		if(isSelf)for(Const cv:this.template)if(cv.name.equals(name))return cv;
 		if(this.constsPublic.containsKey(name)) return this.constsPublic.get(name);
 		if(isSelf && this.constsPrivate.containsKey(name)) return this.constsPrivate.get(name);
@@ -252,7 +260,7 @@ public class FileInterface {
 			return this.libs.get(name).identifyVariable(names, s, start+1);
 		}else if (isVar){
 			Variable v=this.getVar(name, s);
-			
+			//check for fields
 			for(int i=1+start;i<names.size();i++) {
 				name=names.get(i);
 				if(!v.hasField(name))throw new CompileError.VarNotFound(v.type, name);
@@ -297,6 +305,16 @@ public class FileInterface {
 			else throw new CompileError("function %s not found in scope %s".formatted(String.join(".", names),s.resBase));
 		}
 	}
+	public  Function checkForFunctionWithTemplate(List<String> names,Scope s) {
+		try {
+			Function f=this.identifyFunction(names, s, 0);
+			if(f.hasTemplate())return f;
+			else return null;
+		} catch (CompileError e) {
+			return null;
+		}
+		
+	}
 
 	public  Const identifyConst(Token.MemberName t,Scope s) throws CompileError {
 		return this.identifyConst(t.names,s);
@@ -310,7 +328,11 @@ public class FileInterface {
 		return this.identifyConst(names, s, 0);
 	}
 	public  Const identifyConst(List<String> names,Scope s,int start) throws CompileError {
-		if(!this.hasReadLibs)new CompileError("must load libs before identifying functions");
+		if(start==0 && names.size()==1) {
+			Const cv=s.checkForTemplate(names.get(0));
+			if(cv!=null)return cv;
+		}
+		if(!this.hasReadLibs)new CompileError("must load libs before identifying consts");
 			
 		if(names.size()>2) {
 			//may be struct member
@@ -331,6 +353,21 @@ public class FileInterface {
 				throw new CompileError("const '%s' not found in scope %s".formatted(String.join(".", names),s.resBase));
 			}
 		}
+	}
+	@Deprecated
+	public String getNameOfConstIn(Const cv,Scope s) throws CompileError {
+		if( this.isSelf(s))
+			return cv.name;
+		else {
+			if(cv.access!=Keyword.PUBLIC)throw new CompileError("cannot access non-public const %s.%s from %s".formatted(cv.path,cv.name,s.resBase));
+			for (Entry<String, ResourceLocation> entry : this.imports.entrySet()) {
+		        //
+				String alias=entry.getKey();
+				ResourceLocation path = entry.getValue();
+				if (path.equals(cv.path))return "%s.%s".formatted(alias,cv.name);
+		    }
+		}
+		throw new CompileError("cannot find accessible const %s.%s from %s".formatted(cv.path,cv.name,s.resBase));
 	}
 	public void printmefordebug(PrintStream p) {
 		printmefordebug(p,1,0);

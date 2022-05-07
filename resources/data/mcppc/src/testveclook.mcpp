@@ -1,0 +1,29 @@
+
+private const selector Sfrom = @e[tag=mcppc__from, limit=1];
+private const selector Sto = @e[tag=mcppc__to, limit=1];
+
+
+private Vec3d posfrom -> Sfrom.Pos;
+private Vec3d posto -> Sto.Pos;
+private Vec3d diff;
+private double scale;
+private int counter;
+public<num n = 2,num m=3 .. 5> double<n> dbl(double<m> in) {return = (double<n>)in*(2);}
+public<num n = 1 .. 6> Vec3d<n> lookAtEven(int powhf) {
+	//even power of lookvec
+	diff = (Vec3d<n>)posto- (Vec3d<n>)posfrom;//TODO execute as statements
+	return = diff;
+}
+public Vec3d lookAtOdd(int powhff) {
+	//even power of lookvec
+	diff = posto-posfrom;
+	scale = diff*diff;
+	counter=0;
+	while(counter<powhff){
+		diff = diff * scale;
+		counter=counter+1;
+	}
+	return=diff;
+}
+
+counter = dbl<3,3> (counter);
