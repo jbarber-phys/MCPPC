@@ -180,12 +180,13 @@ public class BiOperator extends Token{
 		this.assertNumeric(type1, type2);
 		double mult = Math.pow(10, type1.getPrecision(s)+type2.getPrecision(s));
 		boolean hasafloat = type1.isFloatP() || type2.isFloatP();
-		if( (	stack.getEstimate(home1)!=null
+		boolean doShortMult = ((	stack.getEstimate(home1)!=null
 				&&stack.getEstimate(home2)!=null
 				&&stack.getEstimate(home1).doubleValue()*stack.getEstimate(home2).doubleValue()*mult<Register.score_max(2) 
 				)
-				||!hasafloat
-				) {
+				||!hasafloat);
+		if(s.isProhibitLongMult())doShortMult=true;
+		if( doShortMult) {
 			this.shortmult(p, c, s, stack, home1, home2);
 		}else {
 			this.longMult(p, c, s, stack, home1, home2);

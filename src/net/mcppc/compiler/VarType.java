@@ -167,7 +167,7 @@ public class VarType {
 	}
 	public int getPrecision(Scope s)  throws CompileError{
 		if(s!=null && !this.isReady()) {
-			Const c= s.checkForTemplate(this.precisionTemplateName);
+			Const c= s.checkForTemplateOrLocalConst(this.precisionTemplateName);
 			if(c==null)throw new CompileError("Vartype %s nont binded in time".formatted(this.asString()));
 			if(c.ctype!=ConstType.NUM) throw new CompileError("Vartype %s binded to a non-number const".formatted(this.asString()));
 			Num n= (Num) c.getValue();

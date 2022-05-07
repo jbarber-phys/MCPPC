@@ -131,11 +131,26 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		}
 		this.constv=new Const(cname, c.resourcelocation, ctype,this.access, value);
 		this.objType=DeclareObjType.CONST;
-		c.myInterface.add(this);
-		
+
+		if(s.isInFunctionDefine()) {
+			if(this.access==Keyword.PUBLIC)
+				Warnings.warning("consts declared in functions cannot be public; converted var %s to local;".formatted(constv));
+			s.getFunction().addConst(this.constv);
+		}else {
+			if(!c.myInterface.add(this)) throw new CompileError.DoubleDeclaration(this);
+		}
 		c.nextNonNullMatch(Factories.nextIsLineEnd);
 		
 	}
+	public void addVar(Compiler c,Scope s, boolean isReadingHeader, boolean isCompiling) throws CompileError {
+		if(isCompiling) return ;//skip
+		if(s.isInFunctionDefine()) {
+			s.getFunction().withLocalVar(this.variable, c);
+		}else {
+			if(!c.myInterface.add(this)) throw new CompileError.DoubleDeclaration(this);
+		}
+	}
+
 	public static Declaration fromSrc1(Compiler c, Matcher matcher, int line, int col,Keyword access) throws CompileError {
 		return header(c, matcher, line, col, access, false);
 	}
@@ -237,11 +252,20 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			if (type.type.isVoid())throw new CompileError("unexpected type void for variable %s on line %d col %d.".formatted(varname.name,varname.line,varname.col));
 			if(template!=null)throw new CompileError ("varaible definition cannot contain template");
 			CompileJob.compileHdrLog.println("Declaration its a variable");
-			if (c.currentScope.isInFunctionDefine())Warnings.warning("vars declared in functions are not supported, will not act like local vars, and could misbehave.");
+			boolean isFuncLocal=c.currentScope.isInFunctionDefine();
+			if (isFuncLocal && d.access==Keyword.PUBLIC) {
+				Warnings.warning("vars declared in functions cannot be public; converted var %s to local;".formatted(varname.asString()));
+			}
 			d.variable=new Variable(varname.asString(),type.type, access, c);
+			Function localOf=null;
+			if(isFuncLocal) {
+				localOf = c.currentScope.getFunction();
+				d.variable.localOf(localOf);
+			}
 			d.objType=DeclareObjType.VAR;
 			if (t3 instanceof Token.LineEnd) {
-				if(!c.myInterface.add(d)) throw new CompileError.DoubleDeclaration(d);
+				//if(!c.myInterface.add(d)) throw new CompileError.DoubleDeclaration(d);
+				d.addVar(c, c.currentScope, isReadingHeader, false);
 				return d;//end early
 			}
 			Token asn = t3;//c.nextNonNullMatch(look);
@@ -251,7 +275,8 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 				asn = c.nextNonNullMatch(look);
 			}
 			if (asn instanceof Token.LineEnd) {
-				c.myInterface.add(d);
+				//if(!c.myInterface.add(d)) throw new CompileError.DoubleDeclaration(d);
+				d.addVar(c, c.currentScope, isReadingHeader, false);
 				return d;//end early
 			}
 			//skip equals statements - they are compile time
@@ -260,7 +285,8 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			//? ~~
 			//then:
 			c.nextNonNullMatch(Factories.headerSkipline);
-			if(!c.myInterface.add(d)) throw new CompileError.DoubleDeclaration(d);
+			//if(!c.myInterface.add(d)) throw new CompileError.DoubleDeclaration(d);
+			d.addVar(c, c.currentScope, isReadingHeader, false);
 			
 			return d;
 		}
@@ -359,9 +385,9 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		}else {
 			if (type.type.isVoid())throw new CompileError("unexpected type void for variable %s on line %d col %d.".formatted(varname.name,varname.line,varname.col));
 
-			if (c.currentScope.isInFunctionDefine())Warnings.warning("vars declared in functions are not supported, will not act like local vars, and could misbehave.");
+			//if (c.currentScope.isInFunctionDefine())Warnings.warning("vars declared in functions are not supported, will not act like local vars, and could misbehave.");
 			//d.variable=new Variable(varname.asString(),type.type, access, c);
-			d.variable=c.myInterface.identifyVariable(varname.name);
+			d.variable=c.myInterface.identifyVariable(varname.name,c.currentScope);
 			d.objType=DeclareObjType.VAR;
 			if (t3 instanceof Token.LineEnd) {
 				return d;//end early

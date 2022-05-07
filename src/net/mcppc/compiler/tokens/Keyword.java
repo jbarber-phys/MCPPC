@@ -22,7 +22,9 @@ public enum Keyword {
 	FOR("for"),
 	BREAK("break"),
 	RETURN("return"),
-	CONST("const");
+	CONST("const")
+	
+	;
 	
 	public static final Map<String,Keyword> VALUES = new HashMap<String, Keyword>();
 	static {

@@ -505,7 +505,7 @@ public class Equation extends Token {
 				Token in=this.elements.get(1);
 				this.homeReg=this.putTokenToRegister(p, c, s, cast.type, in);
 				//cast register
-				System.err.printf("Equation: casting %s -> %s", stack.getVarType(this.homeReg).asString(),cast.type.asString());
+				//System.err.printf("Equation: casting %s -> %s", stack.getVarType(this.homeReg).asString(),cast.type.asString());
 				this.stack.castRegister(p,s, this.homeReg, cast.type);
 			}else if (this.elements.size()==1){
 				Token in=this.elements.get(0);

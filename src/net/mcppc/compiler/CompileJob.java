@@ -649,7 +649,7 @@ public class CompileJob {
 		String destinationDirectoryLocation = dirTo.toString();
 		if(dirTo.toFile().exists())Files.walk(dirTo)
 	      .forEach(old -> {
-	    		System.err.println(old.toAbsolutePath().toString());
+	    		//System.err.println(old.toAbsolutePath().toString());
 	          old.toFile().delete();
 	      });
 	    Files.walk(dirFrom)

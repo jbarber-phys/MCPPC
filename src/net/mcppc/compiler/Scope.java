@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Statement;
 import net.mcppc.compiler.tokens.TemplateArgsToken;
 import net.mcppc.compiler.tokens.TemplateDefToken;
@@ -18,8 +19,6 @@ import net.mcppc.compiler.tokens.TemplateDefToken;
  * tells the code inside what stack to use; for flow statements, where to store flags, 
  * also holds var estmates built up sequentially
  * 
- * TODO local consts and local vars (local vars needed because they may require template params)
- * TODO add a directive to set the scope to not use long multiplication, add a templatable boolean arg
  * TODO consider a const ifelse statement
  * @author jbarb_t8a3esk
  *
@@ -42,7 +41,7 @@ public class Scope {
 	final List<Scope> children = new ArrayList<Scope>();
 	public PrintStream out=null;
 	boolean isOpen=false;
-	
+	private boolean prohibitLongMult = false;
 	public boolean isOpen() {
 		
 		return this.out!=null && this.isOpen;
@@ -52,6 +51,7 @@ public class Scope {
 	}
 	public PrintStream open(CompileJob cj) throws FileNotFoundException {
 		this.isOpen=true;
+		setProhibitLongMult(false);
 		File f=cj.pathForMcf(this.getSubRes(this.resBase)).toFile();
 		try {
 			f.getParentFile().mkdirs();
@@ -278,19 +278,20 @@ public class Scope {
 		if(this.isInFunctionDefine()) throw new CompileError("templates inside functions not yet supproted");
 		return new Scope(this,templateDef);
 	}
-	public Const checkForTemplate(String name) {
+	public Const checkForTemplateOrLocalConst(String name) {
+		if(this.function!=null)for(Const c:this.function.localConsts)if(c.name.equals(name))return c;
 		if(this.templateBound==null && this.temporaryTemplate==null)return null;
 		if(this.temporaryTemplate!=null)for(Const c:this.temporaryTemplate.params)if(c.name.equals(name))return c;
 		if(this.templateBound!=null)for(Const c:this.templateBound.params)if(c.name.equals(name))return c;
 		if(this.parent==null)return null;
-		return this.parent.checkForTemplate(name);
+		return this.parent.checkForTemplateOrLocalConst(name);
 	}
 	public void bindTemplateToMe (TemplateArgsToken args) throws CompileError {
 		this.templateBound=this.template.bind(args);
 	}
 	private TemplateDefToken temporaryTemplate = null;
 	public void addTemplateConstsTemporarily (Function f, TemplateArgsToken args) throws CompileError {
-		System.err.printf("f.template = %s;\n args = %s;", f.template.inHDR(),args.values);
+		//System.err.printf("f.template = %s;\n args = %s;", f.template.inHDR(),args.values);
 		this.temporaryTemplate=f.template.bind(args);
 	}
 	public void removeTemporaryConsts () throws CompileError {
@@ -304,6 +305,12 @@ public class Scope {
 		if(this.function!=null)all.addAll(this.function.getRequestedTemplateBinds());
 		return all;
 	}
-	//TODO make function blocks use template
-	//check for template arg num
+	//does not affect any subscopes
+	public boolean isProhibitLongMult() {
+		//boolean up=this.parent!=null ? this.parent.isProhibitLongMult()//parrent scope may not exist anymore
+		return this.prohibitLongMult;
+	}
+	public void setProhibitLongMult(boolean prohibitLongMult) {
+		this.prohibitLongMult = prohibitLongMult;
+	}
 }

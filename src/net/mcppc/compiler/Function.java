@@ -2,7 +2,9 @@ package net.mcppc.compiler;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 
 import net.mcppc.compiler.Register.RStack;
@@ -129,6 +131,8 @@ public class Function {
 	public final VarType retype;
 	public final Keyword access;
 	public final List<Variable> args=new ArrayList<Variable>();
+	public final Map<String, Variable> locals=new HashMap<String, Variable>();
+	public final List<Const> localConsts=new ArrayList<Const>();
 	public final Variable returnV;
 	TemplateDefToken template=null;
 	private final List<TemplateArgsToken> requestedBinds=new ArrayList<TemplateArgsToken>();
@@ -143,6 +147,14 @@ public class Function {
 	public Function withArg(Variable var, Compiler c,boolean isRef) {
 		this.args.add(var.parameterOf(this,isRef));
 		return this;
+	}
+	public Function withLocalVar(Variable var, Compiler c) {
+		if(var.isBasic()) var.localOf(this);
+		this.locals.put(var.name,var);
+		return this;
+	}
+	public void addConst(Const c) {
+		this.localConsts.add(c);
 	}
 	public Function withMCFName(String n) {
 		//must be extern

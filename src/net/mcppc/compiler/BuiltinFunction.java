@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 
+import net.mcppc.compiler.Const.ConstExprToken;
+import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Function.FuncCallToken;
 import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.errors.CompileError;
@@ -14,6 +16,7 @@ import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.TemplateArgsToken;
 import net.mcppc.compiler.tokens.Token;
+import net.mcppc.compiler.tokens.Token.Bool;
 
 /**
  * represents an object that is called like a function but it is able to interact directly with the compiler
@@ -32,7 +35,11 @@ public abstract class BuiltinFunction {
 	public static final Map<String,BuiltinFunction> BUILTIN_FUNCTIONS;
 	static {
 		BUILTIN_FUNCTIONS=new HashMap<String,BuiltinFunction>();
+		registerAll();
 		PrintF.registerAll();
+	}
+	private static void registerAll() {
+		register(SetFlagStopMultiDiv.instance);
 	}
 	
 	public static boolean isBuiltinFunc(String name) {
@@ -170,6 +177,22 @@ public abstract class BuiltinFunction {
 		}
 		throw new CompileError("too many args in builtin function;");
 	}
+	public static final Args tokenizeArgsConsts(Compiler c, Matcher matcher, int line, int col,List<Const.ConstType> types,boolean endEarly)throws CompileError {
+		BasicArgs args=new BasicArgs();
+		for(Const.ConstType ct:types) {
+			ConstExprToken t=Const.checkForExpressionSafe(c, c.currentScope, matcher, line, col, ct);
+			if(t==null && !endEarly)throw new CompileError.UnexpectedToken(t,"more args");
+			args.targs.add(t);
+			if(findArgsep(c)) {
+				continue;
+			}else {
+				return args;
+			}
+			
+		}
+		
+		throw new CompileError("too many args in builtin function;");
+	}
 	public static boolean findArgsep(Compiler c) throws CompileError {
 		Token sep=c.nextNonNullMatch(Factories.argsepOrParen);
 		if(sep instanceof Token.Paren) {
@@ -180,5 +203,52 @@ public abstract class BuiltinFunction {
 		}else {
 			throw new CompileError.UnexpectedToken(sep,"')' or ','");
 		}
+	}
+	
+	public static class SetFlagStopMultiDiv extends BuiltinFunction {
+		public static final SetFlagStopMultiDiv instance = new SetFlagStopMultiDiv("stopLongMult");
+		public SetFlagStopMultiDiv(String name) {
+			super(name);
+		}
+
+		@Override
+		public VarType getRetType(Args a) {
+			return VarType.VOID;
+		}
+
+		@Override
+		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+			List<Const.ConstType> atps=new ArrayList<Const.ConstType>();
+			atps.add(ConstType.BOOLIT);
+			return BuiltinFunction.tokenizeArgsConsts(c, matcher, line, col, atps, true);
+		}
+
+		@Override
+		public void call(PrintStream p, Compiler c, Scope s, Args args, RStack stack) throws CompileError {
+			boolean b;
+			if(((BasicArgs)args).targs.isEmpty() || ((BasicArgs)args).targs.get(0)==null )b=true;
+			else{
+				Bool t = (Bool) ((BasicArgs)args).targs.get(0);
+				b=t.val;
+			}
+			s.setProhibitLongMult(b);//edit the scope
+		}
+
+		@Override
+		public void getRet(PrintStream p, Compiler c, Scope s, Args args, RStack stack, int stackstart)
+				throws CompileError {//void
+		}
+
+		@Override
+		public void getRet(PrintStream p, Compiler c, Scope s, Args args, Variable v, RStack stack)
+				throws CompileError {
+			// void
+		}
+
+		@Override
+		public Number getEstimate(Args args) {
+			return null;
+		}
+		
 	}
 }

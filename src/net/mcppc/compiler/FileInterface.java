@@ -143,9 +143,9 @@ public class FileInterface {
 	public  Variable identifyVariable(Token.MemberName t,Scope s) throws CompileError {
 		return this.identifyVariable(t.names,s);
 	}
-	public  Variable identifyVariable(String name) throws CompileError {//in declaration
+	public  Variable identifyVariable(String name,Scope s) throws CompileError {//in declaration
 		List<String> array=new ArrayList<String>();array.add(name);
-		return this.identifyVariable(array,null);
+		return this.identifyVariable(array,s);
 	}
 
 	public  Variable identifyVariable(List<String> names,Scope s) throws CompileError {
@@ -165,7 +165,9 @@ public class FileInterface {
 				if (arg.name.equals(name)) {
 					return true;
 				}
-			}//keep going
+			}
+			if (f.locals.containsKey(name)) return true;
+			//keep going
 		}
 		boolean ret=this.varsPublic.containsKey(name);
 		if(isSelf)ret=ret || this.varsPrivate.containsKey(name);
@@ -181,7 +183,7 @@ public class FileInterface {
 	}
 	public boolean hasConst(String name,Scope s) {
 		boolean isSelf= this.isSelf(s);
-		if(s.checkForTemplate(name)!=null)return true;
+		if(s.checkForTemplateOrLocalConst(name)!=null)return true;
 		if(isSelf && s!=null && s.isInFunctionDefine()) {
 			//function args
 			Function f=s.function;
@@ -217,7 +219,9 @@ public class FileInterface {
 				if (arg.name.equals(name)) {
 					return arg;
 				}
-			}//keep going
+			}
+			if (f.locals.containsKey(name)) return f.locals.get(name);
+			//keep going
 		}
 		if(this.varsPublic.containsKey(name)) return this.varsPublic.get(name);
 		if(isSelf && this.varsPrivate.containsKey(name)) return this.varsPrivate.get(name);
@@ -329,7 +333,7 @@ public class FileInterface {
 	}
 	public  Const identifyConst(List<String> names,Scope s,int start) throws CompileError {
 		if(start==0 && names.size()==1) {
-			Const cv=s.checkForTemplate(names.get(0));
+			Const cv=s.checkForTemplateOrLocalConst(names.get(0));
 			if(cv!=null)return cv;
 		}
 		if(!this.hasReadLibs)new CompileError("must load libs before identifying consts");

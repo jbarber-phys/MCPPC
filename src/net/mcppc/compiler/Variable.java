@@ -35,9 +35,13 @@ public class Variable {
 	//the tag address or score:
 	String address;
 	boolean isParameter=false;
+	boolean isFuncLocal=false;
 	private boolean isReference=false;
 	public boolean isReference() {
 		return isReference;
+	}
+	public boolean isBasic() {
+		return this.isbasic;
 	}
 	public String getHolder() {return this.holder;}
 	public String getAddress() {return this.holder;}
@@ -80,7 +84,13 @@ public class Variable {
 		this.isReference=ref;
 		return this;
 	}
-	public Variable returnOf(Function f) {
+	public Variable localOf(Function f) {
+		this.address="%s.%s".formatted(f.name,this.name);
+		this.holder=f.getResoucrelocation().toString();
+		this.isReference=false;
+		this.isFuncLocal=true;
+		return this;
+	} Variable returnOf(Function f) {
 		this.address="%s.%s".formatted(f.name,Function.RET_TAG);
 		this.holder=f.getResoucrelocation().toString();
 		this.isParameter=true;
@@ -291,7 +301,7 @@ public class Variable {
 	}
 	public String toHeader() throws CompileError {
 		String refsrt = this.isReference?"ref ":"";
-		if(this.isParameter || this.isbasic) {
+		if(this.isParameter || this.isbasic ) {
 			//dont need to print mask if it is basic
 			return "%s%s %s".formatted(refsrt,this.type.asString(),this.name);//mask is inferable
 		}
