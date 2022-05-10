@@ -14,6 +14,7 @@ import net.mcppc.compiler.Const;
 import net.mcppc.compiler.Function;
 import net.mcppc.compiler.Scope;
 import net.mcppc.compiler.Selector;
+import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
@@ -385,6 +386,46 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		}
 		
 	}
+	private static void positionEntity(PrintStream p, Compiler c, Scope s, int index, Selector e,Equation veq,boolean isRelative) throws CompileError {
+		//int prec=this.vec.type.getPrecision(s);
+		RStack stack=veq.stack;//=s.getStackFor();
+		BiOperator plus = new BiOperator(-1,-1,OpType.ADD);
+
+		Equation eq;
+		if(isRelative) {
+			Variable pos0=Vector.positionOf(e, VarType.DOUBLE.getPrecision(s));
+			eq=Equation.toAssignHusk(veq.stack, pos0.basicMemberName(s),plus,veq);
+		}else eq=veq;
+		eq.compileOps(p, c, s, Vector.vec3d.withPrecision(VarType.DEFAULT_PRECISION));
+		Variable pos=Vector.positionOf(e, eq.retype.getPrecision(s));
+		eq.setVar(p, c, s, pos);
+		stack.finish(c.job);
+	}
+	private static void rotateEntity(PrintStream p, Compiler c, Scope s, int index, Selector e,Equation eqa1,Equation eqa2) throws CompileError {
+		//int prec=this.vec.type.getPrecision(s);
+		RStack stack1=eqa1.stack, stack2=eqa2.stack;
+		BiOperator plus = new BiOperator(-1,-1,OpType.ADD);
+		boolean isRelative=false;
+
+		Equation eq1,eq2;
+		if(isRelative) {
+			Variable ang1_=Rotation.ang1Of(e, VarType.DEFAULT_PRECISION);
+			Variable ang2_=Rotation.ang2Of(e, VarType.DEFAULT_PRECISION);
+			eq1=Equation.toAssignHusk(eqa1.stack, ang1_.basicMemberName(s),plus,eqa1);
+			eq2=Equation.toAssignHusk(eqa2.stack, ang2_.basicMemberName(s),plus,eqa2);
+		}else {
+			eq1=eqa1;eq2=eqa2;
+		}
+		eq1.compileOps(p, c, s, Vector.vec3d.withPrecision(VarType.DEFAULT_PRECISION));
+		Variable ang1=Rotation.ang1Of(e, eq1.retype.getPrecision(s));
+		eq1.setVar(p, c, s, ang1);
+		stack1.finish(c.job);
+
+		eq2.compileOps(p, c, s, Vector.vec3d.withPrecision(VarType.DEFAULT_PRECISION));
+		Variable ang2=Rotation.ang2Of(e, eq2.retype.getPrecision(s));
+		eq2.setVar(p, c, s, ang2);
+		stack2.finish(c.job);
+	}
 	public static class Positioned extends Subexecute {
 		public static final String NAME = "positioned";
 		public static Subexecute make(Compiler c, Matcher matcher, int line, int col) throws CompileError{
@@ -407,12 +448,16 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 				int start=c.cursor;
 				Selector sl = Entity.checkForSelectorOrEntity(c, c.currentScope, matcher, line, col);
 				if (sl == null) {
+					//vector eq; this disallows 3 non-vector eqs
 					c.cursor=start;
 					boolean relative = Token.LoneTilde.testFor(c, matcher, line, col);
-					Variable vec = Variable.checkForVar(c, c.currentScope, matcher, line, col);
-					if(vec==null )throw new CompileError("at statement needs a coords, 3 nums, an entity, or a Vector var to work");
-					if(!vec.type.isStruct() || !(vec.type.struct instanceof Vector)) throw new CompileError("at statement needs a coords, 3 nums, an entity, or a Vector var to work");
-					at = new Positioned(line,col,vec,relative); 
+					//Variable vec = Variable.checkForVar(c, c.currentScope, matcher, line, col);
+					Equation veceq=Equation.toArgue(line, col, c, matcher);
+					if(veceq.end!=Equation.End.CLOSEPAREN) throw new CompileError("unexpected ',' in as statement, expected a ')'");
+					//if(vec==null )throw new CompileError("at statement needs a coords, 3 nums, an entity, or a Vector var to work");
+					//if(!vec.type.isStruct() || !(vec.type.struct instanceof Vector)) throw new CompileError("at statement needs a coords, 3 nums, an entity, or a Vector var to work");
+					at = new Positioned(line,col,veceq,relative); 
+					return at;
 				}
 				else at =new Positioned(line,col,sl);
 			}
@@ -428,7 +473,8 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		private Selector entity=null;
 		private Coordinates coords=null;
 		//private Anchor anchor = null;
-		private Variable vec = null;
+		//private Variable vec = null;
+		private Equation veceq = null;
 		private boolean vecRelative = false;
 		public Positioned(int line, int col,Selector s) {
 			super(line, col, NAME);
@@ -438,26 +484,17 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 			super(line, col, NAME);
 			this.coords=pos;
 		}
-		public Positioned(int line, int col,Variable v,boolean relative) {
+		public Positioned(int line, int col,Equation v,boolean relative) {
 			super(line, col, NAME);
-			this.vec=v;
+			this.veceq=v;
 			this.vecRelative=relative;
 		}
 
 		@Override
 		public void prepare(PrintStream p, Compiler c, Scope s, int index) throws CompileError {
-			if(this.vec!=null) {
-				this.entity=Entity.summonTemp(p, c, s, NAME,"execute");
-				int prec=this.vec.type.getPrecision(s);
-				Variable pos=Vector.positionOf(this.entity, prec);
-				RStack stack=s.getStackFor();
-				if(this.vecRelative) {
-					BiOperator plus = new BiOperator(-1,-1,OpType.ADD);
-					Variable.directOp(p, c, s, pos,plus, this.vec, stack);
-				}else {
-					Variable.directSet(p, s, pos, this.vec, stack);
-				}
-				stack.finish(c.job);
+			if(this.veceq!=null) {
+				this.entity=Entity.summonTemp(p, c, s, NAME,"execute",index);
+				Execute.positionEntity(p, c, s, index, entity, this.veceq, this.vecRelative);
 			}
 		}
 
@@ -469,7 +506,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 
 		@Override
 		public void finish(PrintStream p, Compiler c, Scope s, int index) throws CompileError {
-			if(this.vec!=null) {
+			if(this.veceq!=null) {
 				this.entity.kill(p);
 			}
 		}
@@ -482,6 +519,8 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 			ConstExprToken a1=Const.checkForExpressionSafe(c, c.currentScope, matcher, line, col, ConstType.COORDS,ConstType.NUM);
 			Facing at;
 			boolean canAnchor=false;
+			boolean didVec=false;
+			boolean didVecComma=false;
 			if(a1 instanceof Coordinates.CoordToken) {
 				at =new Facing(line,col,((Coordinates.CoordToken) a1).pos);
 			}
@@ -498,12 +537,19 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 				int start=c.cursor;
 				Selector sl = Entity.checkForSelectorOrEntity(c, c.currentScope, matcher, line, col);
 				if (sl == null) {
+					//vector eq; this disallows 3 non-vector eqs
 					c.cursor=start;
 					boolean relative = Token.LoneTilde.testFor(c, matcher, line, col);
-					Variable vec = Variable.checkForVar(c, c.currentScope, matcher, line, col);
-					if(vec==null )throw new CompileError("at statement needs a coords, 3 nums, an entity, or a Vector var to work");
-					if(!vec.type.isStruct() || !(vec.type.struct instanceof Vector)) throw new CompileError("at statement needs a coords, 3 nums, an entity, or a Vector var to work");
-					at = new Facing(line,col,vec,relative); 
+					//Variable vec = Variable.checkForVar(c, c.currentScope, matcher, line, col);
+					Equation veceq=Equation.toArgue(line, col, c, matcher);
+					if(veceq.end==Equation.End.CLOSEPAREN) didVecComma= false;
+					else if(veceq.end==Equation.End.ARGSEP) didVecComma= true;
+					else throw new CompileError("unexpected ',' in as statement, expected a ')'");
+					//if(vec==null )throw new CompileError("at statement needs a coords, 3 nums, an entity, or a Vector var to work");
+					//if(!vec.type.isStruct() || !(vec.type.struct instanceof Vector)) throw new CompileError("at statement needs a coords, 3 nums, an entity, or a Vector var to work");
+					at = new Facing(line,col,veceq,relative); 
+					//return at;
+					didVec=true;
 				}
 				else {
 					at =new Facing(line,col,sl);
@@ -511,7 +557,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 				}
 			}
 
-			boolean comma=BuiltinFunction.findArgsep(c);
+			boolean comma=didVec?didVecComma:BuiltinFunction.findArgsep(c);
 			if(comma && canAnchor) {
 				at.anchor= Anchor.getNext(c, matcher, line, col);
 				comma=BuiltinFunction.findArgsep(c);
@@ -522,7 +568,8 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		private Selector entity=null;
 		private Coordinates coords=null;
 		private Anchor anchor = null;
-		private Variable vec = null;
+		//private Variable vec = null;
+		private Equation veceq = null;
 		private boolean vecRelative = false;
 		public Facing(int line, int col,Selector s) {
 			super(line, col, NAME);
@@ -532,26 +579,17 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 			super(line, col, NAME);
 			this.coords=pos;
 		}
-		public Facing(int line, int col,Variable v,boolean relative) {
+		public Facing(int line, int col,Equation v,boolean relative) {
 			super(line, col, NAME);
-			this.vec=v;
+			this.veceq=v;
 			this.vecRelative=relative;
 		}
 
 		@Override
 		public void prepare(PrintStream p, Compiler c, Scope s, int index) throws CompileError {
-			if(this.vec!=null) {
-				this.entity=Entity.summonTemp(p, c, s, NAME,"execute");
-				int prec=this.vec.type.getPrecision(s);
-				Variable pos=Vector.positionOf(this.entity, prec);
-				RStack stack=s.getStackFor();
-				if(this.vecRelative) {
-					BiOperator plus = new BiOperator(-1,-1,OpType.ADD);
-					Variable.directOp(p, c, s, pos,plus, this.vec, stack);
-				}else {
-					Variable.directSet(p, s, pos, this.vec, stack);
-				}
-				stack.finish(c.job);
+			if(this.veceq!=null) {
+				this.entity=Entity.summonTemp(p, c, s, NAME,"execute",index);
+				Execute.positionEntity(p, c, s, index, entity, this.veceq, this.vecRelative);
 			}
 		}
 
@@ -564,7 +602,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 
 		@Override
 		public void finish(PrintStream p, Compiler c, Scope s, int index) throws CompileError {
-			if(this.vec!=null) {
+			if(this.veceq!=null) {
 				this.entity.kill(p);
 			}
 		}
@@ -590,14 +628,22 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 				Selector sl = Entity.checkForSelectorOrEntity(c, c.currentScope, matcher, line, col);
 				if (sl == null) {
 					c.cursor=start;
-					Variable v1 = Variable.checkForVar(c, c.currentScope, matcher, line, col);
-					boolean comma=BuiltinFunction.findArgsep(c);
-					if(!comma) throw new CompileError("unexpected ')' in as statement, expected a ','");
-					Variable v2 = Variable.checkForVar(c, c.currentScope, matcher, line, col);
-					if(v1==null ||v2==null)throw new CompileError("at statement needs a coords, 3 nums, an entity, or a Vector var to work");
-					if(!v1.type.isNumeric()) throw new CompileError("at statement needs a coords, or 2 numbers");
-					if(!v2.type.isNumeric()) throw new CompileError("at statement needs a coords, or 2 numbers");
-					at = new Rotated(line,col,v1,v2); 
+					//Variable v1 = Variable.checkForVar(c, c.currentScope, matcher, line, col);
+					Equation eq1=Equation.toArgue(line, col, c, matcher);
+					//boolean comma=BuiltinFunction.findArgsep(c);
+					//if(!comma) throw new CompileError("unexpected ')' in as statement, expected a ','");
+					if(eq1.end!=Equation.End.ARGSEP) throw new CompileError("unexpected ')' in as statement, expected a ','");
+					
+					//Variable v2 = Variable.checkForVar(c, c.currentScope, matcher, line, col);
+					Equation eq2=Equation.toArgue(line, col, c, matcher);
+					//boolean comma=BuiltinFunction.findArgsep(c);
+					//if(!comma) throw new CompileError("unexpected ')' in as statement, expected a ','");
+					if(eq2.end!=Equation.End.CLOSEPAREN) throw new CompileError("unexpected ',' in as statement, expected a ')'");
+					//if(v1==null ||v2==null)throw new CompileError("at statement needs a coords, 3 nums, an entity, or a Vector var to work");
+					//if(!v1.type.isNumeric()) throw new CompileError("at statement needs a coords, or 2 numbers");
+					//if(!v2.type.isNumeric()) throw new CompileError("at statement needs a coords, or 2 numbers");
+					at = new Rotated(line,col,eq1,eq2); 
+					return at;
 				}
 				else at =new Rotated(line,col,sl);
 			}
@@ -613,8 +659,10 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		private Selector entity=null;
 		private Rotation rot=null;
 		//private Anchor anchor = null;
-		private Variable rot1 = null;//yaw
-		private Variable rot2 = null;//pitch
+		//private Variable rot1 = null;//yaw
+		//private Variable rot2 = null;//pitch
+		private Equation eqa1 = null;
+		private Equation eqa2 = null;
 		public Rotated(int line, int col,Selector s) {
 			super(line, col, NAME);
 			this.entity=s;
@@ -623,24 +671,17 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 			super(line, col, NAME);
 			this.rot=rot;
 		}
-		public Rotated(int line, int col,Variable v1,Variable v2) {
+		public Rotated(int line, int col,Equation v1,Equation v2) {
 			super(line, col, NAME);
-			this.rot1=v1;
-			this.rot2=v2;
+			this.eqa1=v1;
+			this.eqa2=v2;
 		}
 
 		@Override
 		public void prepare(PrintStream p, Compiler c, Scope s, int index) throws CompileError {
-			if(this.rot1!=null) {
-				this.entity=Entity.summonTemp(p, c, s, NAME,"execute");
-				int prec1=this.rot1.type.getPrecision(s);
-				Variable ang1=Rotation.ang1Of(entity, prec1);
-				int prec2=this.rot1.type.getPrecision(s);
-				Variable ang2=Rotation.ang2Of(entity, prec2);
-				RStack stack=s.getStackFor();
-				Variable.directSet(p, s, ang1, this.rot1, stack);
-				Variable.directSet(p, s, ang2, this.rot2, stack);
-				stack.finish(c.job);
+			if(this.eqa1!=null) {
+				this.entity=Entity.summonTemp(p, c, s, NAME,"execute",index);
+				Execute.rotateEntity(p, c, s, index, entity, this.eqa1, this.eqa2);
 			}
 		}
 
@@ -652,7 +693,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 
 		@Override
 		public void finish(PrintStream p, Compiler c, Scope s, int index) throws CompileError {
-			if(this.rot1!=null) {
+			if(this.eqa1!=null) {
 				this.entity.kill(p);
 			}
 		}

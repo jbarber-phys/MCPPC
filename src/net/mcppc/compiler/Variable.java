@@ -399,7 +399,7 @@ public class Variable {
 		eq.compileOps(p, c, s, to.type);
 		eq.setVar(p, c, s, to);
 	}
-	private Token basicMemberName(Scope s) {
+	public Token basicMemberName(Scope s) {
 		Token.MemberName t=new Token.MemberName(-1,-1,this.name);
 		t.identifyWith(this);
 		return t;
