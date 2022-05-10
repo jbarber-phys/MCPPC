@@ -58,7 +58,12 @@ public abstract class Struct {
 	static {
 		Vector.registerAll();
 		Str.registerAll();
+		Entity.registerAll();
 	}
+	public static boolean load() {
+		//a dumb method that exists soly to make sure this initializes before something else else
+		return true;
+	};
 	public static boolean isStruct(String name) {
 		return STRUCTS.containsKey(name);
 	}
@@ -183,14 +188,24 @@ public abstract class Struct {
 		String dfrom=from.dataPhrase();
 		p.printf("data modify %s set from %s\n",dto,dfrom);
 	}
-	public boolean canMaskScore(VarType mytype) { return false; }
+	public boolean canMask(VarType mytype, Mask mask) { return mask !=Mask.SCORE; }
 	
 	public boolean canDoBiOp(BiOperator.OpType op,VarType mytype,VarType other,boolean isFirst)throws CompileError {return false;};
 	public void doBiOpFirst(BiOperator.OpType op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Integer home1,Integer home2)
 			throws CompileError{throw new CompileError.UnsupportedOperation(mytype, op, stack.getVarType(home2));}
 	public void doBiOpSecond(BiOperator.OpType op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Integer home1,Integer home2)
 			throws CompileError{throw new CompileError.UnsupportedOperation(stack.getVarType(home1), op, mytype);}
-
+	
+	//the first term is the destination
+	//the second term should be immutable
+	//these will be avoided if normal ops are possible
+	public boolean canDoBiOpDirect(BiOperator.OpType op,VarType mytype,VarType other,boolean isFirst)throws CompileError {return false;};
+	public void doBiOpFirstDirect(BiOperator.OpType op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Variable set,Variable other)
+			throws CompileError{throw new CompileError.UnsupportedOperation(mytype, op, other.type);}
+	public void doBiOpSecondDirect(BiOperator.OpType op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Variable set,Variable other)
+			throws CompileError{throw new CompileError.UnsupportedOperation(set.type, op, mytype);}
+	
+	
 	public void exp(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Number exponent) throws CompileError {
 		throw new CompileError.UnsupportedOperation(stack.getVarType(home1), OpType.EXP, VarType.INT);
 	}
@@ -301,7 +316,7 @@ public abstract class Struct {
 		var.basicdeallocate(p);
 		//data remove <var>
 	}
-	public abstract String getDefaultValue (VarType var);
+	public abstract String getDefaultValue (VarType var) throws CompileError;
 	public static final String DEFAULT_STRING="\"\"";
 	public static final String DEFAULT_LIST="[]";
 	public static final String DEFAULT_COMPOUND="{}";

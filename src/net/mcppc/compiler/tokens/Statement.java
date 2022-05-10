@@ -176,7 +176,12 @@ public abstract class Statement extends Token {
 		}
 		@Override public void compileMe(PrintStream f,Compiler c,Scope s) {
 			//show the slash to show this one is verbatim from src with no pre-conditions added
-			f.println("/%s".formatted(this.command.inCMD()));
+			//but actually dont do this, it causes a problem;
+			//java.util.concurrent.CompletionException: java.lang.IllegalArgumentException:
+			//Unknown or invalid command '/say "hello from line 8"' on line 1 
+			//(did you mean 'say'? Do not use a preceding forwards slash.)
+			//f.println("/%s".formatted(this.command.inCMD()));
+			f.println("%s".formatted(this.command.inCMD()));
 		}
 		@Override
 		public String asString() {

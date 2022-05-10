@@ -233,12 +233,14 @@ public class Const {
 	}
 	public enum ConstType{
 		//values are in order that prevents conflict
+		COORDS("coords",Coordinates.CoordToken.factory),
 		NUM("num",Num.factoryneg,true),
 		BOOLIT("flag",Token.Bool.factory,true),
 		STRLIT("text",Token.StringToken.factory),
 		TYPE("type",null),
 		SELECTOR("selector",Selector.SelectorToken.factory),
 		NBT("nbt",NbtPath.NbtPathToken.factory),
+		ROT("rot",Rotation.RotToken.factory), // not accessible in a find any operation
 		;
 		//all calls to the factories should now be const-safe
 		//refs are not known at precomp-time

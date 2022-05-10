@@ -297,7 +297,7 @@ public class FloatpN extends Struct {
 		prec.setMeToNumber(p, c, s, s.getStackFor(), type.getPrecision(s));
 	}
 	@Override
-	public boolean canMaskScore(VarType mytype) {
+	public boolean canMask(VarType mytype, Mask mask) {
 		return false;
 	}
 

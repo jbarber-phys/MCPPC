@@ -360,6 +360,13 @@ public abstract class Token {
 			if(this.var!=null)this.estimate=s.getEstimate(var);
 			return 0;
 		}
+		public int identifyWith(Variable v) {
+			this.var=v;
+			return 0;
+		}
+		public Variable getVar() {
+			return var;
+		}
 	}
 	public static List<CharSequence> asStrings(List<Token> ts) {
 		List<CharSequence> list=new ArrayList<CharSequence>();
@@ -388,6 +395,23 @@ public abstract class Token {
 			super(line, col);
 		}
 		@Override public String asString() { return "..";
+		}
+	}
+	public static class LoneTilde extends Token{
+		public static final Factory factory=new Factory(Regexes.LONE_TILDE) {
+			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+				c.cursor=matcher.end();
+				return new LoneTilde(line,col);
+			}};
+		public static boolean testFor(Compiler c,Matcher m,int line,int col) throws CompileError {
+			final Factory[] look= Factories.genericCheck(factory);
+			Token t=c.nextNonNullMatch(look);
+			return t instanceof LoneTilde;
+		}
+		public LoneTilde(int line, int col) {
+			super(line, col);
+		}
+		@Override public String asString() { return "~";
 		}
 	}
 }

@@ -60,6 +60,9 @@ public class ResourceLocation {
 		this.end=s[s.length-1];
 		//works
 	}
+	public ResourceLocation(String p) {
+		this(CompileJob.Namespace.MINECRAFT,p);
+	}
 	public ResourceLocation(String ns,String p) {
 		this.namespace=ns;
 		//path relative to data/<namespace>/<catagory>/

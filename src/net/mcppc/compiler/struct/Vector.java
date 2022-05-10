@@ -52,6 +52,17 @@ public class Vector extends Struct {
 		return new VarType(vector,new StructTypeParams.MembType(memb));
 		
 	}
+	
+	public static Variable positionOf(Selector s,int precision) throws CompileError {
+		VarType vt = vec3d.withPrecision(precision);
+		Variable v = new Variable("$anonposov",vt,null,new ResourceLocation("mcppc","vector"));
+		return v.maskEntity(s, NbtPath.POS);
+	}
+	public static Variable velocityOf(Selector s,int precision) throws CompileError {
+		VarType vt = vec3d.withPrecision(precision);
+		Variable v = new Variable("$anonvelof",vt,null,new ResourceLocation("mcppc","vector"));
+		return v.maskEntity(s, NbtPath.MOTION);
+	}
 	//vector type can be set by type arg or by naming vector subtype
 	//if null, must supply args
 	//else must not supply args
@@ -109,6 +120,11 @@ public class Vector extends Struct {
 	@Override
 	public VarType withPrecision(VarType vt,int newPrecision) throws CompileError {
 		StructTypeParams pms=((MembType) vt.structArgs).withPrecision(newPrecision);
+		return new VarType(this, pms);
+	}
+	public VarType withPrecision(int newPrecision) throws CompileError {
+		if(this.defaulttype==null) throw new CompileError("cannot call withPrecision(int newPrecision) for type %s".formatted(this.name));
+		StructTypeParams pms=new MembType(this.defaulttype).withPrecision(newPrecision);
 		return new VarType(this, pms);
 	}
 	@Override

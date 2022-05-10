@@ -31,6 +31,9 @@ public class VarType {
 	public static VarType doubleWith(int precison) {
 		return new VarType(Builtin.DOUBLE,precison);
 	}
+	public static VarType floatWith(int precison) {
+		return new VarType(Builtin.FLOAT,precison);
+	}
 	public static enum Builtin{
 		BYTE("byte","0b",true,false,false),
 		SHORT("short","0s",true,false,false), //

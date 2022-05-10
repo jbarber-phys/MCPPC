@@ -84,6 +84,7 @@ public class CompileJob {
 	}
 	//compiles many files at once:
 	public static class Namespace {
+		public static final String MINECRAFT="minecraft";
 		String name;
 		public final boolean isExternal;
 		//File dataDir;//depricated; is asociated with multiple locations; CompileJob has methods for this instead;
@@ -106,7 +107,7 @@ public class CompileJob {
 			this.maxNumRegisters=Math.max(this.maxNumRegisters, i);
 		}
 		public boolean isMC() {
-			return this.name.equals("minecraft");
+			return this.name.equals(MINECRAFT);
 		}
 		public void addObjective(Variable v) {
 			if(v.pointsTo==Mask.SCORE && !v.isStruct()) this.objectives.putIfAbsent(v.address, v);

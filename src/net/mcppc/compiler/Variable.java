@@ -2,12 +2,16 @@ package net.mcppc.compiler;
 
 import java.io.PrintStream;
 import java.util.Objects;
+import java.util.regex.Matcher;
 
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
+import net.mcppc.compiler.struct.Entity;
+import net.mcppc.compiler.tokens.BiOperator;
+import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Keyword;
 import net.mcppc.compiler.tokens.Num;
@@ -44,7 +48,7 @@ public class Variable {
 		return this.isbasic;
 	}
 	public String getHolder() {return this.holder;}
-	public String getAddress() {return this.holder;}
+	public String getAddress() {return this.address;}
 	public Mask getMaskType() {return this.pointsTo;}
 	/**
 	 * defaults to masking storage
@@ -96,7 +100,12 @@ public class Variable {
 		this.isParameter=true;
 		return this;
 	}
-	public Variable maskEntity(Selector s,NbtPath path) {
+	public Variable maskEntity(Selector s,NbtPath path)  throws CompileError {
+		if(this.type.isStruct()) {
+			if(!this.type.struct.canMask(this.type, Mask.ENTITY))
+				throw new CompileError("cannot mask type %s to a %s;".formatted(this.type.asString(),Mask.ENTITY));
+			//else good
+		}
 		this.isbasic=false;
 		this.holder=s.toCMD();
 		this.holderHeader=s.toHDR();
@@ -104,7 +113,12 @@ public class Variable {
 		this.pointsTo=Mask.ENTITY;
 		return this;
 	}
-	public Variable maskBlock(Coordinates pos,NbtPath path) {
+	public Variable maskBlock(Coordinates pos,NbtPath path) throws CompileError {
+		if(this.type.isStruct()) {
+			if(!this.type.struct.canMask(this.type, Mask.BLOCK))
+				throw new CompileError("cannot mask type %s to a %s;".formatted(this.type.asString(),Mask.BLOCK));
+			//else good
+		}
 		this.isbasic=false;
 		this.holder=pos.asString();
 		this.address=path.toString();
@@ -113,8 +127,8 @@ public class Variable {
 	}
 	public Variable maskScore(Selector s,String score) throws CompileError {
 		if(this.type.isStruct()) {
-			if(!this.type.struct.canMaskScore(this.type))
-				throw new CompileError("cannot mask a struct / class type to scoreboard;");
+			if(!this.type.struct.canMask(this.type, Mask.SCORE))
+				throw new CompileError("cannot mask type %s to a %s;".formatted(this.type.asString(),Mask.SCORE));
 			//else good
 		}
 		this.isbasic=false;
@@ -124,7 +138,12 @@ public class Variable {
 		this.pointsTo=Mask.SCORE;
 		return this;
 	}
-	public Variable maskStorage(ResourceLocation res,NbtPath path) {
+	public Variable maskStorage(ResourceLocation res,NbtPath path) throws CompileError  {
+		if(this.type.isStruct()) {
+			if(!this.type.struct.canMask(this.type, Mask.STORAGE))
+				throw new CompileError("cannot mask type %s to a %s;".formatted(this.type.asString(),Mask.STORAGE));
+			//else good
+		}
 		this.isbasic=false;
 		//equivalent to default (c.res,varname)
 		this.holder=res.toString();
@@ -361,6 +380,30 @@ public class Variable {
 			castDirectSet(f,s, to, from, stack);
 		}
 	}
+
+	public static void directOp(PrintStream p,Compiler c,Scope s,Variable to,BiOperator op,Variable from,RStack stack) throws CompileError {
+		Variable.directOp(p,c, s, to,op, from, stack,false);
+	}
+	public static void directOp(PrintStream p,Compiler c,Scope s,Variable to,BiOperator op,Variable from,RStack stack,boolean mustBeDirect) throws CompileError {
+		if(to.type.isVoid())throw new CompileError("Varaible.directOp() not for voids.");
+		if(from.type.isVoid())throw new CompileError("Varaible.directOp() not for voids.");
+		if(to.type.isStruct() && to.type.struct.canDoBiOpDirect(op.op, to.type, from.type, true)) {
+			to.type.struct.doBiOpFirstDirect(op.op, to.type, p, c, s, stack, to, from);
+			return;
+		}else if(from.type.isStruct() && from.type.struct.canDoBiOpDirect(op.op, from.type, to.type, false)) {
+			to.type.struct.doBiOpSecondDirect(op.op, to.type, p, c, s, stack, to, from);
+			return;
+		}
+		if(mustBeDirect)throw new CompileError.UnsupportedOperation(to.type, op, from.type);
+		Equation eq=Equation.toAssignHusk(stack, to.basicMemberName(s),op,from.basicMemberName(s));
+		eq.compileOps(p, c, s, to.type);
+		eq.setVar(p, c, s, to);
+	}
+	private Token basicMemberName(Scope s) {
+		Token.MemberName t=new Token.MemberName(-1,-1,this.name);
+		t.identifyWith(this);
+		return t;
+	}
 	private static void castDirectSet(PrintStream f,Scope s,Variable to,Variable from,RStack stack) throws CompileError {
 		int i=stack.setNext(from.type);
 		from.getMe(f,s, stack, i);
@@ -400,6 +443,18 @@ public class Variable {
 			f.printf("data modify %s set from %s\n",dto,dfrom);
 		}
 		//USE STRING FORMAT EVEN FOR FLOATS - DONT USE %f BECAUSE IT ROUNDS- SCI NOTATION IS OK IN MCF (except for in multipliers - its a bug with mc)
+	}
+	public static Variable checkForVar(Compiler c,Scope s, Matcher matcher, int line, int col) throws CompileError {
+		int start=c.cursor;
+		Token vn = c.nextNonNullMatch(Factories.checkForMembName);
+		if(!(vn instanceof Token.MemberName)) {
+			c.cursor=start; return null;
+		}
+		
+		((Token.MemberName) vn).identify(c, s);
+		Variable v=((Token.MemberName) vn).getVar();
+		return v;
+		
 	}
 
 	public boolean canSetToExpr(ConstExprToken e) {

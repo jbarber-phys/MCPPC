@@ -32,6 +32,16 @@ public class Equation extends Token {
 		e.populate(c, m);
 		return e;
 	}
+
+	public static Equation toAssignHusk(RStack stack,Token... tokens) throws CompileError {
+		Equation e=new Equation(-1,-1,stack);
+		e.isTopLevel=true;
+		e.wasOpenedWithParen=false;
+		e.doesAnyOps=tokens.length>=2;
+		e.startsWithUniOp = tokens.length==2 && tokens[0] instanceof UnaryOp;
+		for(Token t: tokens)e.elements.add(t);
+		return e;
+	}
 	public static Equation toArgue(int line,int col,Compiler c,Matcher m) throws CompileError {
 		Equation e=new Equation(line,col,c);
 		e.isTopLevel=false;
@@ -97,6 +107,7 @@ public class Equation extends Token {
 			Factories.newline,Factories.comment,Factories.domment,Factories.space,
 			UnaryOp.factory,
 			Token.Bool.factory,
+			Selector.SelectorToken.factory,//new edition; may interfere with indexing
 			Token.MemberName.factory,Num.factory,Statement.CommandToken.factory,
 			Token.Paren.factory,//sub-eq or caste
 			Token.LineEnd.factory, Token.CodeBlockBrace.factory,Token.ArgEnd.factory, //possible terminators; unexpected
@@ -134,6 +145,27 @@ public class Equation extends Token {
 		if(!(this.elements.get(1) instanceof Num))return false;
 		
 		return true;
+	}
+	public boolean isSelectable() {
+		if(this.elements.size()==1) {
+			if((this.elements.get(0) instanceof Selector.SelectorToken))return true;
+			if(!(this.elements.get(0) instanceof Token.MemberName))return false;
+			VarType type=((Token.MemberName)this.elements.get(0)).var.type;
+			if (!type.isStruct() || !(type.struct instanceof Entity))return false;
+			return true;
+		}
+		return false;
+	}
+	public Selector getSelector() throws CompileError {
+		if(this.elements.size()==1) {
+			if((this.elements.get(0) instanceof Selector.SelectorToken))
+				return ((Selector.SelectorToken) this.elements.get(0)).selector();
+			if(!(this.elements.get(0) instanceof Token.MemberName))return null;
+			VarType type=((Token.MemberName)this.elements.get(0)).var.type;
+			if (!type.isStruct() || !(type.struct instanceof Entity))return null;
+			return ((Entity)type.struct).getSelectorFor(((Token.MemberName)this.elements.get(0)).var);
+		}
+		return null;
 	}
 	public Number getNumber() {
 		if(this.elements.size()==1) {
@@ -596,7 +628,11 @@ public class Equation extends Token {
 				//do nothing
 				this.retype=((Token.StringToken)e).type;
 			
-			}else if(e instanceof Function.FuncCallToken) {
+			}else if(e instanceof Selector.SelectorToken) {
+				//do nothing
+				this.retype=((Selector.SelectorToken)e).type;
+			}
+			else if(e instanceof Function.FuncCallToken) {
 				((Function.FuncCallToken)e).call(p, c,s,this.stack);
 				this.retype=((Function.FuncCallToken)e).getFunction().retype;
 			} else if(e instanceof BuiltinFunction.BFCallToken) {

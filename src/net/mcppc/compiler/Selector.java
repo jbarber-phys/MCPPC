@@ -1,11 +1,13 @@
 package net.mcppc.compiler;
 
+import java.io.PrintStream;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.struct.Entity;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
 
@@ -37,6 +39,8 @@ public class Selector {
 				return me;
 			}
 		};
+		private final boolean garbage1232343___ = Struct.load();
+		public final VarType type = new VarType(Entity.entities,new StructTypeParams.Blank());
 		Selector val;public Selector selector() {return this.val;}
 		public SelectorToken(int line, int col,Matcher m) {
 			super(line, col,ConstType.SELECTOR);
@@ -93,7 +97,7 @@ public class Selector {
 		}
 		return args.toString();
 	}
-	private Selector(String plr,String argsHDR) {
+	public Selector(String plr,String argsHDR) {
 		this.player=plr;
 		this.argsHDR=argsHDR;
 		this.argsCMD=stripDoubles(argsHDR);
@@ -126,6 +130,13 @@ public class Selector {
 	}
 	@Override public int hashCode() {
 		return Objects.hash(this.player,this.argsCMD);
+	}
+	public Selector playerify() {
+		if(this.player=="@e") return new Selector("@a",this.argsHDR);
+		return this;
+	}
+	public void kill(PrintStream p) {
+		p.printf("kill %s\n", this.toCMD());
 	}
 	
 }

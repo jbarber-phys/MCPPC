@@ -49,7 +49,12 @@ public final class Regexes {
 	public static final Pattern CMD_SAFE=Pattern.compile("\\$/(((%s)|[^\\\"';\\n])*)(?=;|\\n|$)".formatted(STRLITSTRING));// \$/(((%s)|[^\"';\n])*)(?=;|\n|$)
 
 	public static final Pattern SELECTOR=Pattern.compile("(@?[\\w-]+)\\s*\\[(((%s)|[^\\\"\\[\\]\\n]|\\[\\[|\\]\\])*)\\]".formatted(STRLITSTRING));// (@?[\w-]+)\s*\[(((%s)|[^\"\[\]\n]|\[\[|\]\])*)\]
-	public static final Pattern COORDS=Pattern.compile("([\\^~]?[+-]?\\d+)\\s+([\\^~]?[+-]?\\d*)\\s+([\\^~]?[+-]?\\d*)");// ([\^~]?[+-]?\d+)\s+([\^~]?[+-]?\d*)\s+([\^~]?[+-]?\d*)
+	//public static final Pattern COORDS_OLD=Pattern.compile("([\\^~]?[+-]?\\d+)\\s+([\\^~]?[+-]?\\d*)\\s+([\\^~]?[+-]?\\d*)");// ([\^~]?[+-]?\d+)\s+([\^~]?[+-]?\d*)\s+([\^~]?[+-]?\d*)
+	public static final Pattern COORDS=Pattern.compile("([\\^~]?[+-]?\\d*)\\s+([\\^~]?[+-]?\\d*)\\s+([\\^~]?[+-]?\\d*)");// ([\^~]?[+-]?\d*)\s+([\^~]?[+-]?\d*)\s+([\^~]?[+-]?\d*)
+	
+	public static final Pattern ROTATION=Pattern.compile("([~]?[+-]?\\d*)\\s+([~]?[+-]?\\d*)");// ([~]?[+-]?\d*)\s+([~]?[+-]?\d*)
+
+	
 	//selector: escape [] for arrays by doubling them: {Pos[[1]]: 0d}
 	public static final Pattern STRLIT=Pattern.compile(STRLITSTRING);// string escaping is so important that other regexes get to have it in them
 	//I have double checked aand the STRLIT pattern is MC compadible
@@ -85,7 +90,9 @@ public final class Regexes {
 	public static final Pattern ALL_BI_OPERATOR=Pattern.compile("(\\^)|(\\*)|(\\/)|(%)|(\\+)|(\\-)|(==)|(!=)|(>=|=>)|(<=|=<)|(>)|(<)|(\\|!&)|(&)|(\\|)");// (\^)|(\*)|(\/)|(%)|(\+)|(\-)|(==)|(!=)|(>=|=>)|(<=|=<)|(>)|(<)|(\|!&)|(&)|(\|)
 
 	public static final Pattern ALL_UN_OPERATOR=Pattern.compile("(-)|(!)");// (-)|(!)
-	
+
+	public static final Pattern LONE_TILDE=Pattern.compile("~");// ~
+	//this is a special unary-like op
 	/*
 	 * below are for debug only:
 	 */

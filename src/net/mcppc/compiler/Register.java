@@ -297,4 +297,11 @@ public class Register implements Comparable<Register>{
 			p.printf("%s, \n %s ;\n", this.vartypes,this.regvarEstimates);
 		}
 	}
+	public void setToSuccess(PrintStream p,String cmd) {
+		p.printf("execute store success score %s run %s\n", this.inCMD(),cmd);
+	}
+	public void setToResult(PrintStream p,String cmd) {
+		p.printf("execute store result score %s run %s\n", this.inCMD(),cmd);
+		
+	}
 }

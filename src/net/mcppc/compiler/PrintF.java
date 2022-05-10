@@ -10,6 +10,7 @@ import net.mcppc.compiler.BuiltinFunction.Args;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.struct.Entity;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Token;
@@ -109,17 +110,24 @@ public class PrintF extends BuiltinFunction{
 	public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col,RStack stack)throws CompileError {
 
 		Selector s=Selector.AT_S;
-		Token t=Const.checkForExpression(c,c.currentScope, matcher, line, col, ConstType.SELECTOR,ConstType.STRLIT);
+		Token t=Const.checkForExpressionSafe(c,c.currentScope, matcher, line, col, ConstType.SELECTOR,ConstType.STRLIT);
 				//c.nextNonNullMatch(testForSelector);
 		
-		if(t instanceof Selector.SelectorToken) {
+		if(t!=null &&t instanceof Selector.SelectorToken) {
 			s=((Selector.SelectorToken) t).selector();
 			if(!BuiltinFunction.findArgsep(c))new CompileError("not enough args in printf(...)");
-			t=Const.checkForExpression(c,c.currentScope, matcher, line, col,ConstType.STRLIT);
+			t=Const.checkForExpressionSafe(c,c.currentScope, matcher, line, col,ConstType.STRLIT);
 		}
 		//t=c.nextNonNullMatch(nextFormatString);
 		
-		if(!(t instanceof Token.StringToken))throw new CompileError.UnexpectedToken(t, "string literal");
+		if(t==null ||!(t instanceof Token.StringToken)) {
+			Selector s2=Entity.checkForEntityVar(c, c.currentScope, matcher, line, col);
+			if(s2==null)throw new CompileError.UnexpectedToken(t, "string literal");
+			s=s2;
+			if(!BuiltinFunction.findArgsep(c))new CompileError("not enough args in printf(...)");
+			t=Const.checkForExpression(c,c.currentScope, matcher, line, col,ConstType.STRLIT);
+		}
+		s=s.playerify();
 		String litFstring=((StringToken) t).literal();
 		CompileJob.compileMcfLog.printf("printf: %s, %s;\n",s,litFstring);
 		PrintfArgs args=new PrintfArgs(s,litFstring);

@@ -41,6 +41,8 @@ public final class Factories {
 				return ForStm.skipMe(c, matcher, line, col, w);
 			case WHILE:
 				return While.skipMe(c, matcher, line, col, w);
+			case EXECUTE:
+				return Execute.skipMe(c, matcher, line, col, w);
 			default:{
 				//don't include in header
 			}
@@ -80,6 +82,8 @@ public final class Factories {
 				return ForStm.makeMe(c, matcher, line, col, w);
 			case WHILE:
 				return While.makeMe(c, matcher, line, col, w);
+			case EXECUTE:
+				return Execute.makeMe(c, matcher, line, col, w);
 			case BREAK:
 				return Statement.Assignment.makeBreak(c, matcher, line, col);
 			case RETURN:
@@ -87,9 +91,6 @@ public final class Factories {
 
 			case CONST:
 				throw new CompileError("keyword %s not expected at start of statement".formatted(w.name));
-			//TODO
-			case EXECUTE:
-				break;
 			default:
 				break;
 
@@ -225,7 +226,8 @@ public final class Factories {
 	//returns a nonnull WildChar after space; does this without moving past the wildchar
 	public static final Token.Factory[] skipSpace = {newline,comment,domment,space,Token.WildChar.dontPassFactory};
 	
-	static final Token.Factory[] nextIsLineEnd = {Token.BasicName.factory,Factories.space,Factories.newline,Factories.comment,Factories.domment,
+	static final Token.Factory[] nextIsLineEnd = {Factories.space,Factories.newline,Factories.comment,Factories.domment,
+			//Token.BasicName.factory,
 			Token.LineEnd.factory,Token.CodeBlockBrace.factory
 	};
 
@@ -239,7 +241,7 @@ public final class Factories {
 		return new Token.Factory[]{newline,comment,domment,space,f};
 		
 	}
-	public static Token.Factory[] genericLook(Token.Factory[] f){
+	public static Token.Factory[] genericLook(Token.Factory... f){
 		Token.Factory[] looks= new Token.Factory[4+f.length];
 		looks[0]=newline;
 		looks[1]=space;
@@ -253,7 +255,7 @@ public final class Factories {
 		return new Token.Factory[]{newline,comment,domment,space,f,Token.WildChar.dontPassFactory};
 	}
 
-	public static Token.Factory[] genericCheck(Token.Factory[] f){
+	public static Token.Factory[] genericCheck(Token.Factory... f){
 		Token.Factory[] looks= new Token.Factory[5+f.length];
 		looks[0]=newline;
 		looks[1]=space;

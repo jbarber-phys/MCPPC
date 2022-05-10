@@ -47,7 +47,7 @@ public class While extends Statement implements Statement.CodeBlockOpener,Statem
 	final Equation test;
 	private final RStack mystack;
 	Scope mySubscope;
-	IfElse predicessor=null;
+	//IfElse predicessor=null;
 	public While(int line, int col,RStack stack,Equation test) {
 		super(line, col);
 		this.mystack=stack;

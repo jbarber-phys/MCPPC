@@ -178,6 +178,7 @@ public abstract class BuiltinFunction {
 		throw new CompileError("too many args in builtin function;");
 	}
 	public static final Args tokenizeArgsConsts(Compiler c, Matcher matcher, int line, int col,List<Const.ConstType> types,boolean endEarly)throws CompileError {
+		if(types.size()==0)return BuiltinFunction.tokenizeArgsNone(c, matcher, line, col);
 		BasicArgs args=new BasicArgs();
 		for(Const.ConstType ct:types) {
 			ConstExprToken t=Const.checkForExpressionSafe(c, c.currentScope, matcher, line, col, ct);
@@ -186,6 +187,7 @@ public abstract class BuiltinFunction {
 			if(findArgsep(c)) {
 				continue;
 			}else {
+				//warn of more args
 				return args;
 			}
 			
@@ -193,6 +195,34 @@ public abstract class BuiltinFunction {
 		
 		throw new CompileError("too many args in builtin function;");
 	}
+	public static final Args tokenizeArgsNone(Compiler c, Matcher matcher, int line, int col)throws CompileError {
+		BasicArgs args=new BasicArgs();
+		if(findArgsep(c)) {
+			throw new CompileError("too many args in builtin function;");
+		}else {
+			return args;
+		}
+	}
+	/**
+	 * passes over next open paren
+	 * @param c
+	 * @throws CompileError
+	 */
+	public static void open(Compiler c) throws CompileError {
+		Token sep=c.nextNonNullMatch(Factories.argsepOrParen);
+		if(sep instanceof Token.Paren) {
+			if(!((Token.Paren)sep).forward)throw new CompileError.UnexpectedToken(sep,"')', ','");
+			return;
+		}else {
+			throw new CompileError.UnexpectedToken(sep,"')' or ','");
+		}
+	}
+	/**
+	 * passes over next closeparen or comma; return
+	 * @param c
+	 * @return true if it is a comma, or false if it is a close paren (true if continue)
+	 * @throws CompileError
+	 */
 	public static boolean findArgsep(Compiler c) throws CompileError {
 		Token sep=c.nextNonNullMatch(Factories.argsepOrParen);
 		if(sep instanceof Token.Paren) {
@@ -243,6 +273,58 @@ public abstract class BuiltinFunction {
 		public void getRet(PrintStream p, Compiler c, Scope s, Args args, Variable v, RStack stack)
 				throws CompileError {
 			// void
+		}
+
+		@Override
+		public Number getEstimate(Args args) {
+			return null;
+		}
+		
+	}
+	public class SingleLine extends BuiltinFunction {
+		public final VarType rtype;
+		public final String cmd;
+		public SingleLine(String name,VarType retype,String cmd) {
+			super(name);
+			this.rtype=retype;
+			this.cmd=cmd;
+			assert !this.rtype.isFloatP();
+		}
+
+		@Override
+		public VarType getRetType(Args a) {
+			return null;
+		}
+
+		@Override
+		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+			return BuiltinFunction.tokenizeArgsNone(c, matcher, line, col);
+		}
+
+		@Override
+		public void call(PrintStream p, Compiler c, Scope s, Args args, RStack stack) throws CompileError {
+			if(this.rtype.isVoid())p.printf("%s\n", this.cmd);
+		}
+
+		@Override
+		public void getRet(PrintStream p, Compiler c, Scope s, Args args, RStack stack, int stackstart)
+				throws CompileError {
+			if(this.rtype.isVoid())return;
+			Register r=stack.getRegister(stackstart);
+			stack.setVarType(stackstart, this.rtype);
+			if(this.rtype.isLogical())  r.setToSuccess(p, cmd);
+			else if(this.rtype.isNumeric())  r.setToResult(p,cmd);
+			
+		}
+
+		@Override
+		public void getRet(PrintStream p, Compiler c, Scope s, Args args, Variable v, RStack stack)
+				throws CompileError {
+			if(this.rtype.isVoid())return;
+			int home = stack.setNext(this.rtype);
+			this.getRet(p, c, s, args, stack, home);
+			stack.pop();
+			
 		}
 
 		@Override

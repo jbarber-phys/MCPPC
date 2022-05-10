@@ -9,7 +9,15 @@ import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
 
 public class NbtPath {
+	public static NbtPath POS = new NbtPath("Pos");
+	public static NbtPath MOTION = new NbtPath("Motion");
+	public static NbtPath ROTATION = new NbtPath("Rotation");
+	
 
+	public static NbtPath YAW = new NbtPath("Rotation[0]");
+	public static NbtPath PITCH = new NbtPath("Rotation[1]");
+	public static NbtPath ROT1 = YAW;
+	public static NbtPath ROT2 = PITCH;
 	public static class NbtPathToken extends Const.ConstLiteralToken{
 		//for a named thing that hasn't been identified yet
 		public static final Token.Factory factory = new Token.Factory(Regexes.NBTPATH) {
