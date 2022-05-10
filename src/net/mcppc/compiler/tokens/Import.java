@@ -41,6 +41,13 @@ public class Import extends Statement implements Statement.Headerable,DommentCol
 			//return null;//ignore if in header file
 		}
 		c.cursor=matcher.end();
+		boolean isStrict=false;
+		Token ift=c.nextNonNullMatch(Factories.checkForKeyword);
+		if(ift instanceof Token.BasicName) {
+			if(Keyword.fromString(ift.asString())==Keyword.IF) {
+				isStrict=true;
+			}else throw new CompileError.UnexpectedToken(ift, "keyword 'if' or lib name/path");
+		}
 		DommentCollector.DList dms=new DommentCollector.DList();
 		if(!isHeaderOnly)c.dommentCollector=dms;
 		Token a=c.nextNonNullMatch(look);
@@ -64,12 +71,13 @@ public class Import extends Statement implements Statement.Headerable,DommentCol
 		if (!(r instanceof ResourceLocation.ResourceToken))throw new CompileError.UnexpectedToken(a, "resourcelocation");
 		ResourceLocation res=((ResourceLocation.ResourceToken) r).res;
 		if(alias==null)alias=res.end;
-		Import i=new Import(line,col,res,alias,dms.list,run);
+		Import i=new Import(line,col,res,alias,dms.list,run,isStrict);
 		Token end=c.nextNonNullMatch(look);
 		if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(a, "';'");
 		if(isMcfCompiling)return i;
 		else if(isHeaderOnly) {
-			c.job.addPossibleExternalDependancy(i);
+			//only if not strict
+			if(!isStrict)c.job.addPossibleExternalDependancy(i);
 			return null;
 		}
 		else if(c.myInterface.add(i))
@@ -80,15 +88,17 @@ public class Import extends Statement implements Statement.Headerable,DommentCol
 	final ResourceLocation lib;public ResourceLocation getLib() {return this.lib;}
 	final String alias;public String getAlias() {return this.alias;}
 	final boolean run;
-	public Import(int line, int col,ResourceLocation lib, String alias,List<Domment> d, boolean run) {
+	public final boolean isStrict;
+	public Import(int line, int col,ResourceLocation lib, String alias,List<Domment> d, boolean run,boolean isStrict) {
 		super(line, col);
 		this.lib=lib;
 		this.alias=alias;
 		this.dms=d;
 		this.run=run;
+		this.isStrict=isStrict;
 	}
 	public Import(int line, int col,ResourceLocation lib, String alias) {
-		this(line, col,lib,alias,new ArrayList<Domment>(),false);
+		this(line, col,lib,alias,new ArrayList<Domment>(),false,false);
 	}
 	public Import(int line, int col,ResourceLocation lib) {
 		this(line, col,lib,lib.end);
@@ -114,11 +124,12 @@ public class Import extends Statement implements Statement.Headerable,DommentCol
 	@Override
 	public void headerMe(PrintStream f) throws CompileError {
 		for(Domment d:this.dms)f.println(d.inHeader());
+		String st=this.isStrict?"if ":"";
 		String r=this.run?"run ":"";
 		if(this.alias.equals(this.lib.end))
-			f.printf("import %s%s;\n",r, this.lib.toString());
+			f.printf("import %s%s%s;\n",st,r, this.lib.toString());
 		else 
-			f.printf("import %s%s -> %s;\n",r,this.alias, this.lib.toString());
+			f.printf("import %s%s%s -> %s;\n",st,r,this.alias, this.lib.toString());
 		
 	}
 	final List<Domment> dms;

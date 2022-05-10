@@ -7,6 +7,7 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.OutputDump;
 import net.mcppc.compiler.errors.CompileError.UnexpectedToken;
 import net.mcppc.compiler.errors.Warnings;
+import net.mcppc.compiler.struct.Entity;
 import net.mcppc.compiler.tokens.Statement.Domment;
 import net.mcppc.compiler.tokens.Token.Assignlike.Kind;
 
@@ -67,7 +68,14 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	public void applyMask(Compiler c, Matcher matcher, int line, int col,Keyword access, boolean skip) throws CompileError {
 		Token holder=c.nextNonNullMatch(lookMaskHolder);
 		if(holder instanceof Token.WildChar) {
-			holder = Const.checkForExpression(c,c.currentScope, matcher, line, col, ConstType.SELECTOR);//check for consts
+			holder = Const.checkForExpressionSafe(c,c.currentScope, matcher, line, col, ConstType.SELECTOR);//check for consts
+		}
+		if(holder ==null) {
+			//optional: require an & before var to mark it as a reference
+			holder = c.nextNonNullMatch(Factories.checkForBasicName);
+			if(holder instanceof Token.BasicName) holder = ((Token.BasicName) holder).toMembName();
+			if(!(holder instanceof Token.MemberName)) throw new CompileError.UnexpectedToken(holder,"var name or mask target");
+			((MemberName)holder).identify(c, c.currentScope);
 		}
 		if (holder instanceof Coordinates.CoordToken) {
 			//space delimited
@@ -77,19 +85,26 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			if(!skip)this.variable.maskBlock(((Coordinates.CoordToken)holder).pos, ((NbtPath.NbtPathToken)address).path());
 			return;
 		}
+		int beforeop=c.cursor;
 		Token op=c.nextNonNullMatch(lookMaskOp);
-		if (holder instanceof Selector.SelectorToken && op instanceof Token.TagOf) {
+		boolean isEntity=false;
+		boolean isSelector=false;
+		isEntity = isSelector = holder instanceof Selector.SelectorToken;
+		isEntity = isEntity	|| (holder instanceof MemberName && ((MemberName) holder).var.type.struct==Entity.entity);
+		if (isEntity && op instanceof Token.TagOf) {
 			//entity
+			Selector selector = isSelector? ((Selector.SelectorToken)holder).selector():Entity.entities.getSelectorFor(((MemberName) holder).var);
 			Token address=Const.checkForExpression(c,c.currentScope, matcher, line, col, ConstType.NBT);
 					//c.nextNonNullMatch(lookMaskNbt);
 			if(!(address instanceof NbtPath.NbtPathToken))throw new CompileError.UnexpectedToken(address,"nbt path");
-			if(!skip)this.variable.maskEntity(((Selector.SelectorToken)holder).selector(), ((NbtPath.NbtPathToken)address).path());
+			if(!skip)this.variable.maskEntity(selector, ((NbtPath.NbtPathToken)address).path());
 			return;
-		}else if (holder instanceof Selector.SelectorToken && op instanceof Token.ScoreOf) {
+		}else if (isEntity && op instanceof Token.ScoreOf) {
 			//score
+			Selector selector = isSelector? ((Selector.SelectorToken)holder).selector():Entity.entities.getSelectorFor(((MemberName) holder).var);
 			Token address=c.nextNonNullMatch(lookMaskScore);
 			if(!(address instanceof Token.BasicName))throw new CompileError.UnexpectedToken(address,"score");
-			if(!skip)this.variable.maskScore(((Selector.SelectorToken)holder).selector(), ((Token.BasicName)address).name);
+			if(!skip)this.variable.maskScore(selector, ((Token.BasicName)address).name);
 			return;
 			
 		}else if (holder instanceof ResourceLocation.ResourceToken && op instanceof Token.TagOf) {
@@ -98,9 +113,14 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 					//c.nextNonNullMatch(lookMaskNbt);
 			if(!(address instanceof NbtPath.NbtPathToken))throw new CompileError.UnexpectedToken(address,"nbt path");
 			if(!skip)this.variable.maskStorage(((ResourceLocation.ResourceToken)holder).res, ((NbtPath.NbtPathToken)address).path());
-			return;
-			
-		}else {
+			return;	
+		}else if (holder instanceof Token.MemberName && (op instanceof Token.LineEnd || op instanceof Token.CodeBlockBrace)) {
+			//another var
+			c.cursor=beforeop;
+			if(!skip)this.variable.maskOtherVar(((Token.MemberName) holder).var);
+			return;	
+		}
+		else {
 			//incorrect format
 			throw new CompileError.UnexpectedToken(op,"'.'");
 		}
@@ -230,6 +250,17 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 					}
 
 				}else throw new CompileError.UnexpectedToken(asn, "->");
+			}else {
+				//template auto-requests
+				Token bind = c.nextNonNullMatch(Factories.checkForKeyword);
+				while (bind instanceof Token.BasicName) {
+					if(Keyword.fromString(bind.asString())==Keyword.EXPORT) {
+						TemplateArgsToken targs = TemplateArgsToken.checkForArgs(c, typescope, matcher);
+						if(targs==null) new CompileError("expected template args to export");
+						//d.function.requestTemplate(targs, typescope); //this is later
+						bind = c.nextNonNullMatch(Factories.checkForKeyword);
+					}else throw new CompileError.UnexpectedToken(bind, "export, ';', or '{'");
+				}
 			}
 			if(!c.myInterface.add(d)) throw new CompileError.DoubleDeclaration(d);
 			// {...}
@@ -367,6 +398,17 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 					}
 
 				}else throw new CompileError.UnexpectedToken(asn, "->");
+			}else {
+				//template auto-requests
+				Token bind = c.nextNonNullMatch(Factories.checkForKeyword);
+				while (bind instanceof Token.BasicName) {
+					if(Keyword.fromString(bind.asString())==Keyword.EXPORT) {
+						TemplateArgsToken targs = TemplateArgsToken.checkForArgs(c, typescope, matcher);
+						if(targs==null) new CompileError("expected template args to export");
+						d.function.requestTemplate(targs, typescope);
+						bind = c.nextNonNullMatch(Factories.checkForKeyword);
+					}else throw new CompileError.UnexpectedToken(bind, "export, ';', or '{'");
+				}
 			}
 			// {...}
 			Token term=c.nextNonNullMatch(look);

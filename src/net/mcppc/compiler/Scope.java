@@ -134,7 +134,8 @@ public class Scope {
 		path.append(CompileJob.FILE_TO_SUBDIR_SUFFIX);
 		//System.err.println(path);
 		if(function!=null) {
-			try { Scope.appendSubResSubFunc(path, function,this.templateBound==null?null:this.templateBound.defaultArgs());}
+			TemplateDefToken bound = this.templateBoundToMeOrParrent();
+			try { Scope.appendSubResSubFunc(path, function,bound==null?null:bound.defaultArgs());}
 			catch (CompileError e) {
 				e.printStackTrace();
 				path.append("_null_");
@@ -147,6 +148,11 @@ public class Scope {
 		if(f && function!=null)path.insert(index, "___");
 		//System.err.println(path);
 		return new ResourceLocation(res.namespace,path.toString().toLowerCase());
+	}
+	private TemplateDefToken templateBoundToMeOrParrent() {
+		if(this.templateBound!=null)return this.templateBound;
+		if(this.parent==null)return null;
+		return this.parent.templateBoundToMeOrParrent();
 	}
 	public void appendFunction(StringBuffer path) {
 		path.append(this.function.name);
@@ -280,7 +286,7 @@ public class Scope {
 	}
 	public Const checkForTemplateOrLocalConst(String name) {
 		if(this.function!=null)for(Const c:this.function.localConsts)if(c.name.equals(name))return c;
-		if(this.templateBound==null && this.temporaryTemplate==null)return null;
+		//if(this.templateBound==null && this.temporaryTemplate==null)return null;
 		if(this.temporaryTemplate!=null)for(Const c:this.temporaryTemplate.params)if(c.name.equals(name))return c;
 		if(this.templateBound!=null)for(Const c:this.templateBound.params)if(c.name.equals(name))return c;
 		if(this.parent==null)return null;
@@ -299,10 +305,20 @@ public class Scope {
 	}
 	
 	public boolean hasTemplate() {return this.template!=null;}
+
 	public List<TemplateArgsToken> getAllDefaultTemplateArgs() throws CompileError {
+		return getAllDefaultTemplateArgs(true);
+	}
+	public List<TemplateArgsToken> getNewTemplateArgs() throws CompileError {
+		return getAllDefaultTemplateArgs(false);
+	}
+	public List<TemplateArgsToken> getAllDefaultTemplateArgs(boolean isFirst) throws CompileError {
 		List<TemplateArgsToken> all = new ArrayList<TemplateArgsToken>();
-		if(this.template!=null)all.addAll(this.template.getAllDefaultArgs());
-		if(this.function!=null)all.addAll(this.function.getRequestedTemplateBinds());
+		if(isFirst)if(this.template!=null) {
+			all.addAll(this.template.getAllDefaultArgs());
+			//if(this.function!=null)this.function.fillDefaults();
+		}
+		if(this.function!=null)all.addAll(this.function.popRequestedTemplateBinds());
 		return all;
 	}
 	//does not affect any subscopes

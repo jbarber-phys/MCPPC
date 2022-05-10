@@ -350,6 +350,7 @@ public class Equation extends Token {
 					Function.FuncCallToken ft=Function.FuncCallToken.make(c, v.line, v.col, m, (MemberName) v, this.stack);
 					ft.identify(c,c.currentScope);
 					if(tempargs!=null)ft.withTemplate(tempargs);
+					ft.linkMe(c,c.currentScope);
 					//this.elements.add(ft);
 					v=ft;
 				}

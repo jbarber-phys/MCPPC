@@ -17,6 +17,7 @@ public enum Keyword {
 	PUBLIC("public"),
 	EXTERN("extern"),
 	IMPORT("import"),
+	EXPORT("export"),
 	WHILE("while"),
 	EXECUTE("execute"),
 	FOR("for"),

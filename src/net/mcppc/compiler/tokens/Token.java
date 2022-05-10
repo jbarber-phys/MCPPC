@@ -265,6 +265,9 @@ public abstract class Token {
 			super(line, col);
 			this.name=name;
 		}
+		public MemberName toMembName() {
+			return new MemberName(this.line,this.col,this.name);
+		}
 		@Override public String asString() {
 			return this.name;
 		}

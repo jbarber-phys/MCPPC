@@ -72,10 +72,14 @@ public class Function {
 		@Override
 		public int identify(Compiler c,Scope s) throws CompileError {
 			this.func=c.myInterface.identifyFunction(this,s);
+			//c.myInterface.linkFunction(this,c,s);
 			//TODO recursion warnings
 			if(this.func.args.size()!=this.args.size())throw new CompileError("wrong number of args, %d,  in function %s which takes %d args"
 					.formatted(this.args.size(),this.func.args.size(),this.func.name));
 			return 0;
+		}
+		public void linkMe(Compiler c,Scope s) throws CompileError {
+			c.myInterface.linkFunction(this,c,s);
 		}
 
 		public void call(PrintStream p,Compiler c,Scope s,RStack stack) throws CompileError {
@@ -92,8 +96,9 @@ public class Function {
 			}
 
 			//actually call the function
-			//TODO test
-			p.printf("function %s\n", this.func.getMCF(this.tempArgs));
+			//TODO request template
+			if(this.tempArgs!=null)this.func.requestTemplate(tempArgs, s);
+			p.printf("function %s\n", this.getMyMCF());
 			
 			for(int i=0;i<this.func.args.size();i++) {
 				Variable arg=this.func.args.get(i);
@@ -106,6 +111,9 @@ public class Function {
 			//set retval later
 			
 		} 
+		public ResourceLocation getMyMCF() {
+			return this.func.getMCF(this.tempArgs);
+		}
 		public void getRet(PrintStream p,Compiler c,Scope s,RStack stack,int home) throws CompileError {
 			this.func.returnV.getMe(p,s, stack,home);
 		}
@@ -135,7 +143,8 @@ public class Function {
 	public final List<Const> localConsts=new ArrayList<Const>();
 	public final Variable returnV;
 	TemplateDefToken template=null;
-	private final List<TemplateArgsToken> requestedBinds=new ArrayList<TemplateArgsToken>();
+	private List<TemplateArgsToken> requestedBinds=new ArrayList<TemplateArgsToken>();
+	private final List<TemplateArgsToken> requestedBindsFilled=new ArrayList<TemplateArgsToken>();
 	public Function(String name,VarType ret,Keyword access, Compiler c) {
 		this.name=name;
 		this.retype=ret;
@@ -177,9 +186,9 @@ public class Function {
 		return new ResourceLocation(mcf.namespace,path.toString());
 		
 	}
-	public Function withTemplate(TemplateDefToken tp) {
+	public Function withTemplate(TemplateDefToken tp) throws CompileError {
 		this.template=tp;
-		
+		this.fillDefaults();
 		return this;
 	}
 	public boolean hasTemplate() {
@@ -189,16 +198,28 @@ public class Function {
 	public String getTemplateInH() {
 		return this.template.inHDR();
 	}
-	public void requestTemplate(TemplateArgsToken args,Scope s)throws CompileError {
+	public boolean requestTemplate(TemplateArgsToken args,Scope s)throws CompileError {
 		//not needed for default args
 		if(s!=null &&s.getFunction()==this) {
 			//skip to prefent infinite loop
-			return;
+			return false;
 		}
-		this.requestedBinds.add(args);
+		if(this.requestedBinds.contains(args) ||this.requestedBindsFilled.contains(args))return false;
+		return this.requestedBinds.add(args);
+	}
+	private void fillDefaults()throws CompileError {
+		//not needed for default args
+		if(this.template==null)return;
+		this.requestedBindsFilled.addAll(this.template.getAllDefaultArgs());
 	}
 	public List<TemplateArgsToken> getRequestedTemplateBinds(){
 		return this.requestedBinds;
+	}
+	public List<TemplateArgsToken> popRequestedTemplateBinds(){
+		List<TemplateArgsToken> list = this.requestedBinds;
+		this.requestedBindsFilled.addAll(list);
+		this.requestedBinds=new ArrayList<TemplateArgsToken>();
+		return list;
 	}
 	public ResourceLocation getResoucrelocation() {return this.resoucrelocation;}
 	public void setResourceLocation(ResourceLocation path) {

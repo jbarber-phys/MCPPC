@@ -12,6 +12,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -130,6 +131,7 @@ public class CompileJob {
 	//list any imports that could require source files with their own dependancies on linked dirs; only 
 	//final List<ResourceLocation> externalImports=new ArrayList<ResourceLocation>();
 	final Stack<ResourceLocation> externalImports=new Stack<ResourceLocation>();
+	final Stack<ResourceLocation> externalImportsStrict=new Stack<ResourceLocation>();
 	/**
 	 * primary root directory; used to locate namespaces to compile
 	 * all the other roots are secondary
@@ -277,8 +279,8 @@ public class CompileJob {
 		}
 		return false;
 	}
-	public FileInterface getFileInterfaceFor(ResourceLocation res) throws FileNotFoundException, CompileError {
-		return this.enshureCompiler(res).myInterface;
+	public FileInterface getFileInterfaceFor(ResourceLocation res,boolean isStrict) throws FileNotFoundException, CompileError {
+		return this.enshureCompiler(res,isStrict).myInterface;
 	}
 
 	public Namespace enshureNamespace(ResourceLocation res)  {
@@ -289,7 +291,7 @@ public class CompileJob {
 		}else ns=this.namespaces.get(res.namespace);
 		return ns;
 	}
-	private Compiler enshureCompiler(ResourceLocation res) throws FileNotFoundException, CompileError {
+	private Compiler enshureCompiler(ResourceLocation res,boolean isStrict) throws FileNotFoundException, CompileError {
 		Compiler c=null;
 		//CompileJob.compileMcfLog.printf("%s, %s;\n", this.compilers.keySet(),this.headerOnlyCompilers.keySet());
 		//CompileJob.compileMcfLog.printf("%s;\n", res);
@@ -301,6 +303,7 @@ public class CompileJob {
 			if(p==null)throw new CompileError("could not find include for %s;".formatted(res));
 			Namespace ns=this.enshureNamespace(res);
 			c=new Compiler(this, res,ns,true);
+			c.isStrict=isStrict;
 			this.headerOnlyCompilers.put(res, c);
 		}
 		if(c.areLocalsLoaded) {
@@ -317,7 +320,9 @@ public class CompileJob {
 		if(this.headerOnlyCompilers.containsKey(i.getLib())) return false;
 		if(this.externalImports.contains(i.getLib())) return false;
 		
+		//this is only runned if not strict
 		this.externalImports.add(i.getLib());
+		//this.externalImportsAreStrict.add(i.isStrict);
 		
 		return true;
 	}
@@ -630,8 +635,9 @@ public class CompileJob {
 		boolean success=true;
 		while(!this.externalImports.isEmpty()) {
 			ResourceLocation res = this.externalImports.pop();
-			try {
-				Compiler c=this.enshureCompiler(res);
+			boolean isStrict= false;//this.externalImportsAreStrict.pop();
+			if(!isStrict) try {
+				Compiler c=this.enshureCompiler(res,false);
 				//do nothing with it
 			} catch (FileNotFoundException e) {
 				//ignore, this is OK
@@ -648,11 +654,17 @@ public class CompileJob {
 			  throws IOException {
 		String sourceDirectoryLocation = dirFrom.toString();
 		String destinationDirectoryLocation = dirTo.toString();
-		if(dirTo.toFile().exists())Files.walk(dirTo)
+		/*
+		if(dirTo.toFile().exists()) {Files.walk(dirTo)
 	      .forEach(old -> {
 	    		//System.err.println(old.toAbsolutePath().toString());
 	          old.toFile().delete();
 	      });
+		*/
+		if(dirTo.toFile().exists())Files.walk(dirTo)
+	      .sorted(Comparator.reverseOrder())
+	      .map(Path::toFile)
+	      .forEach(File::delete);
 	    Files.walk(dirFrom)
 	      .forEach(source -> {
 	          Path destination = Paths.get(destinationDirectoryLocation, source.toString()
@@ -681,6 +693,34 @@ public class CompileJob {
 			e.printStackTrace();
 		}
 	}
+	public void copyStrictLinkToDatapack(ResourceLocation res) {
+		Path from = this.findPathForLink(res);
+		Path to = this.pathForMcf(res);
+		//from.toFile().list
+    	//System.err.printf("strict res %s\n", res);
+		if(from==null) return;
+		
+    	Path dirFrom = from.getParent();
+    	Path dirTo = to.getParent();
+    	String suffix = "." + CompileJob.EXT_MCF;
+    	String prefixname = from.getFileName().toString().replace(suffix, "");
+    	//System.err.printf("%s\n%s\n%s\n", dirFrom,dirTo,prefixname);
+    	List<String> files=new ArrayList<String>();
+    	for(String s:dirFrom.toFile().list()) {
+    		if (s.startsWith(prefixname)&& s.endsWith(suffix)) files.add(s);
+    	}
+    	//System.err.println(files);
+    	for(String s:files) {
+    		Path fileFrom=dirFrom.resolve(s);
+    		Path fileTo=dirTo.resolve(s);
+			fileTo.toFile().getParentFile().mkdirs();
+			try {
+				Files.copy(fileFrom, fileTo, StandardCopyOption.REPLACE_EXISTING);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+    	}
+	}
 	public void copyLinkedNamespaceToDatapack(Namespace ns) {
 		ResourceLocation res=ns.getLoadFunction();
 		Path from = this.findPathForLink(res);
@@ -695,7 +735,12 @@ public class CompileJob {
 	public boolean linkAll() {
 		
 		for(Compiler c:this.headerOnlyCompilers.values()) {
-			this.copyLinkToDatapack(c);
+			if(!c.isStrict)this.copyLinkToDatapack(c);
+		} 
+    	//System.err.printf("strict number %s\n", this.externalImportsStrict.size());
+		while(!this.externalImportsStrict.empty()) {
+			ResourceLocation res=this.externalImportsStrict.pop();
+			copyStrictLinkToDatapack(res);
 		}
 		return true;
 		

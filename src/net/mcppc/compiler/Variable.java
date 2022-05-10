@@ -151,6 +151,20 @@ public class Variable {
 		this.pointsTo=Mask.STORAGE;
 		return this;
 	}
+	public Variable maskOtherVar(Variable ref) throws CompileError  {
+		if(this.type.isStruct()) {
+			if(!this.type.struct.canMask(this.type, ref.pointsTo))
+				throw new CompileError("cannot mask type %s to a %s;".formatted(this.type.asString(),ref.pointsTo));
+			//else good
+		}
+		if(!this.type.getNBTTagType().equals(ref.type.getNBTTagType())) Warnings.warning("vars %s and %s have different tag types;".formatted(this.name,ref.name));
+		this.isbasic=false;
+		//equivalent to default (c.res,varname)
+		this.holder=ref.holder;
+		this.address=ref.address;
+		this.pointsTo=ref.pointsTo;
+		return this;
+	}
 	public Variable maskStorageAllocatable(ResourceLocation res,NbtPath path) {
 		this.isbasic=true;//can allocate
 		//equivalent to default (c.res,varname)

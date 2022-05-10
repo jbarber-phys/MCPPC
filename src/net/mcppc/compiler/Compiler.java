@@ -48,6 +48,7 @@ public class Compiler{
 	boolean isHeaderOnly=false;
 	boolean hasMadeHeader=false;
 	boolean hasCompiled=false;
+	boolean isStrict=false;
 	/**
 	 * true if the file has loaded its private and public members
 	 */
@@ -405,6 +406,7 @@ public class Compiler{
 			}
 		}
 		for(Statement block:compiledLines) if (block instanceof CodeBlock){
+			//make sure this is after compiled code; this forces requests to work
 			((CodeBlock) block).compileMyBlock(this);
 		}
 		this.currentScope=this.baseScope;

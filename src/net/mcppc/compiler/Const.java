@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
+import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.CompileError.UnexpectedToken;
 import net.mcppc.compiler.tokens.Factories;
@@ -143,6 +144,15 @@ public class Const {
 		public boolean refsTemplate() {return false;}
 		public abstract String textInHdr();
 		public abstract String resSuffix() ;//used in streams: cannot throw
+		protected boolean equals(ConstExprToken o) {
+			return this.resSuffix()==o.resSuffix();
+		}
+		@Override public boolean equals(Object o) {
+			if(this==o)return true;
+			if(this==null || o==null)return false;
+			if(o instanceof ConstExprToken) return this.equals((ConstExprToken)o);
+			return false;
+		}
 		public ConstExprToken(int line, int col) {
 			super(line, col);
 		}

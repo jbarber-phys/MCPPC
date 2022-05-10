@@ -1,0 +1,43 @@
+
+//private const selector Sfrom = @e[tag=mcppc__from, limit=1];
+//private const selector Sto = @e[tag=mcppc__to, limit=1];
+	//private Vec3d posfrom -> Sfrom.Pos;
+	//private Vec3d posto -> Sto.Pos;
+private const coords forward = ^ ^ ^1 ;
+
+
+//private int glb;
+public<num n = 2,num m=3 .. 5> double<n> dbl(double<m> in)  export <4,6>{
+	private const num en = 3;
+	stopLongMult();
+	return = (double<n>)in*(en);
+	}
+public<num n = 1 .. 6> Vec3d<n> lookAt(Entity from,Entity to,int pow) {
+	//even power of lookvec
+	private Vec3d<n> posfrom -> from.Pos;
+	private Vec3d<n> posto -> to.Pos;
+	private Vec3d<n> diff;
+	private Vec3d<n> hat;
+	private double<n> scale;
+	private int counter ;//-> glb;
+	private int powhf = pow/2;
+	diff = posto-posfrom;
+	if(pow%2 >0){
+		hat = posfrom;
+		execute at(from) facing(to) positioned (forward){
+			hat=posfrom-hat;
+		}
+	}else {
+		hat=diff;
+	}
+	scale = diff * diff;
+	counter=0;
+	while(counter!=powhf){
+		if(counter<powhf) {hat = hat * scale; counter=counter+1;}
+		else {hat = hat / scale; counter=counter-1;}
+	}
+	return = hat;
+}
+
+private int dbled = 2;
+dbled = dbl<3,3> (dbled);

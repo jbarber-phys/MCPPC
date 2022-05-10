@@ -37,6 +37,7 @@ public class FileInterface {
 	public final Map<String, Function> funcsPublic = new HashMap<String, Function>();
 	//headers to read
 	final Map<String, ResourceLocation> imports = new HashMap<String, ResourceLocation>();
+	final Map<String, Boolean> importsStrict = new HashMap<String, Boolean>();
 	final Map<String, ResourceLocation> runs = new HashMap<String, ResourceLocation>();
 	//then make interfaces in
 	final Map<String, FileInterface> libs = new HashMap<String, FileInterface>();
@@ -55,7 +56,7 @@ public class FileInterface {
 	final Map<String,Const> constsPrivate=new HashMap<String, Const>();
 	
 	//template: const value is their default
-	final List<Const> template=new ArrayList<Const>();
+	final List<Const> template=new ArrayList<Const>();//warning: unused, template is at function level
 	
 	
 	//hypothetical: classes
@@ -111,6 +112,7 @@ public class FileInterface {
 	}
 	public boolean add(Import imp) {
 		if(imp.willRun())this.runs.putIfAbsent(imp.getAlias(), imp.getLib());
+		this.importsStrict.putIfAbsent(imp.getAlias(), imp.isStrict);
 		return this.imports.putIfAbsent(imp.getAlias(), imp.getLib())==null;
 	}
 	public boolean attemptLoadLibs(CompileJob job) {
@@ -118,9 +120,10 @@ public class FileInterface {
 		for(String alias:this.imports.keySet()) {
 			if(this.libs.containsKey(alias)) continue;//already loaded
 			ResourceLocation res=this.imports.get(alias);
+			boolean isStrict = this.importsStrict.get(alias);
 			if(job.hasFileInterfaceFor(res)) {
 				try {
-					this.libs.put(alias, job.getFileInterfaceFor(res));
+					this.libs.put(alias, job.getFileInterfaceFor(res,isStrict));
 				} catch (FileNotFoundException | CompileError e) {
 					//will never happen if used correctly
 					e.printStackTrace();
@@ -136,7 +139,8 @@ public class FileInterface {
 		for(String alias:this.imports.keySet()) {
 			if(this.libs.containsKey(alias) && this.libs.get(alias)!=null) continue;//already loaded
 			ResourceLocation res=this.imports.get(alias);
-			this.libs.put(alias, job.getFileInterfaceFor(res));
+			boolean isStrict = this.importsStrict.get(alias);
+			this.libs.put(alias, job.getFileInterfaceFor(res,isStrict));
 		}
 		this.hasReadLibs=true;
 	}
@@ -276,9 +280,25 @@ public class FileInterface {
 			else throw new CompileError("variable (or library) %s not found in scope %s".formatted(String.join(".", names),s.resBase));
 		}
 	}
+
+	public  void linkFunction(Function.FuncCallToken t,Compiler c, Scope s) throws CompileError {
+		if(!t.func.hasTemplate())return;
+		//add link request
+		List<String> names = t.names;
+		String name=names.get(0);
+		boolean isSelf=this.isSelf(s);
+		boolean isLibStrict=this.libs.containsKey(name) && this.importsStrict.get(name) && isSelf;
+		if(isLibStrict) {
+			ResourceLocation res=t.getMyMCF();
+			c.job.externalImportsStrict.add(res);
+		}
+		
+		return;
+	}
 	public  Function identifyFunction(Function.FuncCallToken t,Scope s) throws CompileError {
 		return this.identifyFunction(t.names,s);
 	}
+	
 	public  Function identifyFunction(String name,Scope s) throws CompileError {
 		List<String> array=new ArrayList<String>();array.add(name);
 		return this.identifyFunction(array,s);
@@ -383,9 +403,10 @@ public class FileInterface {
 		p.printf("%s\t public consts: %s;\n",s.toString(), this.constsPublic.keySet());
 		p.printf("%s\t private consts: %s\n",s.toString(), this.constsPrivate.keySet());
 		
-		p.printf("%s\t public funcs: %s;\n",s.toString(), this.funcsPublic.keySet());
-		p.printf("%s\t private funcs: %s;\n",s.toString(), this.funcsPrivate.keySet());
-		p.printf("%s\t extern funcs: %s;\n",s.toString(), this.funcsExtern.keySet());
+		p.printf("%s\t public funcs: %s;\n",s.toString(), this.funcsPublic.entrySet().stream().map(f -> f.getKey()+(f.getValue().template==null?"":"<...>")).toList());
+		//p.printf("%s\t public funcs: %s;\n",s.toString(), this.funcsPublic.keySet());
+		p.printf("%s\t private funcs: %s;\n",s.toString(), this.funcsPrivate.entrySet().stream().map(f -> f.getKey()+(f.getValue().template==null?"":"<...>")).toList());
+		p.printf("%s\t extern funcs: %s;\n",s.toString(), this.funcsExtern.entrySet().stream().map(f -> f.getKey()+(f.getValue().template==null?"":"<...>")).toList());
 
 		p.printf("%s\t public vars: %s;\n",s.toString(), this.varsPublic.keySet());
 		p.printf("%s\t private vars: %s\n",s.toString(), this.varsPrivate.keySet());

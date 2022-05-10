@@ -81,7 +81,7 @@ public class Register implements Comparable<Register>{
 	 */
 	public void multByFloatUsingRamToRaw(PrintStream p,RStack stack,double mult,Register dest) {
 		p.printf("execute store result storage %s double %s run scoreboard players get %s\n", stack.getTempRamInCmd(),CMath.getMultiplierFor(mult),this.inCMD());
-		p.printf("execute store result score %s run datadata get storage %s 1\n", dest.inCMD(),stack.getTempRamInCmd());
+		p.printf("execute store result score %s run data get storage %s 1\n", dest.inCMD(),stack.getTempRamInCmd());
 	}
 	@Override
 	public int compareTo(Register o){

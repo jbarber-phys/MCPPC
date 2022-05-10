@@ -28,12 +28,11 @@ public class CodeBlock extends Statement {
 	public void compileMe(PrintStream f,Compiler c,Scope s) {
 		// do nothing; code will be compiled in different file
 	}
+	private boolean canRequest=false;
 	public void compileMyBlock(Compiler c) throws CompileError, FileNotFoundException{
 		Scope s=this.scope;
-		//TODO find all requests
-		int i=1;
 		//System.err.printf("block at %s\n",this.scope.getSubRes());
-		if(s.hasTemplate())  
+		if(this.canRequest=s.hasTemplate())  
 		for(TemplateArgsToken targs:s.getAllDefaultTemplateArgs()) {
 			//System.err.printf("block has an %dth template template\n",i++);
 			s.bindTemplateToMe(targs);
@@ -41,6 +40,18 @@ public class CodeBlock extends Statement {
 		}else {
 			//System.err.printf("block has no template\n");
 			compileAScope(c,s);
+		}
+	}
+	public void compileMyBlockMore(Compiler c) throws CompileError, FileNotFoundException{
+		Scope s=this.scope;
+		//System.err.printf("block at %s\n",this.scope.getSubRes());
+		if(s.hasTemplate())  
+		for(TemplateArgsToken targs:s.getAllDefaultTemplateArgs()) {
+			//System.err.printf("block has an %dth template template\n",i++);
+			s.bindTemplateToMe(targs);
+			compileAScope(c,s);
+		}else {
+			//do nothing
 		}
 	}
 	private void compileAScope(Compiler c,Scope s) throws CompileError, FileNotFoundException{
@@ -71,6 +82,9 @@ public class CodeBlock extends Statement {
 			sm.printStatementTree(CompileJob.compileMcfLog, tabs+1);
 		}
 		p.printf("%s}\n", s.toString());
+	}
+	public boolean canRequest() {
+		return canRequest;
 	}
 
 }
