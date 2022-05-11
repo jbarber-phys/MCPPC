@@ -578,7 +578,7 @@ public class Vector extends Struct {
 		@Override
 		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col,RStack stack) throws CompileError {
 			BasicArgs a=new BuiltinFunction.BasicArgs().equations(c, line, col, matcher, stack);
-			if(a.targs.size()!=DIM) throw new CompileError("wrong number of args in Vector()...;");
+			if(a.nargs()!=DIM) throw new CompileError("wrong number of args in Vector()...;");
 			return a;
 		}
 
@@ -594,7 +594,7 @@ public class Vector extends Struct {
 			obj.allocate(p, false);
 			for(int i=0;i<DIM;i++) {
 				Variable arg=Vector.componentOf(obj, i);
-				Equation eq=(Equation) ((BasicArgs)args).targs.get(i);
+				Equation eq=(Equation) ((BasicArgs)args).arg(i);
 				eq.compileOps(p, c, s,arg.type);
 				eq.setVar(p, c, s, arg);
 			}

@@ -37,7 +37,8 @@ import net.mcppc.compiler.tokens.Statement.CodeBlockOpener;
  * (note, rot angles are floats)
  * will not have: if, unless, store; these are reduntant / unnedded due to mcpp language features 
  * 
- * TODO consider allowing true equations in places
+ * WARNING: in mcfunction, execute statements: at,  positioned; do not actually change nbt values during execution; you will have to use \tp or other 
+ * means of doing that.
  * @author jbarb_t8a3esk
  *
  */
@@ -190,6 +191,14 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 			if(!(t instanceof Token.BasicName)) throw new CompileError.UnexpectedToken(t, "anchor");
 			String name = ((Token.BasicName) t).name;
 			for(Anchor a:Anchor.values())if(a.toString().equals(name))return a;
+			throw new CompileError.UnexpectedToken(t, "anchor");
+		}
+
+		public static Token getNextToken(Compiler c,Matcher m,int line,int col) throws CompileError{
+			Token t = c.nextNonNullMatch(Factories.checkForBasicName);
+			if(!(t instanceof Token.BasicName)) throw new CompileError.UnexpectedToken(t, "anchor");
+			String name = ((Token.BasicName) t).name;
+			for(Anchor a:Anchor.values())if(a.toString().equals(name))return t;
 			throw new CompileError.UnexpectedToken(t, "anchor");
 		}
 	}

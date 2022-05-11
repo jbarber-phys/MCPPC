@@ -22,12 +22,14 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
+import net.mcppc.compiler.tokens.Token.MemberName;
 
 /**
  * a struct that uses tags to create an assignable selector abstraction
  * can be set to track a single entity or multiple (can then append to)
  * @author jbarb_t8a3esk
  *
+ *TODO Entity.summon(entitytype? entityType = marker,pos?) to summon new temp entity; also Entity.kill() to kill this entity;
  */
 public class Entity extends Struct {
 	public static final Entity entity;
@@ -211,19 +213,49 @@ public class Entity extends Struct {
 		return Entity.checkForEntityVar(c, s, matcher, line, col);
 		
 	}
+	public static Token checkForSelectorOrEntityToken(Compiler c,Scope s, Matcher matcher, int line, int col) throws CompileError {
+		ConstExprToken slc=Const.checkForExpressionSafe(c, s, matcher, line, col, ConstType.SELECTOR);
+		if(slc!=null) return ((Selector.SelectorToken)slc ); 
+		return Entity.checkForEntityToken(c, s, matcher, line, col);
+		
+	}
+	public static Selector getSelectorFor(Token t) throws CompileError {
+		return getSelectorFor(t,false);
+	}
+	public static Selector getSelectorFor(Token t,boolean requireSingle) throws CompileError {
+		if (t instanceof MemberName) {
+			if(!(((MemberName) t).getVar().type.isStruct()) || !(((MemberName) t).getVar().type.struct instanceof Entity))
+				throw new CompileError.UnsupportedCast(((MemberName) t).getVar().type, ConstType.SELECTOR);
+			Entity struct=(Entity) ((MemberName) t).getVar().type.struct;
+			if(struct.many && requireSingle) throw new CompileError("Token %s refers to many entities, must only refer to one".formatted(t.asString()));
+			return t==null?null:((Entity)((MemberName) t).getVar().type.struct).getSelectorFor(((MemberName) t).getVar());
+		}else if (t instanceof Selector.SelectorToken) {
+			return ((Selector.SelectorToken)t ).selector();
+		}else throw new CompileError.UnexpectedToken(t, "entity / selector");
+	}
 	public static Selector checkForEntityVar(Compiler c,Scope s, Matcher matcher, int line, int col) throws CompileError {
+		Token.MemberName vt=Entity.checkForEntityToken(c, s, matcher, line, col);
+		return vt==null?null:((Entity)vt.getVar().type.struct).getSelectorFor(vt.getVar());
+	}
+	public static Token.MemberName checkForEntityToken(Compiler c,Scope s, Matcher matcher, int line, int col) throws CompileError {
 		int start=c.cursor;
 		Token vn = c.nextNonNullMatch(Factories.checkForMembName);
 		if(!(vn instanceof Token.MemberName)) {
 			c.cursor=start; return null;
 		}
 		
-		((Token.MemberName) vn).identify(c, s);
+		if(!((Token.MemberName) vn).identifySafe(c, s)) {
+			c.cursor=start;
+			return null;
+		}
 		Variable v=((Token.MemberName) vn).getVar();
 		//TODO functions;
 		if(v.type.isStruct() && v.type.struct instanceof Entity) {
-			return ((Entity)v.type.struct).getSelectorFor(v);
-		}else return null;
+			return (MemberName) vn;//((Entity)v.type.struct).getSelectorFor(v);
+		}else {
+			c.cursor=start;
+			return null;
+		}
 		
 	}
 	public static Selector summonTemp(PrintStream p,Compiler c,Scope s,Object... hash) throws CompileError {

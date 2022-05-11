@@ -11,6 +11,8 @@ import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Function.FuncCallToken;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.functions.PrintF;
+import net.mcppc.compiler.functions.Tp;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.TemplateArgsToken;
@@ -36,6 +38,7 @@ public abstract class BuiltinFunction {
 		BUILTIN_FUNCTIONS=new HashMap<String,BuiltinFunction>();
 		registerAll();
 		PrintF.registerAll();
+		Tp.registerAll();
 	}
 	private static void registerAll() {
 		register(SetFlagStopMultiDiv.instance);
@@ -46,6 +49,9 @@ public abstract class BuiltinFunction {
 	}
 	public static boolean register(BuiltinFunction func) {
 		return BUILTIN_FUNCTIONS.put(func.name, func)==null;
+	}
+	public static boolean alias(BuiltinFunction func,String alias) {
+		return BUILTIN_FUNCTIONS.put(alias, func)==null;
 	}
 	public static class BFCallToken extends Token{
 		public static BFCallToken make(Compiler c,Matcher m,int line, int col,RStack stack,String name) throws CompileError {
@@ -99,12 +105,41 @@ public abstract class BuiltinFunction {
 		//public static class Blank implements Args{public Blank(){}}
 	}
 	public static class BasicArgs implements Args{
-		public final List<Token> targs=new ArrayList<Token>();
+		private final List<Token> targs=new ArrayList<Token>();
+		//optional
+		private final Map<String,Integer> argmap=new HashMap<String, Integer>();
+		public Token arg(int index){
+			if(index<targs.size() && index>=0)return this.targs.get(index);
+			else return null;
+		}
+		public Token arg(String key){
+			Integer index=this.argmap.get(key);
+			if(index==null)return null;
+			else return this.arg(index);
+		}
+		public void add(String key,Token token) {
+			int index=this.targs.size();
+			this.argmap.put(key, index);
+			this.targs.add(token);
+		}
+		public boolean has(int i) {
+			return this.targs.size()>i && i>=0;
+		}
+		public boolean has(String key) {
+			return this.argmap.containsKey(key);
+		}
+		public void add(Token token) {
+			this.targs.add(token);
+		}
+		public int nargs() {return this.targs.size();}
 		public BasicArgs(){
 		}
 		public BasicArgs equations(Compiler c,int line,int col,Matcher m,RStack stack) throws CompileError {
 			Function.FuncCallToken.addArgs(c, line, col, m, stack, this.targs);
 			return this;
+		}
+		public boolean isEmpty() {
+			return this.targs.isEmpty();
 		}
 	}
 	public abstract VarType getRetType(Args a);
@@ -128,6 +163,8 @@ public abstract class BuiltinFunction {
 	public abstract void getRet(PrintStream p, Compiler c, Scope s,Args args,Variable v,RStack stack) throws CompileError;
 	public abstract Number getEstimate(Args args);
 	
+	
+	
 	/**
 	 * serializes argis in a basic way; if t
 	 * @param c
@@ -147,9 +184,8 @@ public abstract class BuiltinFunction {
 					c.nextNonNullMatch(look)
 					:
 					Equation.toArgue(c.line, c.column(), c, matcher).populate(c, matcher);
-			args.targs.add(t);
+			args.add(t);
 			if(t instanceof Equation) {
-				//TODO test this to make sure it works with eqs
 				switch (((Equation)t).end) {
 				case ARGSEP:
 					break;//keep going
@@ -182,7 +218,7 @@ public abstract class BuiltinFunction {
 		for(Const.ConstType ct:types) {
 			ConstExprToken t=Const.checkForExpressionSafe(c, c.currentScope, matcher, line, col, ct);
 			if(t==null && !endEarly)throw new CompileError.UnexpectedToken(t,"more args");
-			args.targs.add(t);
+			args.add(t);
 			if(findArgsep(c)) {
 				continue;
 			}else {
@@ -255,9 +291,9 @@ public abstract class BuiltinFunction {
 		@Override
 		public void call(PrintStream p, Compiler c, Scope s, Args args, RStack stack) throws CompileError {
 			boolean b;
-			if(((BasicArgs)args).targs.isEmpty() || ((BasicArgs)args).targs.get(0)==null )b=true;
+			if(((BasicArgs)args).isEmpty() || ((BasicArgs)args).arg(0)==null )b=true;
 			else{
-				Bool t = (Bool) ((BasicArgs)args).targs.get(0);
+				Bool t = (Bool) ((BasicArgs)args).arg(0);
 				b=t.val;
 			}
 			s.setProhibitLongMult(b);//edit the scope

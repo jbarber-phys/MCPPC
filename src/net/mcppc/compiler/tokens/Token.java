@@ -363,6 +363,15 @@ public abstract class Token {
 			if(this.var!=null)this.estimate=s.getEstimate(var);
 			return 0;
 		}
+		public boolean identifySafe(Compiler c,Scope s) {
+			try {
+				this.var=c.myInterface.identifyVariable(this,s);
+				if(this.var!=null)this.estimate=s.getEstimate(var);
+				return true;
+			} catch (CompileError e) {
+				return false;
+			}
+		}
 		public int identifyWith(Variable v) {
 			this.var=v;
 			return 0;

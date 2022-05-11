@@ -2,9 +2,9 @@ package net.mcppc.compiler.errors;
 
 import java.io.PrintStream;
 
-import net.mcppc.compiler.PrintF;
 import net.mcppc.compiler.Selector;
 import net.mcppc.compiler.Variable;
+import net.mcppc.compiler.functions.PrintF;
 
 public abstract class RuntimeError {
 	static final Selector TARGET = Selector.AT_A;

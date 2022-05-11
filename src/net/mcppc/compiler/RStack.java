@@ -6,6 +6,7 @@ import java.util.TreeMap;
 
 import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.functions.PrintF;
 
 public class RStack {
 	int maxSizeEver=0;

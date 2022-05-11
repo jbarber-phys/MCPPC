@@ -1,12 +1,11 @@
-package net.mcppc.compiler;
+package net.mcppc.compiler.functions;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
-import java.util.stream.Stream;
-
-import net.mcppc.compiler.BuiltinFunction.Args;
+import net.mcppc.compiler.*;
+import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Entity;

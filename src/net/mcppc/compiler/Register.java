@@ -2,8 +2,8 @@ package net.mcppc.compiler;
 
 import java.io.PrintStream;
 
-import net.mcppc.compiler.PrintF;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.functions.PrintF;
 
 public class Register implements Comparable<Register>,PrintF.IPrintable{
 	/**
