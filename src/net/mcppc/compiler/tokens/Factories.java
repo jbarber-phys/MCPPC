@@ -8,7 +8,7 @@ import net.mcppc.compiler.CompileJob;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Function;
 import net.mcppc.compiler.NbtPath;
-import net.mcppc.compiler.Register.RStack;
+import net.mcppc.compiler.RStack;
 import net.mcppc.compiler.Selector;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Equation.End;

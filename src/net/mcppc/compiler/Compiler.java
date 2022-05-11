@@ -354,6 +354,14 @@ public class Compiler{
 		}
 		return block;
 	}
+	public void compileLine(PrintStream p,Scope s,Statement stm) throws CompileError {
+
+		if(this.job.isDebug()) {
+			int line = stm.line;
+			p.printf("### %s :: %d \n", this.resourcelocation,line);
+		}
+		stm.compileMe(p, this, s);
+	}
 	/**
 	 * fully tokenizes
 	 * takes the token tree and generates the mcfunction code
@@ -373,7 +381,6 @@ public class Compiler{
 		}
 		this.myInterface.forceLoadLibs(this.job);
 		this.myInterface.printmefordebug(CompileJob.compileMcfLog);
-		//TODO interface is defaced after this point
 		
 		CompileJob.compileMcfLog.println("making MCF for '%s'".formatted(this.resourcelocation));
 		baseScope=currentScope=new Scope(this);
@@ -392,7 +399,8 @@ public class Compiler{
 		this.baseScope.open(job);
 		for(Statement s:compiledLines) {
 			//s.printStatementTree(CompileJob.compileMcfLog, 0);
-			s.compileMe(this.baseScope.out, this, currentScope);
+			//s.compileMe(this.baseScope.out, this, currentScope);
+			this.compileLine(this.baseScope.out, currentScope, s);
 		}
 		this.baseScope.closeJustMyFiles();
 		if (this.job.CLEAN_MCF_SUBDIR) {

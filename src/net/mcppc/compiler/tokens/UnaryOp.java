@@ -7,8 +7,8 @@ import java.util.regex.Matcher;
 
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.OperationOrder;
+import net.mcppc.compiler.RStack;
 import net.mcppc.compiler.Register;
-import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.Scope;
 import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.errors.CompileError;

@@ -8,7 +8,6 @@ import java.util.regex.Matcher;
 
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.*;
-import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.errors.CompileError;
 
 public class ForStm extends Statement implements Statement.CodeBlockOpener,Statement.Flow{

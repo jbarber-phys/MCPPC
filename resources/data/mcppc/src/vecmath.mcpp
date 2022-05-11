@@ -18,19 +18,28 @@ public<num n = 1 .. 6> Vec3d<n> lookAt(Entity from,Entity to,int pow) {
 	private Vec3d<n> posto -> to.Pos;
 	private Vec3d<n> diff;
 	private Vec3d<n> hat;
+	//TODO difff and hat were never properly allocated and for diff, this causes a problem
 	private double<n> scale;
 	private int counter ;//-> glb;
 	private int powhf = pow/2;
 	diff = posto-posfrom;
-	if(pow%2 >0){
+	printf("pow = %s",pow);
+	printf("powhf = %s",powhf);
+	printf("pow%%2 = %s",pow%2);
+	printf("diff = %s",diff);
+	if(pow%2 ==0){
+		printf("even");
 		hat = posfrom;
 		execute at(from) facing(to) positioned (forward){
 			hat=posfrom-hat;
 		}
 	}else {
+		printf("odd");
 		hat=diff;
 	}
+	printf("hat = %s",hat);
 	scale = diff * diff;
+	printf("scale = %s",scale);
 	counter=0;
 	while(counter!=powhf){
 		if(counter<powhf) {hat = hat * scale; counter=counter+1;}

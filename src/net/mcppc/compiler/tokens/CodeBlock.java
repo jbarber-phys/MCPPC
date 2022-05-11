@@ -58,8 +58,8 @@ public class CodeBlock extends Statement {
 		c.currentScope=s;
 		s.open(c.job);
 		for(Statement st:this.statements) {
-			//s.printStatementTree(CompileJob.compileMcfLog, 0);
-			st.compileMe(s.out, c, s);
+			c.compileLine(s.out, s, st);
+			//st.compileMe(s.out, c, s);
 		}
 		if(this.opener!=null)opener.addToEndOfMyBlock(s.out, c, s);
 		

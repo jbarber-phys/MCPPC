@@ -46,8 +46,8 @@ public class Scope {
 		
 		return this.out!=null && this.isOpen;
 	}
-	public Register.RStack getStackFor() {
-		return new Register.RStack(this);
+	public RStack getStackFor() {
+		return new RStack(this);
 	}
 	public PrintStream open(CompileJob cj) throws FileNotFoundException {
 		this.isOpen=true;

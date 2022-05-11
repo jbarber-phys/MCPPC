@@ -6,7 +6,6 @@ import java.util.regex.Matcher;
 
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.Compiler;
-import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.StructTypeParams.MembType;
 import net.mcppc.compiler.VarType.Builtin;
 import net.mcppc.compiler.errors.CompileError;
@@ -246,6 +245,7 @@ public class Vector extends Struct {
 			int hj=home+j*cpn.type.sizeOf();
 			cpn.getMe(p,s, stack, hj);
 		}
+		//stack.runtimeOutShow(p, home, home+2,PrintF.stderr);
 		stack.setVarType(home, me.type);
 	}
 	@Override
@@ -294,7 +294,16 @@ public class Vector extends Struct {
 		boolean oIsVec=other.isStruct()?other.struct instanceof Vector:false;
 		boolean oIsNum=other.isNumeric();//other.isStruct()?false:other.isNumeric();
 		if(oIsVec) {
+			//stack.runtimeOutShow(p, home1, home1+2);
+			//stack.runtimeOutShow(p, home2, home2+2);
 			this.elementwize(op, p, c, s, stack, home1, home2);
+			//stack.runtimeOutShow(p, home1, home1+2);
+			//stack.runtimeOutShow(p, home2, home2+2);
+			//TODO there appears to be a register fault of some kind
+			//at this point: for avec*avec, the first home contains garbage values if an operation was done before in a printf; - FIXED?
+			//TODO
+			//else it is fine, but dot prod always comes out as 1 for some reason; is it refusing to collect? NO;
+			//the nonprimary elements are being zeroed out
 			switch(op) {
 			case EQ:
 				this.collect(OpType.AND, p, c, s, stack, home1, home1, stack.getVarType(home1).sizeOf());
@@ -380,6 +389,10 @@ public class Vector extends Struct {
 			stack.setVarType(h2, te2);
 			stack.estmiate(h1, est1);
 			stack.estmiate(h2, est2);
+		}
+		for(int j=0;j<DIM;j++) {
+			int h1=home1+j*te1.sizeOf();
+			int h2=home2+j*te2.sizeOf();
 			opt.perform(p, c, s, stack, h1, h2);
 			stack.setVarType(h2, null);
 		}

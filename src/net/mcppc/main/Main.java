@@ -61,6 +61,7 @@ public class Main {
 		CompileJob stdlib=new CompileJob(CompileJob.getResources(),CompileJob.getGeneratedResources());
 		stdlib.setRootHeaderOut(CompileJob.getGeneratedResources());
 		stdlib.stdLib();
+		//stdlib.debugMode();
 		boolean success=stdlib.compileAll();
 		System.out.println("successfully compiled std library;");
 		return success;
@@ -136,10 +137,15 @@ public class Main {
 			if(arg.equals("-std")) {
 				compStd=true;
 			}
+
 			if(arg.equals("--std")) {
 				compStd=true;
 				compStdOnly=true;
 				break;
+			}
+
+			if(arg.equals("-g")) {
+				job.debugMode();
 			}
 		}
 		boolean stdSuccess=true;

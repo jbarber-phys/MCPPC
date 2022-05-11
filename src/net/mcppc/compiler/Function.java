@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 
-import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.*;
 import net.mcppc.compiler.tokens.Equation.End;
@@ -247,5 +246,7 @@ public class Function {
 	public void allocateMyLocals(PrintStream p) throws CompileError {
 		for(Variable arg:this.args)if(arg.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))arg.allocate(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
 		if(this.returnV.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.returnV.allocate(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+		for(Variable local:this.locals.values())if(local.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))local.allocate(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+
 	}
 }

@@ -4,7 +4,6 @@ import java.io.PrintStream;
 import java.util.regex.Matcher;
 
 import net.mcppc.compiler.Compiler;
-import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.BiOperator.OpType;

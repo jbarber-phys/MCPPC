@@ -6,7 +6,6 @@ import java.util.regex.Matcher;
 
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
-import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.struct.Entity;
@@ -18,7 +17,7 @@ import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
 
-public class Variable {
+public class Variable implements PrintF.IPrintable{
 	public final String name;
 	public final VarType type;
 	public final Keyword access;
@@ -301,6 +300,7 @@ public class Variable {
 		}
 		return this.matchesPhrase("1b");
 	}
+	@Override //IPrintable
 	public String getJsonTextSafe() {
 		try {
 			return this.getJsonText();

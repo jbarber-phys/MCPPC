@@ -8,7 +8,6 @@ import java.util.stream.Stream;
 
 import net.mcppc.compiler.BuiltinFunction.Args;
 import net.mcppc.compiler.Const.ConstType;
-import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Entity;
 import net.mcppc.compiler.tokens.Equation;
@@ -28,6 +27,9 @@ import net.mcppc.compiler.tokens.Token.StringToken;
  *
  */
 public class PrintF extends BuiltinFunction{
+	public static interface IPrintable {
+		public String getJsonTextSafe();
+	}
 	public static abstract class TextColors{
 		public static final String RESET="reset";
 		
@@ -201,13 +203,13 @@ public class PrintF extends BuiltinFunction{
 		p.printf("execute unless %s run data modify %s set value \"true\"\n", var.matchesPhrase("0"),var.dataPhrase());
 		p.printf("execute unless %s run data modify %s set value \"false\"\n", var.matchesPhrase("\"true\""),var.dataPhrase());
 	}
-	public void printf(PrintStream p, String format,Variable... args) throws CompileError {
+	public void printf(PrintStream p, String format,IPrintable... args) throws CompileError {
 		this.printf(p,Selector.AT_S, format, args);
 	}
-	public void printf(PrintStream p, Selector subject, String format,Variable... args) throws CompileError {
+	public void printf(PrintStream p, Selector subject, String format,IPrintable... args) throws CompileError {
 		this.printf(p,"", subject, format, args);
 	}
-	public void printf(PrintStream p, String prefix,Selector subject, String format,Variable... args) throws CompileError {
+	public void printf(PrintStream p, String prefix,Selector subject, String format,IPrintable... args) throws CompileError {
 		String argstr=String.join(" , ",   List.of(args).stream().map(var ->var.getJsonTextSafe()).toList());//
 		p.printf("%stellraw %s {\"translate\": %s, \"with\": [%s], \"color\": \"%s\"}\n"
 				,prefix

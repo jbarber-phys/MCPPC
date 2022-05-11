@@ -120,6 +120,7 @@ public class CompileJob {
 	public boolean CHECK_INCLUDES_FOR_CIRCULAR_RUNS=false;
 	public final int MAX_NUM_CMDS=(int) Math.round(Math.pow(2, 15)-1);
 	private boolean isBuildingStdLib=false; public void stdLib() {this.isBuildingStdLib=true;}
+	private boolean debugDomment=false; public void debugMode() {this.debugDomment=true;} public boolean isDebug() {return this.debugDomment;}
 	
 	final Map<String,Namespace> namespaces=new HashMap<String,Namespace>();
 	

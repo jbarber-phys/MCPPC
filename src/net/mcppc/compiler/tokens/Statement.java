@@ -8,7 +8,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import net.mcppc.compiler.Compiler;
-import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Equation.End;
@@ -291,7 +290,7 @@ public abstract class Statement extends Token {
 		}
 		@Override
 		public void compileMe(PrintStream f,Compiler c,Scope s) throws CompileError {
-			Register.RStack stack=this.s.getStackFor();
+			RStack stack=this.s.getStackFor();
 			this.token.call(f, c, s, stack);
 			stack.finish(c.job);
 		}

@@ -8,7 +8,7 @@ import net.mcppc.compiler.CMath;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Register;
 import net.mcppc.compiler.Const.ConstExprToken;
-import net.mcppc.compiler.Register.RStack;
+import net.mcppc.compiler.RStack;
 import net.mcppc.compiler.VarType.Builtin;
 import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.Scope;

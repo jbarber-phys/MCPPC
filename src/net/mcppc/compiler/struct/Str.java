@@ -7,7 +7,6 @@ import java.io.PrintStream;
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
-import net.mcppc.compiler.Register.RStack;
 import net.mcppc.compiler.VarType.Builtin;
 import net.mcppc.compiler.errors.CompileError;
 /**
