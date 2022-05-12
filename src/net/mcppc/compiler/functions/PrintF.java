@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.Compiler;
+import net.mcppc.compiler.BuiltinFunction.BFCallToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Entity;
@@ -81,19 +82,19 @@ public class PrintF extends BuiltinFunction{
 	}
 	
 	@Override
-	public VarType getRetType(Args a) {
+	public VarType getRetType(BFCallToken token) {
 		return VarType.VOID;
 	}
 	@Override
-	public void getRet(PrintStream p, Compiler c, Scope s, Args args, RStack stack, int stackstart) throws CompileError{
-		throw new CompileError.UnsupportedCast( this.getRetType(args),stack.getVarType(stackstart));
+	public void getRet(PrintStream p, Compiler c, Scope s,  BFCallToken token, RStack stack, int stackstart) throws CompileError{
+		throw new CompileError.UnsupportedCast( this.getRetType(token),stack.getVarType(stackstart));
 	}
 	@Override
-	public void getRet(PrintStream p, Compiler c, Scope s, Args args, Variable v, RStack stack) throws CompileError{
-		throw new CompileError.UnsupportedCast( this.getRetType(args),v.type);
+	public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack) throws CompileError{
+		throw new CompileError.UnsupportedCast( this.getRetType(token),v.type);
 	}
 	@Override
-	public Number getEstimate(Args args) {
+	public Number getEstimate(BFCallToken token) {
 		return null;
 	}
 	private static final Token.Factory[] testForSelector = Factories.genericCheck(Selector.SelectorToken.factory);
@@ -151,8 +152,8 @@ public class PrintF extends BuiltinFunction{
 	public static boolean ESCAPE_TAG_IN_JSON = true;//TODO test in mc to see what should be done
 
 	@Override
-	public void call(PrintStream p, Compiler c, Scope s, Args args, RStack stack) throws CompileError {
-		this.call(p, c, s, args, stack, "");
+	public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
+		this.call(p, c, s, token.getArgs(), stack, "");
 	}
 	public void call(PrintStream p, Compiler c, Scope s, Args args, RStack stack,String prefix) throws CompileError {
 		PrintfArgs pargs=(PrintfArgs) args;

@@ -288,6 +288,7 @@ public final class Factories {
 	 * @throws CompileError
 	 */
 	public static Token carefullSkipStm(Compiler c, Matcher matcher, int line, int col)throws CompileError{
+		//System.err.println("carefullSkip");
 		
 		while(true) {
 			Token t=c.nextNonNullMatch(carefullSkip);
@@ -296,6 +297,7 @@ public final class Factories {
 				if(!((Token.CodeBlockBrace)t).forward)throw new CompileError.UnexpectedToken(t, "';', or '{'");
 				return t;
 			}
+			//System.err.println("skipped %s".formatted(t.asString()));
 		}
 		
 	}

@@ -1,19 +1,25 @@
 package net.mcppc.compiler.struct;
 
 import java.io.PrintStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.Compiler;
+import net.mcppc.compiler.BuiltinFunction.BFCallToken;
 import net.mcppc.compiler.StructTypeParams.MembType;
 import net.mcppc.compiler.VarType.Builtin;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.functions.FunctionMask;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.Regexes;
+import net.mcppc.compiler.tokens.TemplateArgsToken;
+import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.Type;
 import net.mcppc.compiler.tokens.UnaryOp;
 import net.mcppc.compiler.tokens.UnaryOp.UOType;
@@ -40,6 +46,8 @@ public class Vector extends Struct {
 		
 	}
 	public static void registerAll() {
+		vec3d.STATICMETHODS= Map.of(
+				LOOKAT.name, LOOKAT);
 		Struct.register(vector);
 		Struct.register(vec3d);
 		Struct.register(vec3i);
@@ -156,6 +164,11 @@ public class Vector extends Struct {
 	@Override
 	public int getPrecision(VarType mytype, Scope s) throws CompileError {
 		return Vector.myMembType(mytype).getPrecision(s);
+	}
+
+	@Override
+	public String getPrecisionStr(VarType mytype)  {
+		return Vector.myMembType(mytype).getPrecisionStr();
 	}
 	@Override
 	protected String getJsonTextFor(Variable self) throws CompileError {
@@ -533,6 +546,17 @@ public class Vector extends Struct {
 		stack.setVarType(in, mytype);
 		stack.move(p, dest, in);
 	}
+
+	@Override public TemplateArgsToken getTemplateArgs(VarType varType, Scope s) throws CompileError {
+		VarType type=Vector.myMembType(varType);
+		if(this.defaulttype==null) {
+			TemplateArgsToken tp=new TemplateArgsToken(-1, -1);
+			tp.values.add(new Type(-1,-1,type));
+			return tp;
+		}else {
+			return type.getTemplateArgs(s);
+		}
+	}
 	public static int dir(String d) {
 		for(int j=0;j<DIM;j++)if(DIMNAMES[j].equals(d))return j;
 		return -1;
@@ -571,7 +595,7 @@ public class Vector extends Struct {
 		}
 
 		@Override
-		public VarType getRetType(Args a) {
+		public VarType getRetType(BFCallToken token) {
 			return mytype;
 		}
 
@@ -588,8 +612,9 @@ public class Vector extends Struct {
 			return v;
 		}
 		@Override
-		public void call(PrintStream p, Compiler c, Scope s, Args args, RStack stack) throws CompileError {
+		public void call(PrintStream p, Compiler c, Scope s,  BFCallToken token, RStack stack) throws CompileError {
 			//default to storage
+			BasicArgs args = (BasicArgs)token.getArgs();
 			Variable obj=this.newobj(c);
 			obj.allocate(p, false);
 			for(int i=0;i<DIM;i++) {
@@ -602,24 +627,36 @@ public class Vector extends Struct {
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, Args args, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
 				throws CompileError {
 			Variable obj=this.newobj(c);
 			obj.getMe(p,s, stack, stackstart);
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, Args args, Variable v, RStack stack)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
 				throws CompileError {
 			Variable obj=this.newobj(c);
 			Variable.directSet(p,s, v, obj, stack);
 		}
 
 		@Override
-		public Number getEstimate(Args args) {
+		public Number getEstimate(BFCallToken token) {
 			return null;
 		}
 		
+	}
+	public static final ResourceLocation STDLIB = new ResourceLocation(CompileJob.STDLIB_NAMESPACE ,"vecmath");
+	public static final FunctionMask LOOKAT=new FunctionMask("lookAt", STDLIB, "lookAt"
+			, List.of(Token.NullArgDefault.instance,Token.NullArgDefault.instance,new Num(-1,-1,1,VarType.INT)));//List.of does not allow null members;
+	private Map<String,FunctionMask> STATICMETHODS;
+	@Override
+	public boolean hasStaticBuiltinMethod(String name) {
+		return super.hasStaticBuiltinMethodBasic(name, this.STATICMETHODS);
+	}
+	@Override
+	public BuiltinFunction getStaticBuiltinMethod(String name, VarType type) throws CompileError {
+		return super.getStaticBuiltinMethodBasic(name,type, this.STATICMETHODS);
 	}
 
 }

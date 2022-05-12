@@ -7,7 +7,9 @@ import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Num;
+import net.mcppc.compiler.tokens.TemplateArgsToken;
 import net.mcppc.compiler.tokens.Token;
+import net.mcppc.compiler.tokens.Type;
 import net.mcppc.compiler.tokens.UnaryOp;
 /**
  * a variable type, incliding type parameters like precision;
@@ -168,6 +170,7 @@ public class VarType {
 		else return 1;//for now, extra precision is ignored
 	}
 	public int getPrecision(Scope s)  throws CompileError{
+		if(this.isStruct())return this.struct.getPrecision(this, s);
 		if(s!=null && !this.isReady()) {
 			Const c= s.checkForTemplateOrLocalConst(this.precisionTemplateName);
 			if(c==null) {
@@ -183,7 +186,7 @@ public class VarType {
 		return this.isFloatP()?this.precision:0;
 	}
 	public String getPrecisionStr(){
-		//TODO add arg scope
+		if(this.isStruct())return this.struct.getPrecisionStr(this);
 		if(!this.isReady()) {
 			return this.precisionTemplateName;
 		}else return Integer.toString(this.precision);
@@ -219,6 +222,10 @@ public class VarType {
 			return this.struct.withTemplatePrecision(this,pc);
 		}
 		return new VarType(this.type,pc);
+	}
+	public VarType breakTiesToTemplate(Scope s) throws CompileError {
+		if(this.isReady()) return this;//no action needed
+		return this.withPrecision(this.getPrecision(s));
 	}
 	public String getNBTTagType() throws CompileError {
 		if(this.isStruct())return this.struct.getNBTTagType(this);
@@ -377,5 +384,26 @@ public class VarType {
 	}
 	public String boolToStringNumber(boolean n) {
 		return n?"1b":"0b";
+	}
+	public TemplateArgsToken getTemplateArgs(Scope s) throws CompileError{
+		if(this.isStruct())
+			return this.struct.getTemplateArgs(this,s);
+		if(!this.isFloatP())return null;
+		if(this.isReady()) {
+			TemplateArgsToken tp=new TemplateArgsToken(-1, -1);
+			tp.values.add(new Num(-1,-1,this.precision,VarType.INT));
+			return tp;
+		}else {
+			Const c=s.checkForTemplateOrLocalConst(this.precisionTemplateName);
+			if(c==null) {
+				throw new CompileError("Vartype %s nont binded in time".formatted(this.asString()));
+			}
+			if(c.ctype!=ConstType.NUM) throw new CompileError("Vartype %s binded to a non-number const".formatted(this.asString()));
+			Const.ConstVarToken cvar = new Const.ConstVarToken(-1,-1,c,this.precisionTemplateName);
+			TemplateArgsToken tp=new TemplateArgsToken(-1, -1);
+			tp.values.add(cvar);
+			return tp;
+		}
+		
 	}
 }

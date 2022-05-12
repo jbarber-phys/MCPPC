@@ -61,7 +61,7 @@ public class ResourceLocation {
 		//works
 	}
 	public ResourceLocation(String p) {
-		this(CompileJob.Namespace.MINECRAFT,p);
+		this(CompileJob.MINECRAFT,p);
 	}
 	public ResourceLocation(String ns,String p) {
 		this.namespace=ns;

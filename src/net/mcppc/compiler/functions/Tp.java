@@ -4,6 +4,7 @@ import java.io.PrintStream;
 import java.util.regex.Matcher;
 
 import net.mcppc.compiler.Compiler;
+import net.mcppc.compiler.BuiltinFunction.BFCallToken;
 import net.mcppc.compiler.BuiltinFunction.BasicArgs;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
@@ -26,7 +27,7 @@ public class Tp extends BuiltinFunction{
 	}
 
 	@Override
-	public VarType getRetType(Args a) {
+	public VarType getRetType(BFCallToken token) {
 		return VarType.VOID;
 	}
 
@@ -41,7 +42,7 @@ public class Tp extends BuiltinFunction{
 				return args;
 			}
 			args.add("victims", e1);
-			System.err.println("e1: %s".formatted(e1.asString()));
+			//System.err.println("e1: %s".formatted(e1.asString()));
 			e2=Entity.checkForSelectorOrEntityToken(c, c.currentScope, matcher, line, col); 
 			if(e2!=null) {
 				args.add("deste", e2);
@@ -89,9 +90,8 @@ public class Tp extends BuiltinFunction{
 	}
 
 	@Override
-	public void call(PrintStream p, Compiler c, Scope s, Args args, RStack stack) throws CompileError {
-		// TODO Auto-generated method stub
-		BasicArgs bargs=(BasicArgs) args;
+	public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
+		BasicArgs bargs=(BasicArgs) token.getArgs();
 		if(bargs.has("deste") && !bargs.has("victims")) {
 			p.printf("tp %s\n", Entity.getSelectorFor(bargs.arg("deste"),true).toCMD());
 			return;
@@ -144,17 +144,17 @@ public class Tp extends BuiltinFunction{
 	}
 
 	@Override
-	public void getRet(PrintStream p, Compiler c, Scope s, Args args, RStack stack, int stackstart)
+	public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
 			throws CompileError {
 		
 	}
 
 	@Override
-	public void getRet(PrintStream p, Compiler c, Scope s, Args args, Variable v, RStack stack) throws CompileError {
+	public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack) throws CompileError {
 	}
 
 	@Override
-	public Number getEstimate(Args args) {
+	public Number getEstimate(BFCallToken token) {
 		return null;
 	}
 

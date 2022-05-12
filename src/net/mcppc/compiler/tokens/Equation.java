@@ -11,6 +11,7 @@ import java.util.regex.Matcher;
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Const.ConstType;
+import net.mcppc.compiler.Function.FuncCallToken;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.struct.*;
@@ -47,6 +48,16 @@ public class Equation extends Token {
 		e.wasOpenedWithParen=false;
 		e.isAnArg=true;
 		e.populate(c, m);
+		return e;
+	}
+	public static Equation toArgueHusk(RStack stack,Token... tokens) throws CompileError {
+		Equation e=new Equation(-1,-1,stack);
+		e.isTopLevel=false;
+		e.isAnArg=true;
+		e.wasOpenedWithParen=false;
+		e.doesAnyOps=tokens.length>=2;
+		e.startsWithUniOp = tokens.length==2 && tokens[0] instanceof UnaryOp;
+		for(Token t: tokens)e.elements.add(t);
 		return e;
 	}
 	public boolean wasLastArg() throws CompileError {
@@ -227,25 +238,35 @@ public class Equation extends Token {
 					if(!((Type)v).type.isStruct()) throw new CompileError("cannot construct non-struct type: %s;".formatted(((Type)v).type.asString()));
 					Struct struct=((Type)v).type.struct;
 					Token name=c.nextNonNullMatch(lookForValue);
-					if(v instanceof Token.MemberName &&
-							(((Token.MemberName) v).names.size()==1) )
+					if(name instanceof Token.MemberName &&
+							(((Token.MemberName) name).names.size()==1) )
 						;
 					else throw new CompileError.UnexpectedToken(name, "static function of struct %s".formatted(v.asString()));
-					if(!struct.hasStaticBuiltinMethod((((Token.MemberName) v).names.get(0)))) 
+					if(!struct.hasStaticBuiltinMethod((((Token.MemberName) name).names.get(0)))) 
 						throw new CompileError.UnexpectedToken(name, "static function %s not found in struct %s".formatted(name.asString(),v.asString()));
-					BuiltinStaticStructMethod bf=struct.getStatictBuiltinMethod((((Token.MemberName) v).names.get(0)), ((Type)v).type);
+					BuiltinFunction bf=struct.getStaticBuiltinMethod((((Token.MemberName) name).names.get(0)), ((Type)v).type);
+					BuiltinFunction.open(c);
 					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col,this.stack, bf);
-					v=sub;
+					sub.withTemplate(((Type)v).type.getTemplateArgs(c.currentScope));//transfer template from arg to function
+					if(sub.canConvert()) {
+						v=sub.convert(c);
+						((FuncCallToken) v).linkMeByForce(c, c.currentScope);
+					}else 
+						v=sub;
 					//throw new CompileError("static struct members not yet supported");
 				}
-				if (!(close instanceof Token.Paren)) throw new CompileError.UnexpectedToken(close,")");
+				else if (!(close instanceof Token.Paren)) throw new CompileError.UnexpectedToken(close,")");
 				else{
 					if(((Paren)close).forward) {
 						if(!((Type)v).type.isStruct()) throw new CompileError("cannot construct non-struct type: %s;".formatted(((Type)v).type.asString()));
 						Struct struct=((Type)v).type.struct;
 						BuiltinConstructor cstr=struct.getConstructor(((Type)v).type);
 						BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col,this.stack, cstr);
-						v=sub;
+						if(sub.canConvert()) {
+							v=sub.convert(c);
+							((FuncCallToken) v).linkMeByForce(c, c.currentScope);
+						}else 
+							v=sub;
 						//throw new CompileError.UnexpectedToken(close,")","constructors not supported yet");
 					}else {
 						//typecast
@@ -339,8 +360,13 @@ public class Equation extends Token {
 					//a builtin function
 					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col,this.stack, ((Token.MemberName) v).names.get(0));
 					if(tempargs!=null)sub.withTemplate(tempargs);
+					if(sub.canConvert()) {
+						v=sub.convert(c);
+						((FuncCallToken) v).linkMeByForce(c, c.currentScope);
+					}
+					else 
+						v=sub;
 					//this.elements.add(sub);
-					v=sub;
 
 				}
 				else {

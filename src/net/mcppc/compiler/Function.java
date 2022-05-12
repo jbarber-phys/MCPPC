@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.functions.AbstractCallToken;
 import net.mcppc.compiler.tokens.*;
 import net.mcppc.compiler.tokens.Equation.End;
 
@@ -24,7 +25,7 @@ import net.mcppc.compiler.tokens.Equation.End;
  */
 public class Function {
 	public static final boolean ALLOCATE_ON_CALL = false;//this is false to save lines
-	public static class FuncCallToken extends Token implements Identifiable{
+	public static class FuncCallToken extends AbstractCallToken implements Identifiable{
 		public static FuncCallToken make(Compiler c,int line,int col,Matcher m,Token.MemberName func,RStack stack) throws CompileError {
 			FuncCallToken f=new FuncCallToken(line,col,func);
 			FuncCallToken.addArgs(c, line, col, m,  stack, f.args);
@@ -55,14 +56,21 @@ public class Function {
 			super(line, col);
 			this.names=fname.names;
 		}
+		boolean isIdentified=false;
+		public FuncCallToken(int line, int col,String fname,Function f) {
+			super(line, col);
+			this.names=List.of(fname);
+			this.func=f;
+			this.isIdentified=true;
+		}
 		public FuncCallToken addArg(Equation arg) {
 			this.args.add(arg);return this;
 		}
-		public FuncCallToken withTemplate(TemplateArgsToken tgs) {
+		@Override public FuncCallToken withTemplate(TemplateArgsToken tgs) {
 			this.tempArgs=tgs;return this;
 		}
 
-		public boolean hasTemplate() {
+		@Override public boolean hasTemplate() {
 			return this.tempArgs!=null;
 		}
 		@Override public String asString() {
@@ -80,7 +88,10 @@ public class Function {
 		public void linkMe(Compiler c,Scope s) throws CompileError {
 			c.myInterface.linkFunction(this,c,s);
 		}
-
+		public void linkMeByForce(Compiler c,Scope s) throws CompileError {
+			c.myInterface.linkFunction(this,c,s,true);
+		}
+		@Override
 		public void call(PrintStream p,Compiler c,Scope s,RStack stack) throws CompileError {
 			//todo call this.func.mcf
 			if(ALLOCATE_ON_CALL) this.func.allocateMyLocals(p);
@@ -95,8 +106,7 @@ public class Function {
 			}
 
 			//actually call the function
-			//TODO request template
-			if(this.tempArgs!=null)this.func.requestTemplate(tempArgs, s);
+			this.requestTemplate(s);
 			p.printf("function %s\n", this.getMyMCF());
 			
 			for(int i=0;i<this.func.args.size();i++) {
@@ -110,23 +120,39 @@ public class Function {
 			//set retval later
 			
 		} 
+		public void requestTemplate(Scope s) throws CompileError {
+			if(this.tempArgs!=null)this.func.requestTemplate(tempArgs, s);
+		}
 		public ResourceLocation getMyMCF() {
 			return this.func.getMCF(this.tempArgs);
 		}
+		@Override
 		public void getRet(PrintStream p,Compiler c,Scope s,RStack stack,int home) throws CompileError {
+			if(this.hasTemplate())s.addTemplateConstsTemporarily(func, tempArgs);
 			this.func.returnV.getMe(p,s, stack,home);
+			if(this.hasTemplate()) {
+				//convert type;
+				stack.setVarType(home, this.getRetType().breakTiesToTemplate(s));
+				s.removeTemporaryConsts();
+			}
 		}
+		@Override
 		public void getRet(PrintStream p,Compiler c,Scope s,Variable v,RStack stack) throws CompileError {
 			
-			if(func.template!=null)s.addTemplateConstsTemporarily(func, tempArgs);
+			if(this.hasTemplate())s.addTemplateConstsTemporarily(func, tempArgs);
 			Variable.directSet(p,s, v, this.func.returnV, stack);
-			s.removeTemporaryConsts();
+			if(this.hasTemplate())s.removeTemporaryConsts();
 		}
 		public Variable getRetConstRef() {
 			return this.func.returnV;
 		}
+		@Override
 		public Number getEstimate() {
-			return null;//TODO
+			return null;
+		}
+		@Override
+		public VarType getRetType() {
+			return this.func.retype;
 		}
 	}
 	ResourceLocation resoucrelocation;

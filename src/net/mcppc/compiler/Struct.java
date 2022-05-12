@@ -12,9 +12,11 @@ import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.CompileError.UnsupportedCast;
 import net.mcppc.compiler.errors.Warnings;
+import net.mcppc.compiler.functions.FunctionMask;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Num;
+import net.mcppc.compiler.tokens.TemplateArgsToken;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.UnaryOp;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
@@ -113,7 +115,8 @@ public abstract class Struct {
 	public String headerTypeString(VarType varType){//no throws
 		return this.name;
 	}
-	public abstract int getPrecision(VarType mytype, Scope s) throws CompileError;//no throws
+	public abstract int getPrecision(VarType mytype, Scope s) throws CompileError;
+	public abstract String getPrecisionStr(VarType mytype) ;
 	/**
 	 * used for custom print settings for /tellraw
 	 * @param variable the variable to be displayed
@@ -347,12 +350,18 @@ public abstract class Struct {
 	 *
 	 */
 	
-
+	
 	public boolean hasStaticBuiltinMethod(String name) {
 		return false;
 	}
-	public BuiltinStaticStructMethod getStatictBuiltinMethod(String name,VarType type) throws CompileError {
+	public BuiltinFunction getStaticBuiltinMethod(String name,VarType type) throws CompileError {
 		throw new CompileError.BFuncNotFound(this, name, true);
+	}
+	protected boolean hasStaticBuiltinMethodBasic(String name,Map<String,FunctionMask> mds) {
+		return mds.containsKey(name);
+	}
+	protected BuiltinFunction getStaticBuiltinMethodBasic(String name,VarType type,Map<String,FunctionMask> mds) throws CompileError {
+		return mds.get(name);
 	}
 	
 	public BuiltinConstructor getConstructor(VarType myType) throws CompileError {
@@ -371,5 +380,8 @@ public abstract class Struct {
 
 	public VarType withTemplatePrecision(VarType varType, String pc) throws CompileError{
 		return varType;//do nothing
+	}
+	public TemplateArgsToken getTemplateArgs(VarType varType, Scope s) throws CompileError {
+		return null;
 	}
 }

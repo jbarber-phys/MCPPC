@@ -81,6 +81,10 @@ public class Entity extends Struct {
 	public int getPrecision(VarType mytype, Scope s) throws CompileError {
 		return 0;
 	}
+	@Override
+	public String getPrecisionStr(VarType mytype)  {
+		return "";
+	}
 
 
 	@Override

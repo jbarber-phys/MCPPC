@@ -84,6 +84,9 @@ public class Scope {
 	public ResourceLocation getSubRes() {
 		return getSubRes(this.resBase);
 	}
+	public ResourceLocation getSubResNoTemplate() {
+		return getSubRes(this.resBase,true);
+	}
 	public static ResourceLocation getSubRes(ResourceLocation base,Function f) {
 		StringBuffer path=new StringBuffer();
 		path.append(base.path);
@@ -128,6 +131,9 @@ public class Scope {
 		return new ResourceLocation(base.namespace,path.toString());
 	}
 	public ResourceLocation getSubRes(ResourceLocation res) {
+		return this.getSubRes(res, false);
+	}
+	public ResourceLocation getSubRes(ResourceLocation res,boolean stripTemplate) {
 		if(this.parent==null)return res;
 		StringBuffer path=new StringBuffer();
 		path.append(res.path);
@@ -135,8 +141,11 @@ public class Scope {
 		//System.err.println(path);
 		if(function!=null) {
 			TemplateDefToken bound = this.templateBoundToMeOrParrent();
-			try { Scope.appendSubResSubFunc(path, function,bound==null?null:bound.defaultArgs());}
-			catch (CompileError e) {
+			
+			try { 
+				TemplateArgsToken targs=(bound==null || stripTemplate)?null:bound.defaultArgs();
+				Scope.appendSubResSubFunc(path, function,targs);
+			} catch (CompileError e) {
 				e.printStackTrace();
 				path.append("_null_");
 			}
@@ -267,10 +276,11 @@ public class Scope {
 		return getBreakVarInMe(0);
 	}
 	public Variable getBreakVarInMe(int depth) {
+		//note: break ignores template
 		if(this.isBreakable) {
 			//internal scope to the loop
 			if(depth==0) {
-				final Variable bk=new Variable("\"$break\"",VarType.BOOL,null,this.getSubRes());
+				final Variable bk=new Variable("\"$break\"",VarType.BOOL,null,this.getSubResNoTemplate());
 				return bk;
 			}
 			if(this.parent==null)return null;

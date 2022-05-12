@@ -70,6 +70,12 @@ public class FloatpN extends Struct {
 	}
 
 	@Override
+	public String getPrecisionStr(VarType mytype)  {
+		//should never be called
+		return "";
+	}
+
+	@Override
 	protected String getJsonTextFor(Variable self) throws CompileError {
 		return this.varValue(self).getJsonText();
 	}

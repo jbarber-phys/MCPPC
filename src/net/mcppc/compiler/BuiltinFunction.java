@@ -11,6 +11,7 @@ import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Function.FuncCallToken;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.functions.AbstractCallToken;
 import net.mcppc.compiler.functions.PrintF;
 import net.mcppc.compiler.functions.Tp;
 import net.mcppc.compiler.tokens.Equation;
@@ -53,7 +54,7 @@ public abstract class BuiltinFunction {
 	public static boolean alias(BuiltinFunction func,String alias) {
 		return BUILTIN_FUNCTIONS.put(alias, func)==null;
 	}
-	public static class BFCallToken extends Token{
+	public static class BFCallToken extends AbstractCallToken{
 		public static BFCallToken make(Compiler c,Matcher m,int line, int col,RStack stack,String name) throws CompileError {
 			BFCallToken t=new BFCallToken(line,col,BUILTIN_FUNCTIONS.get(name));
 			t.args=t.f.tokenizeArgs(c, m, line, col,stack);
@@ -77,27 +78,45 @@ public abstract class BuiltinFunction {
 		public String asString() {
 			return "%s(...)".formatted(f.name);
 		}
+		@Override
 		public void call(PrintStream p, Compiler c, Scope s,RStack stack) throws CompileError {
-			this.f.call(p, c, s, args,stack);
+			this.f.call(p, c, s, this,stack);
 		}
+		@Override
 		public void getRet(PrintStream p, Compiler c, Scope s,RStack stack,int stackstart) throws CompileError {
-			this.f.getRet(p, c, s, args, stack, stackstart);
+			this.f.getRet(p, c, s, this, stack, stackstart);
 		}
+		@Override
 		public void getRet(PrintStream p, Compiler c, Scope s,Variable v,RStack stack) throws CompileError {
-			this.f.getRet(p, c, s, args, v, stack);
+			this.f.getRet(p, c, s, this, v, stack);
 		}
+		@Override
 		public VarType getRetType() {
-			return this.f.getRetType(args);
+			return this.f.getRetType(this);
 		}
+		@Override
 		public Number getEstimate() {
-			return this.f.getEstimate(args);
+			return this.f.getEstimate(this);
 		}
-
+		@Override
 		public boolean hasTemplate() {
 			return this.tempArgs!=null;
 		}
+		@Override
 		public BFCallToken withTemplate(TemplateArgsToken tgs) {
 			this.tempArgs=tgs;return this;
+		}
+		public TemplateArgsToken getTemplate() {
+			return this.tempArgs;
+		}
+		public boolean canConvert() {
+			return this.getBF().canConvert(this);
+		}
+		public Function.FuncCallToken convert(Compiler c) throws CompileError{
+			return this.getBF().convert(this, c);
+		}
+		public Args getArgs() {
+			return this.args;
 		}
 		
 	}
@@ -142,7 +161,7 @@ public abstract class BuiltinFunction {
 			return this.targs.isEmpty();
 		}
 	}
-	public abstract VarType getRetType(Args a);
+	public abstract VarType getRetType(BFCallToken token);
 	public final String name;
 	public BuiltinFunction(String name) {
 		this.name=name;
@@ -158,10 +177,10 @@ public abstract class BuiltinFunction {
 	 */
 	public abstract Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col,RStack stack)throws CompileError ;
 	
-	public abstract void call(PrintStream p, Compiler c, Scope s,Args args,RStack stack) throws CompileError;
-	public abstract void getRet(PrintStream p, Compiler c, Scope s,Args args,RStack stack,int stackstart) throws CompileError;
-	public abstract void getRet(PrintStream p, Compiler c, Scope s,Args args,Variable v,RStack stack) throws CompileError;
-	public abstract Number getEstimate(Args args);
+	public abstract void call(PrintStream p, Compiler c, Scope s,BFCallToken token,RStack stack) throws CompileError;
+	public abstract void getRet(PrintStream p, Compiler c, Scope s,BFCallToken token,RStack stack,int stackstart) throws CompileError;
+	public abstract void getRet(PrintStream p, Compiler c, Scope s,BFCallToken token,Variable v,RStack stack) throws CompileError;
+	public abstract Number getEstimate(BFCallToken token);
 	
 	
 	
@@ -269,7 +288,13 @@ public abstract class BuiltinFunction {
 			throw new CompileError.UnexpectedToken(sep,"')' or ','");
 		}
 	}
-	
+
+	public boolean canConvert(BFCallToken token) {
+		return false;
+	}
+	public Function.FuncCallToken convert(BFCallToken token, Compiler c) throws CompileError{
+		throw new CompileError("cannot convert %s to mcf;".formatted(token.getBF().name));
+	}
 	public static class SetFlagStopMultiDiv extends BuiltinFunction {
 		public static final SetFlagStopMultiDiv instance = new SetFlagStopMultiDiv("stopLongMult");
 		public SetFlagStopMultiDiv(String name) {
@@ -277,7 +302,7 @@ public abstract class BuiltinFunction {
 		}
 
 		@Override
-		public VarType getRetType(Args a) {
+		public VarType getRetType(BFCallToken token) {
 			return VarType.VOID;
 		}
 
@@ -289,8 +314,9 @@ public abstract class BuiltinFunction {
 		}
 
 		@Override
-		public void call(PrintStream p, Compiler c, Scope s, Args args, RStack stack) throws CompileError {
+		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 			boolean b;
+			 Args args = token.args;
 			if(((BasicArgs)args).isEmpty() || ((BasicArgs)args).arg(0)==null )b=true;
 			else{
 				Bool t = (Bool) ((BasicArgs)args).arg(0);
@@ -300,18 +326,18 @@ public abstract class BuiltinFunction {
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, Args args, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
 				throws CompileError {//void
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, Args args, Variable v, RStack stack)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
 				throws CompileError {
 			// void
 		}
 
 		@Override
-		public Number getEstimate(Args args) {
+		public Number getEstimate(BFCallToken token) {
 			return null;
 		}
 		
@@ -327,8 +353,8 @@ public abstract class BuiltinFunction {
 		}
 
 		@Override
-		public VarType getRetType(Args a) {
-			return null;
+		public VarType getRetType(BFCallToken token) {
+			return this.rtype;
 		}
 
 		@Override
@@ -337,12 +363,12 @@ public abstract class BuiltinFunction {
 		}
 
 		@Override
-		public void call(PrintStream p, Compiler c, Scope s, Args args, RStack stack) throws CompileError {
+		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 			if(this.rtype.isVoid())p.printf("%s\n", this.cmd);
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, Args args, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
 				throws CompileError {
 			if(this.rtype.isVoid())return;
 			Register r=stack.getRegister(stackstart);
@@ -353,17 +379,17 @@ public abstract class BuiltinFunction {
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, Args args, Variable v, RStack stack)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
 				throws CompileError {
 			if(this.rtype.isVoid())return;
 			int home = stack.setNext(this.rtype);
-			this.getRet(p, c, s, args, stack, home);
+			this.getRet(p, c, s, token, stack, home);
 			stack.pop();
 			
 		}
 
 		@Override
-		public Number getEstimate(Args args) {
+		public Number getEstimate(BFCallToken token) {
 			return null;
 		}
 		

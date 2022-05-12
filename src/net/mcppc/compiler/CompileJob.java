@@ -41,6 +41,7 @@ public class CompileJob {
 	
 
 	public static final String STDLIB_NAMESPACE="mcppc";
+	public static final String MINECRAFT="minecraft";
 	public static final boolean INCLUDE_STDLIB=true;
 	
 
@@ -85,7 +86,6 @@ public class CompileJob {
 	}
 	//compiles many files at once:
 	public static class Namespace {
-		public static final String MINECRAFT="minecraft";
 		String name;
 		public final boolean isExternal;
 		//File dataDir;//depricated; is asociated with multiple locations; CompileJob has methods for this instead;
@@ -630,8 +630,6 @@ public class CompileJob {
 		}return true;
 	}
 
-	//TODO figure out (and when to) which external mcfs need to be copied (linking);
-		//may need to re-read headers to recursively find dependancies
 	public boolean traceExternalImports() {
 		boolean success=true;
 		while(!this.externalImports.isEmpty()) {

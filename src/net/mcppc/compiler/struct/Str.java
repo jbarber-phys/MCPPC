@@ -37,6 +37,11 @@ public class Str extends Struct{
 	public int getPrecision(VarType mytype, Scope s) throws CompileError {
 		return 0;
 	}
+
+	@Override
+	public String getPrecisionStr(VarType mytype)  {
+		return "";
+	}
 	@Override
 	protected String getJsonTextFor(Variable variable) throws CompileError {
 		return variable.getJsonTextBasic();

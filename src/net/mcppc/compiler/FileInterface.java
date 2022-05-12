@@ -282,12 +282,16 @@ public class FileInterface {
 	}
 
 	public  void linkFunction(Function.FuncCallToken t,Compiler c, Scope s) throws CompileError {
+		this.linkFunction(t, c, s, false);
+	}
+	public  void linkFunction(Function.FuncCallToken t,Compiler c, Scope s,boolean forceStrict) throws CompileError {
 		if(!t.func.hasTemplate())return;
 		//add link request
 		List<String> names = t.names;
 		String name=names.get(0);
 		boolean isSelf=this.isSelf(s);
 		boolean isLibStrict=this.libs.containsKey(name) && this.importsStrict.get(name) && isSelf;
+		isLibStrict= isLibStrict || forceStrict;
 		if(isLibStrict) {
 			ResourceLocation res=t.getMyMCF();
 			c.job.externalImportsStrict.add(res);

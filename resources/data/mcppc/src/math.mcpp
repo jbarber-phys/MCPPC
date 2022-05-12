@@ -1,0 +1,30 @@
+//standard math library
+
+public<num n= 1 .. 6 > double<n> sqrt(double<n> x) {
+	//implimentation uses newtons method
+	//note: do not use if it can be avoided; uses ~100 to 1000 cmds
+	private const num iters = 5;
+	private double<n> mult=1;
+	private int iter;
+	if(x<0) {errorf("Error, attempted to sqrt(%s); undoing minus sign to prevent inf loop",x);x = -x;}
+	while (true) {
+		if(x>2.1) {
+			mult = mult*2;
+			x = x/4;
+		}else if (x<0.49){
+			mult = mult/2;
+			x = x*4;
+		}
+		else {
+			break = true;//note: break ignores template
+		}
+		printf("x=%s",x);
+	}
+	private double<n> r=1;
+	for(iter,1,iters){
+		r = (r*r+x)/2/r;
+	}
+	return = mult * r;
+}
+
+
