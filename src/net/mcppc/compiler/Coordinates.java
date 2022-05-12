@@ -17,6 +17,9 @@ import net.mcppc.compiler.tokens.Token;
  *
  */
 public class Coordinates {
+	public static final CoordToken ZERO =new CoordToken(-1,-1, new Coordinates("0","0","0"));
+	public static final CoordToken ATME =new CoordToken(-1,-1, new Coordinates("~","~","~"));
+	public static final CoordToken FORWARD =new CoordToken(-1,-1, new Coordinates("^","^","^1"));
 	public static class CoordToken extends Const.ConstExprToken{
 		public static final Factory factory=new Factory(Regexes.COORDS) {
 			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
@@ -28,6 +31,11 @@ public class Coordinates {
 		public CoordToken(int line, int col,Matcher m) {
 			super(line, col);
 			this.pos=new Coordinates(m);
+		}
+
+		public CoordToken(int line, int col,Coordinates pos) {
+			super(line, col);
+			this.pos=pos;
 		}
 		@Override public String asString() {
 			return pos.asString();
@@ -60,6 +68,9 @@ public class Coordinates {
 	final String[] vec;
 	Coordinates(Matcher m){
 		vec=new String[]{m.group(1),m.group(2),m.group(3)};
+	}
+	Coordinates(String x,String y,String z){
+		vec=new String[]{x,y,z};
 	}
 	public Coordinates(Num x,Num y,Num z){
 		vec=new String[]{CMath.getMultiplierFor(x.value.doubleValue())

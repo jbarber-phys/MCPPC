@@ -582,7 +582,7 @@ public class Vector extends Struct {
 		return false;
 	}
 	@Override
-	public BuiltinStructMethod getBuiltinMethod(Variable self, String name) throws CompileError {
+	public BuiltinFunction getBuiltinMethod(Variable self, String name) throws CompileError {
 		return null;
 	}
 	

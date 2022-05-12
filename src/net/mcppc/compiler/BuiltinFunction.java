@@ -45,8 +45,36 @@ public abstract class BuiltinFunction {
 		register(SetFlagStopMultiDiv.instance);
 	}
 	
-	public static boolean isBuiltinFunc(String name) {
-		return BUILTIN_FUNCTIONS.containsKey(name);
+	private static boolean isBuiltinFunc(List<String> names,Compiler c,Scope s) {
+		return BuiltinFunction.getBuiltinFunc(names, c, s)!=null;
+	}
+
+	public static BuiltinFunction getBuiltinFunc(List<String> names,Compiler c,Scope s) {
+		//return null if absent
+		BuiltinFunction bf=null;
+		bf = BUILTIN_FUNCTIONS.get(names.get(0));
+		if(bf!=null || names.size()<=1)return bf;
+		List<String> subnames = names.subList(0, names.size()-1);String mname=names.get(names.size()-1);
+		//System.err.printf("check for var methods\n");
+		Variable v;
+		try {
+			v=c.myInterface.identifyVariable(subnames, s);
+		} catch (CompileError e) {
+			//System.err.printf("v=null\n");
+			v=null;
+		}
+		if(v!=null && v.type.isStruct()) {
+			Struct st=v.type.struct;
+			if(st.hasBuiltinMethod(mname, v.type)){
+				try {
+					bf=st.getBuiltinMethod(v, mname);
+				} catch (CompileError e) {
+					//leave null
+				}
+			}
+		}
+		
+		return bf;
 	}
 	public static boolean register(BuiltinFunction func) {
 		return BUILTIN_FUNCTIONS.put(func.name, func)==null;
@@ -55,8 +83,9 @@ public abstract class BuiltinFunction {
 		return BUILTIN_FUNCTIONS.put(alias, func)==null;
 	}
 	public static class BFCallToken extends AbstractCallToken{
-		public static BFCallToken make(Compiler c,Matcher m,int line, int col,RStack stack,String name) throws CompileError {
-			BFCallToken t=new BFCallToken(line,col,BUILTIN_FUNCTIONS.get(name));
+		@Deprecated
+		private static BFCallToken make(Compiler c,Matcher m,int line, int col,RStack stack,List<String> names) throws CompileError {
+			BFCallToken t=new BFCallToken(line,col,BuiltinFunction.getBuiltinFunc(names, c, c.currentScope));
 			t.args=t.f.tokenizeArgs(c, m, line, col,stack);
 			return t;
 		}
@@ -163,6 +192,9 @@ public abstract class BuiltinFunction {
 	}
 	public abstract VarType getRetType(BFCallToken token);
 	public final String name;
+	public boolean isNonstaticMember() {
+		return false;
+	}
 	public BuiltinFunction(String name) {
 		this.name=name;
 	}

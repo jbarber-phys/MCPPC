@@ -28,9 +28,13 @@ public class ResourceLocation {
 			super(line, col);
 			this.res=new ResourceLocation(m);
 		}
+		public ResourceToken(int line, int col,ResourceLocation res) {
+			super(line, col);
+			this.res=res;
+		}
 		@Override
 		public String asString() {
-			return null;
+			return this.res.toString();
 		}
 		
 	}

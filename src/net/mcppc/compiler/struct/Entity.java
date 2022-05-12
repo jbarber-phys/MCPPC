@@ -1,12 +1,17 @@
 package net.mcppc.compiler.struct;
 
 import java.io.PrintStream;
+import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.mcppc.compiler.BuiltinFunction;
+import net.mcppc.compiler.CompileJob;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Const;
+import net.mcppc.compiler.Coordinates;
+import net.mcppc.compiler.Coordinates.CoordToken;
 import net.mcppc.compiler.Scope;
 import net.mcppc.compiler.Selector;
 import net.mcppc.compiler.Selector.SelectorToken;
@@ -14,10 +19,13 @@ import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.Struct;
 import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.Variable;
+import net.mcppc.compiler.BuiltinFunction.BasicArgs;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.RStack;
 import net.mcppc.compiler.Register;
+import net.mcppc.compiler.ResourceLocation;
+import net.mcppc.compiler.ResourceLocation.ResourceToken;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Regexes;
@@ -35,8 +43,8 @@ public class Entity extends Struct {
 	public static final Entity entity;
 	public static final Entity entities;
 	static {
-		entity = new Entity("Entity");
-		entities = new Entity("Entities");
+		entity = new Entity("Entity",false);
+		entities = new Entity("Entities",true);
 	}
 	public static void registerAll() {
 		//TODO java.lang.NullPointerException: Cannot read field "name" because "net.mcppc.compiler.struct.Entity.entity" is null
@@ -199,17 +207,18 @@ public class Entity extends Struct {
 	public Variable getField(Variable self, String name) throws CompileError {
 		return null;
 	}
-
-	@Override
+	public static Map<String,BuiltinFunction> BFS = Map.of(
+			Summon.instance.name,Summon.instance
+			,Kill.instance.name,Kill.instance
+			);
+	@Override 
 	public boolean hasBuiltinMethod(String name, VarType mytype) {
-		// TODO Auto-generated method stub
-		return false;
+		return super.hasBuiltinMethodBasic(name, BFS);
 	}
 
 	@Override
-	public BuiltinStructMethod getBuiltinMethod(Variable self, String name) throws CompileError {
-		// TODO Auto-generated method stub
-		return null;
+	public BuiltinFunction getBuiltinMethod(Variable self, String name) throws CompileError {
+		return super.getBuiltinMethodBasic(self,name, BFS);
 	}
 	public static Selector checkForSelectorOrEntity(Compiler c,Scope s, Matcher matcher, int line, int col) throws CompileError {
 		ConstExprToken slc=Const.checkForExpressionSafe(c, s, matcher, line, col, ConstType.SELECTOR);
@@ -262,13 +271,136 @@ public class Entity extends Struct {
 		}
 		
 	}
+	public static final ResourceLocation ENTITY_TYPE_MARKER = new ResourceLocation(CompileJob.MINECRAFT,"marker");
+	//TODO improve hash
 	public static Selector summonTemp(PrintStream p,Compiler c,Scope s,Object... hash) throws CompileError {
 		String tag = "mcppc+temp%x".formatted(Objects.hash(hash));
-		final String type = "marker";//https://minecraft.fandom.com/wiki/Marker
-		String args = "type=%s,tag=%s,limit=1".formatted(type,tag);
-		p.printf("summon %s ~ ~ ~ {Tags: [\"%s\"]}\n", type,tag);
+		//final String type = "marker";//https://minecraft.fandom.com/wiki/Marker
+		String args = "type=%s,tag=%s,limit=1".formatted(ENTITY_TYPE_MARKER,tag);
+		p.printf("summon %s ~ ~ ~ {Tags: [\"%s\"]}\n", ENTITY_TYPE_MARKER,tag);
 		Selector e= new Selector("@e",args);
 		return e;
 	}
+	public static class Summon extends BuiltinFunction {
+		public static Summon instance = new Summon("summon");
+		public Summon(String name) {
+			super(name);
+		}
+		public boolean isNonstaticMember() {
+			return true;
+		}
 
+		@Override
+		public VarType getRetType(BFCallToken token) {
+			return VarType.VOID;
+		}
+
+		@Override
+		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+			final Token.Factory[] lookEtype = Factories.genericCheck(ResourceLocation.ResourceToken.factory);
+			BasicArgs args=new BasicArgs();
+			Token etype=c.nextNonNullMatch(lookEtype);
+			boolean comma=false;
+			if(etype instanceof ResourceLocation.ResourceToken) {
+				args.add("etype", etype);
+				if(!BuiltinFunction.findArgsep(c)) {
+					return args;
+				}
+				comma=true;
+			}else {
+				etype = new ResourceLocation.ResourceToken(-1,-1,ENTITY_TYPE_MARKER);
+				args.add("etype", etype);
+			}
+			ConstExprToken pos = Const.checkForExpressionSafe(c, c.currentScope, matcher, line, col, ConstType.COORDS);
+			if(pos==null) {
+				pos = Coordinates.ATME;
+				if (comma)throw new CompileError("unexpected ',' after entity type but no pos after");
+			}
+			args.add("pos",pos);
+			
+			if(!BuiltinFunction.findArgsep(c)) {
+				return args;
+			}
+			throw new CompileError("unexpected ',' after args");
+		}
+
+		@Override
+		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
+			Variable v=token.getThisBound();
+			if(v==null)throw new CompileError("function %s must be called as a nonstaic member".formatted(this.name));
+			if(!(v.isStruct() && v.type.struct instanceof Entity))throw new CompileError("function %s must be called from an entity object".formatted(this.name));
+			Entity clazz = (Entity) v.type.struct;
+			ResourceLocation.ResourceToken etype = (ResourceToken) ((BasicArgs) token.getArgs()).arg("etype");
+			//System.out.printf("etype = %s\n", etype.asString());
+			Coordinates.CoordToken pos = (CoordToken) ((BasicArgs) token.getArgs()).arg("pos");
+			String tag = clazz.getScoreTag(v);
+			if(!clazz.many) {
+				//free existing
+				clazz.clear(p, v);
+			}
+			p.printf("summon %s %s {Tags: [\"%s\"]}\n", etype.asString(),pos.pos.inCMD(),tag);
+		}
+
+		@Override
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+				throws CompileError {
+			
+		}
+
+		@Override
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
+				throws CompileError {
+			
+		}
+
+		@Override
+		public Number getEstimate(BFCallToken token) {
+			return null;
+		}
+		
+	}
+	public static class Kill extends BuiltinFunction{
+		public static Kill instance = new Kill("kill");
+		public Kill(String name) {
+			super(name);
+		}
+		public boolean isNonstaticMember() {
+			return true;
+		}
+		@Override
+		public VarType getRetType(BFCallToken token) {
+			return VarType.VOID;
+		}
+
+		@Override
+		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+			return BuiltinFunction.tokenizeArgsNone(c, matcher, line, col);
+		}
+
+		@Override
+		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
+			Variable v=token.getThisBound();
+			if(v==null)throw new CompileError("function %s must be called as a nonstaic member".formatted(this.name));
+			if(!(v.isStruct() && v.type.struct instanceof Entity))throw new CompileError("function %s must be called from an entity object".formatted(this.name));
+			Entity clazz = (Entity) v.type.struct;
+			Selector slc = clazz.getSelectorFor(v);
+			p.printf("kill %s\n", slc.toCMD());
+		}
+
+		@Override
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+				throws CompileError {
+		}
+
+		@Override
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
+				throws CompileError {
+		}
+
+		@Override
+		public Number getEstimate(BFCallToken token) {
+			return null;
+		}
+		
+	}
 }

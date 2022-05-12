@@ -1,5 +1,6 @@
 package net.mcppc.compiler.tokens;
 
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -10,6 +11,8 @@ import net.mcppc.compiler.Function;
 import net.mcppc.compiler.NbtPath;
 import net.mcppc.compiler.RStack;
 import net.mcppc.compiler.Selector;
+import net.mcppc.compiler.Variable;
+import net.mcppc.compiler.Function.FuncCallToken;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Equation.End;
 import net.mcppc.compiler.tokens.Statement.FuncCallStatement;
@@ -104,12 +107,24 @@ public final class Factories {
 				//function call
 				//constructor has its own hook
 				//CompileJob.compileMcfLog.printf("call to: %s; builtins are %s;\n", nm.names,BuiltinFunction.BUILTIN_FUNCTIONS.keySet());
-				if((nm.names.size()==1) &&
-						BuiltinFunction.isBuiltinFunc((nm.names.get(0)))) {
+				BuiltinFunction bf = BuiltinFunction.getBuiltinFunc(nm.names, c, c.currentScope);
+				if(bf!=null) {
 					//a builtin function
 					//CompileJob.compileMcfLog.printf("builtin funct: %s\n", nm.names);
+					//TODO static members
 					RStack stack=c.currentScope.getStackFor();
-					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, matcher, nm.line, nm.col,stack, nm.names.get(0));
+					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, matcher, nm.line, nm.col,stack, bf);
+					if(bf.isNonstaticMember()) {
+						List<String> nms=((Token.MemberName) nm).names;nms=nms.subList(0, nms.size()-1);
+						Variable self = c.myInterface.identifyVariable(nms, c.currentScope);
+						sub.withThis(self);
+					}if(sub.canConvert()) {
+						Function.FuncCallToken ft=sub.convert(c);
+						((FuncCallToken) ft).linkMeByForce(c, c.currentScope);
+						Token end=c.nextNonNullMatch(Factories.nextIsLineEnd);
+						if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(end, ";","code block after builtin func not yet supported");
+						return new Statement.FuncCallStatement(line,col,ft,c);
+					}
 					Token end=c.nextNonNullMatch(Factories.nextIsLineEnd);
 					if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(end, ";","code block after builtin func not yet supported");
 					return new Statement.BuiltinFuncCallStatement(line, col, sub);

@@ -24,4 +24,14 @@ public abstract class AbstractCallToken extends Token {
 	abstract public Number getEstimate();
 	abstract public AbstractCallToken withTemplate(TemplateArgsToken tgs) ;
 	abstract public boolean hasTemplate() ;
+	
+	Variable thisBound=null;
+	public boolean hasThisBound() {return thisBound!=null;
+	}
+	public Variable getThisBound() {
+		return thisBound;
+	}
+	public void withThis(Variable self) {
+		thisBound=self;
+	}
 }

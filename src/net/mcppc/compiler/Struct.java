@@ -339,7 +339,14 @@ public abstract class Struct {
 	
 
 	public abstract boolean hasBuiltinMethod(String name,VarType mytype);
-	public abstract BuiltinStructMethod getBuiltinMethod(Variable self,String name) throws CompileError;
+	public abstract BuiltinFunction getBuiltinMethod(Variable self,String name) throws CompileError;
+	//implementation Buffet
+	protected boolean hasBuiltinMethodBasic(String name,Map<String,BuiltinFunction> mds) {
+		return mds.containsKey(name);
+	}
+	protected BuiltinFunction getBuiltinMethodBasic(Variable self,String name,Map<String,BuiltinFunction> mds) throws CompileError {
+		return mds.get(name);
+	}
 	
 	
 	//currently not possible to make non-builtin methods as they require the instance to be bound or unneccicarily copied;

@@ -235,6 +235,7 @@ public class Equation extends Token {
 				this.doesAnyOps=true;
 				Token close=c.nextNonNullMatch(lookForOperation);
 				if(close instanceof Token.Member) {
+					//static methods
 					if(!((Type)v).type.isStruct()) throw new CompileError("cannot construct non-struct type: %s;".formatted(((Type)v).type.asString()));
 					Struct struct=((Type)v).type.struct;
 					Token name=c.nextNonNullMatch(lookForValue);
@@ -258,6 +259,7 @@ public class Equation extends Token {
 				else if (!(close instanceof Token.Paren)) throw new CompileError.UnexpectedToken(close,")");
 				else{
 					if(((Paren)close).forward) {
+						//Constructors
 						if(!((Type)v).type.isStruct()) throw new CompileError("cannot construct non-struct type: %s;".formatted(((Type)v).type.asString()));
 						Struct struct=((Type)v).type.struct;
 						BuiltinConstructor cstr=struct.getConstructor(((Type)v).type);
@@ -354,12 +356,17 @@ public class Equation extends Token {
 			if (op instanceof Token.Paren && ((Token.Paren) op).forward) {
 				//function call
 				//constructor has its own hook
-				if(v instanceof Token.MemberName &&
-						(((Token.MemberName) v).names.size()==1) &&
-						BuiltinFunction.isBuiltinFunc((((Token.MemberName) v).names.get(0)))) {
+				BuiltinFunction bf = null;
+				if(v instanceof Token.MemberName )bf=BuiltinFunction.getBuiltinFunc(((Token.MemberName) v).names, c, c.currentScope);
+				if(bf!=null) {
 					//a builtin function
-					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col,this.stack, ((Token.MemberName) v).names.get(0));
+					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col,this.stack, bf);
 					if(tempargs!=null)sub.withTemplate(tempargs);
+					if(bf.isNonstaticMember()) {
+						List<String> nms=((Token.MemberName) v).names;nms=nms.subList(0, nms.size()-1);
+						Variable self = c.myInterface.identifyVariable(nms, c.currentScope);
+						sub.withThis(self);
+					}
 					if(sub.canConvert()) {
 						v=sub.convert(c);
 						((FuncCallToken) v).linkMeByForce(c, c.currentScope);

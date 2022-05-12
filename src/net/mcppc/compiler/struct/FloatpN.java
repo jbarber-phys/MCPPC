@@ -4,6 +4,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.mcppc.compiler.BuiltinFunction;
 import net.mcppc.compiler.CMath;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Register;
@@ -209,7 +210,7 @@ public class FloatpN extends Struct {
 	}
 
 	@Override
-	public BuiltinStructMethod getBuiltinMethod(Variable self, String name) throws CompileError {
+	public BuiltinFunction getBuiltinMethod(Variable self, String name) throws CompileError {
 		return null;
 	}
 
