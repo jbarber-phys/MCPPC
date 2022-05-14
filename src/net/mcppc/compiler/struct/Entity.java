@@ -313,10 +313,14 @@ public class Entity extends Struct {
 				etype = new ResourceLocation.ResourceToken(-1,-1,ENTITY_TYPE_MARKER);
 				args.add("etype", etype);
 			}
+			final Token.Factory[] wild20 = {Token.WildChar.dontPassFactory20};
+			//System.err.printf("pos: '%s';\n", c.nextNonNullMatch(wild20).asString());
 			ConstExprToken pos = Const.checkForExpressionSafe(c, c.currentScope, matcher, line, col, ConstType.COORDS);
 			if(pos==null) {
 				pos = Coordinates.ATME;
-				if (comma)throw new CompileError("unexpected ',' after entity type but no pos after");
+				if (comma) {
+					throw new CompileError("unexpected ',' after entity type but no pos after");
+				}
 			}
 			args.add("pos",pos);
 			

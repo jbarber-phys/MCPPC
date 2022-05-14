@@ -105,6 +105,7 @@ public class Const {
 
 		ConstVarToken cvt=Const.identifyConst(c,s, matcher, line, col, forbidden, types);
 		Const vc=cvt.constv;
+		//System.err.printf("fount const %s = %s; %s;\n",vc.name,vc.value==null?"null":vc.value.asString(),vc.refsTemplate());
 		if(vc.refsTemplate())
 			return cvt;
 		else return vc.value;

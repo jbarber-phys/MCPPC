@@ -494,10 +494,12 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			
 			//? ~~
 			if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ESTIMATE) {
-				Token est=c.nextNonNullMatch(lookCompiletime);
+				Token est;
+				/*est=c.nextNonNullMatch(lookCompiletime);
 				if(!(est instanceof Num)) {
 					est=Num.tokenizeNextNumNonNull(c,typescope, matcher, line, col);
-				}
+				}*/
+				est=Num.tokenizeNextNumNonNull(c,typescope, matcher, line, col);
 				if(!(est instanceof Num)) throw new CompileError.UnexpectedToken(est, "number");
 				d.estimate=((Num)est).value;
 				asn = c.nextNonNullMatch(look);

@@ -45,17 +45,25 @@ public final class Regexes {
 	
 	public static final Pattern SKIPLINE_MID=Pattern.compile("((%s)|[^;\\n])*\\n".formatted(STRLITSTRING)); // ((%s)|[^;\n])*\n
 	public static final Pattern SKIPLINE_END=Pattern.compile("((%s)|[^;\\n])*;".formatted(STRLITSTRING)); // ((%s)|[^;\n])*;
-	public static final Pattern CMD=Pattern.compile("\\$?/(((%s)|[^\\\"';\\n])*)(?=;|\\n|$)".formatted(STRLITSTRING));// \$?/(((%s)|[^\"';\n])*)(?=;|\n|$)
-	public static final Pattern CMD_SAFE=Pattern.compile("\\$/(((%s)|[^\\\"';\\n])*)(?=;|\\n|$)".formatted(STRLITSTRING));// \$/(((%s)|[^\"';\n])*)(?=;|\n|$)
+	
+	
+	public static final String CMDGROUP = "(?<cmd>((%s)|[^\\\"';\\\\\\n])*)".formatted(STRLITSTRING); 
+	// (?<cmd>((%s)|[^\\\"';\\n])*)
+	// (?<cmd>((%s)|[^\"';\\\n])*)
+	public static final Pattern CMD=Pattern.compile("((?<=^|[^/])|\\$)/%s(?=;|\\n|$)".formatted(CMDGROUP));// ((?<=^|[^/])|\$)/%s(?=;|\n|$)
 
+	public static final Pattern CMD_SAFE=Pattern.compile("\\$/%s(?=;|\\n|$)".formatted(CMDGROUP));// \$/%s(?=;|\n|$)
+
+	
+	
 	public static final Pattern SELECTOR=Pattern.compile("(@?[\\w-]+)\\s*\\[(((%s)|[^\\\"\\[\\]\\n]|\\[\\[|\\]\\])*)\\]".formatted(STRLITSTRING));// (@?[\w-]+)\s*\[(((%s)|[^\"\[\]\n]|\[\[|\]\])*)\]
 	//public static final Pattern COORDS_OLD=Pattern.compile("([\\^~]?[+-]?\\d+)\\s+([\\^~]?[+-]?\\d*)\\s+([\\^~]?[+-]?\\d*)");// ([\^~]?[+-]?\d+)\s+([\^~]?[+-]?\d*)\s+([\^~]?[+-]?\d*)
 	
 	//ungrouped: use (?<x>%s)
-	public static final String TILDE_HAT_NUM = "(?!([\\^~]\\.|[\\^~]-)(?!\\d))([\\^~]\\d*\\.*\\d*)|((?!([\\^~]\\.|[\\^~]-)(?!\\d))(\\d+\\.*\\d*|\\d*\\.*\\d+))";
-		// (?!([\^~]\.|[\^~]-)(?!\d))([\^~]\d*\.*\d*)|((?!([\^~]\.|[\^~]-)(?!\d))(\d+\.*\d*|\d*\.*\d+))
-	public static final String TILDE_NOHAT_NUM = "(?!([~]\\.|[~]-)(?!\\d))([~]\\d*\\.*\\d*)|((?!([~]\\.|[~]-)(?!\\d))(\\d+\\.*\\d*|\\d*\\.*\\d+))";
-		// (?!([~]\.|[~]-)(?!\d))([~]\d*\.*\d*)|((?!([~]\.|[~]-)(?!\d))(\d+\.*\d*|\d*\.*\d+))
+	public static final String TILDE_HAT_NUM = "(-?(\\d+(\\.\\d*|)|\\.\\d+))|[\\^~](-?(\\d+(\\.\\d*|)|\\.\\d+))|[\\^~]";
+		// (-?(\d+(\.\d*|)|\.\d+))|[\^~](-?(\d+(\.\d*|)|\.\d+))|[\^~]
+	public static final String TILDE_NOHAT_NUM = "(-?(\\d+(\\.\\d*|)|\\.\\d+))|[~](-?(\\d+(\\.\\d*|)|\\.\\d+))|[~]";
+		// (-?(\d+(\.\d*|)|\.\d+))|[~](-?(\d+(\.\d*|)|\.\d+))|[~]
 	//public static final Pattern COORDS=Pattern.compile("([\\^~]?[+-]?\\d*)\\s+([\\^~]?[+-]?\\d*)\\s+([\\^~]?[+-]?\\d*)");// ([\^~]?[+-]?\d*)\s+([\^~]?[+-]?\d*)\s+([\^~]?[+-]?\d*)
 	public static final Pattern COORDS=Pattern.compile("(?<x>%s)\\s+(?<y>%s)\\s+(?<z>%s)".formatted(TILDE_HAT_NUM,TILDE_HAT_NUM,TILDE_HAT_NUM));
 		// (?<x>%s)\s+(?<y>%s)\s+(?<z>%s)
@@ -107,6 +115,7 @@ public final class Regexes {
 	 */
 	
 	public static final Pattern NEXT_10_CHAR=Pattern.compile(".{1,10}");// .{1,10}
+	public static final Pattern NEXT_20_CHAR=Pattern.compile(".{1,20}");// .{1,10}
 	
 	/**
 	 * 

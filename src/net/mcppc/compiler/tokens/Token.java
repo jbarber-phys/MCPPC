@@ -114,6 +114,16 @@ public abstract class Token {
 				//do not change cursor location
 				return new WildChar(line,col,matcher.group());
 			}};
+		public static final Factory dontPassFactory10=new Factory(Regexes.NEXT_10_CHAR) {
+			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+				//do not change cursor location
+				return new WildChar(line,col,matcher.group());
+			}};
+		public static final Factory dontPassFactory20=new Factory(Regexes.NEXT_20_CHAR) {
+			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+				//do not change cursor location
+				return new WildChar(line,col,matcher.group());
+			}};
 		final String s;
 		public WildChar(int line, int col,String c) {
 			super(line, col);

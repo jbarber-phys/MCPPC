@@ -133,7 +133,7 @@ public abstract class Statement extends Token implements TreePrintable{
 			public Factory(Pattern pattern) {super(pattern);}
 			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
 				c.cursor=matcher.end();
-				return new CommandToken(line,col,matcher.group(1));
+				return new CommandToken(line,col,matcher.group("cmd"));
 			}}
 		public static final Token.Factory factory=new Factory(Regexes.CMD);
 		public static final Token.Factory factorySafe=new Factory(Regexes.CMD_SAFE);
@@ -161,7 +161,7 @@ public abstract class Statement extends Token implements TreePrintable{
 		public static final Statement.Factory factory=new Statement.Factory(Regexes.CMD) {
 			@Override public Statement createStatement(Compiler c, Matcher matcher, int line, int col) throws CompileError {
 				c.cursor=matcher.end();
-				CommandToken t=new CommandToken(line,col,matcher.group(1));
+				CommandToken t=new CommandToken(line,col,matcher.group("cmd"));
 				if(c.nextNonNullMatch(Factories.nextIsLineEnd) instanceof Token.LineEnd)
 					c.cursor=matcher.end();
 				else throw new CompileError.UnexpectedToken(t, ";");

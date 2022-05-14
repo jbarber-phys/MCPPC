@@ -72,6 +72,11 @@ public abstract class Struct {
 	public static Struct getStruct(String name) {
 		return STRUCTS.get(name);
 	}
+	@Deprecated private static interface IMCFRetTypeStruct{
+		//this wont work; lookbehinds must be fixed length
+		public String getGroup();
+	}
+	
 	public final String name;
 	public final boolean isNumeric;
 	public final boolean isFloatP;
