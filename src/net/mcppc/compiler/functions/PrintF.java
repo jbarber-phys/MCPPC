@@ -14,6 +14,7 @@ import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.Token.StringToken;
+import net.mcppc.compiler.tokens.TreePrintable;
 /**
  * prints a string with formatting to the console
  * this is an abstraction of /tellraw...
@@ -179,7 +180,7 @@ public class PrintF extends BuiltinFunction{
 					if(anon.willAllocateOnLoad(false))anon.allocate(p, false);
 					eq.setVar(p, c, s, anon);
 					if(eq.retype.isLogical()) {
-						convertBoolToStr(p,anon);
+						convertBoolToStr(p,anon,s,stack);
 					}
 					jsonargs.add(anon.getJsonText());
 				}
@@ -199,9 +200,16 @@ public class PrintF extends BuiltinFunction{
 				,this.color
 				);
 	}
-	public void convertBoolToStr(PrintStream p,Variable var) {
-		p.printf("execute unless %s run data modify %s set value \"true\"\n", var.matchesPhrase("0"),var.dataPhrase());
-		p.printf("execute unless %s run data modify %s set value \"false\"\n", var.matchesPhrase("\"true\""),var.dataPhrase());
+	public void convertBoolToStr(PrintStream p,Variable var,Scope s,RStack stack) throws CompileError {
+		//p.printf("execute unless %s run data modify %s set value \"true\"\n", var.matchesPhrase("0"),var.dataPhrase());
+		//p.printf("execute unless %s run data modify %s set value \"false\"\n", var.matchesPhrase("\"true\""),var.dataPhrase());
+		//return;
+		int h=stack.reserve(1);
+		var.getMe(p, s, stack, h);
+		Register r=stack.getRegister(h);
+		p.printf("execute if score %s matches 1.. run data modify %s set value \"true\"\n", r.inCMD(),var.dataPhrase());
+		p.printf("execute unless score %s matches 1.. run data modify %s set value \"false\"\n", r.inCMD(),var.dataPhrase());
+		
 	}
 	public void printf(PrintStream p, String format,IPrintable... args) throws CompileError {
 		this.printf(p,Selector.AT_S, format, args);
@@ -218,5 +226,17 @@ public class PrintF extends BuiltinFunction{
 				, argstr
 				,this.color
 				);
+	}
+
+	public void printStatementTree(PrintStream p,BFCallToken token,int tabs) {
+		//for debuging
+		StringBuffer s=new StringBuffer();while(s.length()<tabs)s.append('\t');
+		PrintF.PrintfArgs args = (PrintfArgs) token.getArgs();
+		p.printf("%s%s( %s\n",s.toString(), this.name,args.lit);
+		for(Token t:args.targs) {
+			if(t instanceof TreePrintable) ((TreePrintable) t).printStatementTree(p, tabs+1);
+			else  p.printf("%s\t%s\n",s.toString(), t.asString());
+		}
+		p.printf("%s\t)\n",s.toString(), this.name);
 	}
 }

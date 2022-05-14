@@ -20,10 +20,11 @@ import net.mcppc.compiler.tokens.BiOperator.OpType;
 /**
  * a numeric equation;
  * currently does not support string equations; if its added, it will be a seperate token
+ * TODO (a+b).method()
  * @author jbarb_t8a3esk
  *
  */
-public class Equation extends Token {
+public class Equation extends Token  implements TreePrintable{
 	private static final boolean PRE_EVAL_EXP = false;
 	public static Equation toAssign(int line,int col,Compiler c,Matcher m) throws CompileError {
 		Equation e=new Equation(line,col,c);
@@ -58,6 +59,17 @@ public class Equation extends Token {
 		e.doesAnyOps=tokens.length>=2;
 		e.startsWithUniOp = tokens.length==2 && tokens[0] instanceof UnaryOp;
 		for(Token t: tokens)e.elements.add(t);
+		return e;
+	}
+	public static Equation subEqHusk(RStack stack,Token... tokens) throws CompileError {
+		Equation e=new Equation(-1,-1,stack);
+		e.isTopLevel=false;
+		e.isAnArg=false;
+		e.wasOpenedWithParen=true;
+		e.doesAnyOps=tokens.length>=2;
+		e.startsWithUniOp = tokens.length==2 && tokens[0] instanceof UnaryOp;
+		for(Token t: tokens)e.elements.add(t);
+		e.end=End.CLOSEPAREN;
 		return e;
 	}
 	public boolean wasLastArg() throws CompileError {
@@ -250,8 +262,11 @@ public class Equation extends Token {
 					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col,this.stack, bf);
 					sub.withTemplate(((Type)v).type.getTemplateArgs(c.currentScope));//transfer template from arg to function
 					if(sub.canConvert()) {
-						v=sub.convert(c);
-						((FuncCallToken) v).linkMeByForce(c, c.currentScope);
+						v=sub.convert(c, c.currentScope, this.stack);
+						if(v instanceof FuncCallToken)
+							((FuncCallToken) v).linkMeByForce(c, c.currentScope);
+						if (v instanceof Equation)
+							this.doesAnyOps=true;
 					}else 
 						v=sub;
 					//throw new CompileError("static struct members not yet supported");
@@ -265,8 +280,11 @@ public class Equation extends Token {
 						BuiltinConstructor cstr=struct.getConstructor(((Type)v).type);
 						BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col,this.stack, cstr);
 						if(sub.canConvert()) {
-							v=sub.convert(c);
-							((FuncCallToken) v).linkMeByForce(c, c.currentScope);
+							v=sub.convert(c, c.currentScope, this.stack);
+							if(v instanceof FuncCallToken)
+								((FuncCallToken) v).linkMeByForce(c, c.currentScope);
+							if (v instanceof Equation)
+								this.doesAnyOps=true;
 						}else 
 							v=sub;
 						//throw new CompileError.UnexpectedToken(close,")","constructors not supported yet");
@@ -366,10 +384,15 @@ public class Equation extends Token {
 						List<String> nms=((Token.MemberName) v).names;nms=nms.subList(0, nms.size()-1);
 						Variable self = c.myInterface.identifyVariable(nms, c.currentScope);
 						sub.withThis(self);
+						TemplateArgsToken typetemp = self.type.getTemplateArgs(c.currentScope);
+						sub.prependTemplate(typetemp);
 					}
 					if(sub.canConvert()) {
-						v=sub.convert(c);
-						((FuncCallToken) v).linkMeByForce(c, c.currentScope);
+						v=sub.convert(c, c.currentScope, this.stack);
+						if(v instanceof FuncCallToken)
+							((FuncCallToken) v).linkMeByForce(c, c.currentScope);
+						if (v instanceof Equation)
+							this.doesAnyOps=true;
 					}
 					else 
 						v=sub;
@@ -732,5 +755,11 @@ public class Equation extends Token {
 			
 		}
 		return this.homeReg;
+	}
+
+	@Override
+	public void printStatementTree(PrintStream p, int tabs) {
+		this.printTree(p, tabs);
+		
 	}
 }

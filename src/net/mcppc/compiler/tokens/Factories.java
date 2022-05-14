@@ -91,6 +91,9 @@ public final class Factories {
 				return Statement.Assignment.makeBreak(c, matcher, line, col);
 			case RETURN:
 				return Statement.Assignment.makeReturn(c, matcher, line, col);
+			case THIS:
+				break;//treat it as a normal var name and it will work
+				//return Statement.Assignment.makeThis(c, matcher, line, col);
 
 			case CONST:
 				throw new CompileError("keyword %s not expected at start of statement".formatted(w.name));
@@ -111,7 +114,7 @@ public final class Factories {
 				if(bf!=null) {
 					//a builtin function
 					//CompileJob.compileMcfLog.printf("builtin funct: %s\n", nm.names);
-					//TODO static members
+					//static and nonstatic members
 					RStack stack=c.currentScope.getStackFor();
 					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, matcher, nm.line, nm.col,stack, bf);
 					if(bf.isNonstaticMember()) {
@@ -119,11 +122,17 @@ public final class Factories {
 						Variable self = c.myInterface.identifyVariable(nms, c.currentScope);
 						sub.withThis(self);
 					}if(sub.canConvert()) {
-						Function.FuncCallToken ft=sub.convert(c);
-						((FuncCallToken) ft).linkMeByForce(c, c.currentScope);
-						Token end=c.nextNonNullMatch(Factories.nextIsLineEnd);
-						if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(end, ";","code block after builtin func not yet supported");
-						return new Statement.FuncCallStatement(line,col,ft,c);
+						Token ft=sub.convert(c, c.currentScope, stack);
+						if(!(ft instanceof Function.FuncCallToken)) {
+							throw new CompileError("function converted to non-call token in statement start context; not yet supported;");
+							//TODO
+						}else {
+							((FuncCallToken) ft).linkMeByForce(c, c.currentScope);
+							Token end=c.nextNonNullMatch(Factories.nextIsLineEnd);
+							if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(end, ";","code block after builtin func not yet supported");
+							return new Statement.FuncCallStatement(line,col,((FuncCallToken) ft),c);
+							
+						}
 					}
 					Token end=c.nextNonNullMatch(Factories.nextIsLineEnd);
 					if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(end, ";","code block after builtin func not yet supported");
@@ -235,7 +244,11 @@ public final class Factories {
 	public static final Token.Factory[] checkForMembName = Factories.genericCheck(Token.MemberName.factory);
 	public static final Token.Factory[] checkForBasicName = Factories.genericCheck(Token.BasicName.factory);
 	public static final Token.Factory[] checkForRangesep = Factories.genericCheck(Token.RangeSep.factory);
-	public static final Token.Factory[] checkForAssignlike = {newline,comment,space,Statement.Domment.factory,Token.Assignlike.factoryAssign,Token.Assignlike.factoryEstimate,Token.WildChar.dontPassFactory};
+	public static final Token.Factory[] checkForAssignlike = Factories.genericCheck(Token.Assignlike.factoryAssign,Token.Assignlike.factoryEstimate);
+	public static final Token.Factory[] checkForAssignlikeOrMemb = Factories.genericCheck(Token.Assignlike.factoryAssign,Token.Assignlike.factoryEstimate,Token.Member.factory);
+	public static final Token.Factory[] checkForAssignlikeOrOparen = Factories.genericCheck(Token.Assignlike.factoryAssign,Token.Assignlike.factoryEstimate,Token.Paren.factory);
+
+	//public static final Token.Factory[] checkForAssignlike = {newline,comment,space,Statement.Domment.factory,Token.Assignlike.factoryAssign,Token.Assignlike.factoryEstimate,Token.WildChar.dontPassFactory};
 	public static final Token.Factory[] nextNum = {newline,comment,domment,space,Num.factory};
 	public static final Token.Factory[] checkForNullableNumber = {newline,comment,domment,space,Num.factory,Num.nullfactory,Token.WildChar.dontPassFactory};	
 	//returns a nonnull WildChar after space; does this without moving past the wildchar

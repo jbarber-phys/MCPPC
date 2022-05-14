@@ -131,6 +131,18 @@ public class Type extends Const.ConstLiteralToken {
 		}
 		
 	}
+	public static Type checkForVarType(Compiler c,Scope s, Matcher matcher, int line, int col)  {
+		int start=c.cursor;
+		try {
+			Type t=Type.tokenizeNextVarType(c,s, matcher, line, col,new ArrayList<Const>());
+			return t;
+		} catch (CompileError e) {
+			//e.printStackTrace();
+			c.cursor=start;
+			return null;
+		}
+		
+	}
 	//Depricated
 	@Deprecated static final Token.Factory depfactory = new Factory(Regexes.NAME) {
 		@Override

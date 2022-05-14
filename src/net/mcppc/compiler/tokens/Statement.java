@@ -23,8 +23,7 @@ import net.mcppc.compiler.tokens.Token.Assignlike.Kind;
  * @author jbarb_t8a3esk
  *
  */
-public abstract class Statement extends Token {
-	//public boolean isOpeningCodeBlock=false;
+public abstract class Statement extends Token implements TreePrintable{
 	public static interface Headerable {
 		public boolean doHeader();
 		public void headerMe(PrintStream f) throws CompileError;
@@ -64,7 +63,7 @@ public abstract class Statement extends Token {
 	public Statement(int line, int col) {
 		super(line, col);
 	}
-	public void printStatementTree(PrintStream p,int tabs) {
+	@Override public void printStatementTree(PrintStream p,int tabs) {
 		//for debuging
 		StringBuffer s=new StringBuffer();while(s.length()<tabs)s.append('\t');
 		p.printf("%s<%s>;\n", s.toString(),this.getClass().getSimpleName());
@@ -78,6 +77,7 @@ public abstract class Statement extends Token {
 	public static class Domment extends Statement implements Headerable{
 		public static final Statement.Factory factory=new Statement.Factory(Regexes.DOMMENT) {
 			@Override public Statement createStatement(Compiler c, Matcher matcher, int line, int col) {
+				if(CompileJob.dommentLog!=null)CompileJob.dommentLog.printf("///%s\n", matcher.group(1));
 				c.cursor=matcher.end(); return new Domment(line,col,matcher.group(1));
 			}
 		};
@@ -215,6 +215,7 @@ public abstract class Statement extends Token {
 			Token asn=c.nextNonNullMatch(Factories.checkForAssignlike);
 			if(!c.currentScope.isInFunctionDefine()) throw new CompileError("unexpected return statement outside of function;");
 			Variable ret=c.currentScope.getFunction().returnV;
+			//calls to makeReturn are not allowed
 			//? =
 			if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ASSIGNMENT) {
 				Equation eq=Equation.toAssign(line, col, c, m);
@@ -314,6 +315,12 @@ public abstract class Statement extends Token {
 			token.call(f, c, s, stack);
 			stack.finish(c.job);
 		}
+		@Override 
+		public void printStatementTree(PrintStream p,int tabs) {
+			//for debuging
+			this.token.getBF().printStatementTree(p, this.token, tabs);
+		}
+		
 		
 	}
 }

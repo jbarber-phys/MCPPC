@@ -5,6 +5,7 @@
 	//private Vec3d posto -> Sto.Pos;
 private const coords forward = ^ ^ ^1 ;
 private const coords resetpos = ^ ^ ^ ;
+private const coords zeropos = 0.0 0.0 0.0 ;
 
 
 //private int glb;
@@ -51,6 +52,55 @@ public<num n = 1 .. 6> Vec3d<n> lookAt(Entity from,Entity to,int pow) { //TESTED
 	}
 	return = hat;
 }
+public<num n = 1 .. 6> Vec3d<n> looking(Entity me) { 
+	//TODO TEST
+	private Entity e;
+	private Vec3d<n> pos -> e.Pos;
+	e.summon(zeropos);
+	execute asat(e) rotated (me) {
+		tp(@s[],forward);
+		return = pos;
+	}
+	e.kill();
+	
+}
+public<num n = 1 .. 6> Vec3d<n> Vec3d<n>.norm() final {
+	//TODO test
+	//TODO may be inlinable
+	///i was here
+	private Entity e;
+	private Entity e2;
+	private Vec3d<n> pos -> e.Pos;
+	private Vec3d<n> pos2 -> e2.Pos;
+	e.summon(zeropos);
+	e2.summon(zeropos);
+	pos2 = this;
+	execute asat(e) facing (e2) {
+		tp(@s[],forward);
+		return = pos;
+	}
+	e.kill();
+	e2.kill();
+	
+}
+public<num n = 1 .. 6> double<n> Vec3d<n>.mag() final {//TODO test
+	//TODO may be inlinable
+	private Entity e;
+	private Entity e2;
+	private Vec3d<n> pos -> e.Pos;
+	private Vec3d<n> pos2 -> e2.Pos;
+	e.summon(zeropos);
+	e2.summon(zeropos);
+	pos2 = this;
+	execute asat(e) facing (e2) {
+		tp(@s[],forward);
+		return = pos*this;
+	}
+	e.kill();
+	e2.kill();
+	
+}
 
 private int dbled = 2;
 dbled = dbl<3,3> (dbled);
+

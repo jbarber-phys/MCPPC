@@ -18,6 +18,7 @@ import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
 
+//TODO list on data get returns its size
 public class Variable implements PrintF.IPrintable{
 	public final String name;
 	public final VarType type;
@@ -43,6 +44,9 @@ public class Variable implements PrintF.IPrintable{
 	private boolean isReference=false;
 	public boolean isReference() {
 		return isReference;
+	}
+	public void makeFinalThis() {
+		this.isReference=false;//dont back copy from a final method
 	}
 	public boolean isBasic() {
 		return this.isbasic;
@@ -98,6 +102,12 @@ public class Variable implements PrintF.IPrintable{
 		this.address="%s.%s".formatted(f.name,Function.RET_TAG);
 		this.holder=f.getResoucrelocation().toString();
 		this.isParameter=true;
+		return this;
+	} Variable thisOf(Function f) {
+		this.address="%s.%s".formatted(f.name,Function.THIS_TAG);
+		this.holder=f.getResoucrelocation().toString();
+		this.isParameter=true;
+		this.isReference=true;//this is always passed by reference
 		return this;
 	}
 	public Variable maskEntity(Selector s,NbtPath path)  throws CompileError {
@@ -512,7 +522,7 @@ public class Variable implements PrintF.IPrintable{
 	}
 	public boolean hasField(String name) {
 		if(!this.isStruct()) return false;
-		return this.type.struct.hasField(name, this.type);
+		return this.type.struct.hasField(this, name);
 	}
 
 	public Variable getField(String name) throws CompileError {

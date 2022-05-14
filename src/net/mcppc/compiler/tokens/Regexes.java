@@ -50,10 +50,19 @@ public final class Regexes {
 
 	public static final Pattern SELECTOR=Pattern.compile("(@?[\\w-]+)\\s*\\[(((%s)|[^\\\"\\[\\]\\n]|\\[\\[|\\]\\])*)\\]".formatted(STRLITSTRING));// (@?[\w-]+)\s*\[(((%s)|[^\"\[\]\n]|\[\[|\]\])*)\]
 	//public static final Pattern COORDS_OLD=Pattern.compile("([\\^~]?[+-]?\\d+)\\s+([\\^~]?[+-]?\\d*)\\s+([\\^~]?[+-]?\\d*)");// ([\^~]?[+-]?\d+)\s+([\^~]?[+-]?\d*)\s+([\^~]?[+-]?\d*)
-	public static final Pattern COORDS=Pattern.compile("([\\^~]?[+-]?\\d*)\\s+([\\^~]?[+-]?\\d*)\\s+([\\^~]?[+-]?\\d*)");// ([\^~]?[+-]?\d*)\s+([\^~]?[+-]?\d*)\s+([\^~]?[+-]?\d*)
 	
-	public static final Pattern ROTATION=Pattern.compile("([~]?[+-]?\\d*)\\s+([~]?[+-]?\\d*)");// ([~]?[+-]?\d*)\s+([~]?[+-]?\d*)
+	//ungrouped: use (?<x>%s)
+	public static final String TILDE_HAT_NUM = "(?!([\\^~]\\.|[\\^~]-)(?!\\d))([\\^~]\\d*\\.*\\d*)|((?!([\\^~]\\.|[\\^~]-)(?!\\d))(\\d+\\.*\\d*|\\d*\\.*\\d+))";
+		// (?!([\^~]\.|[\^~]-)(?!\d))([\^~]\d*\.*\d*)|((?!([\^~]\.|[\^~]-)(?!\d))(\d+\.*\d*|\d*\.*\d+))
+	public static final String TILDE_NOHAT_NUM = "(?!([~]\\.|[~]-)(?!\\d))([~]\\d*\\.*\\d*)|((?!([~]\\.|[~]-)(?!\\d))(\\d+\\.*\\d*|\\d*\\.*\\d+))";
+		// (?!([~]\.|[~]-)(?!\d))([~]\d*\.*\d*)|((?!([~]\.|[~]-)(?!\d))(\d+\.*\d*|\d*\.*\d+))
+	//public static final Pattern COORDS=Pattern.compile("([\\^~]?[+-]?\\d*)\\s+([\\^~]?[+-]?\\d*)\\s+([\\^~]?[+-]?\\d*)");// ([\^~]?[+-]?\d*)\s+([\^~]?[+-]?\d*)\s+([\^~]?[+-]?\d*)
+	public static final Pattern COORDS=Pattern.compile("(?<x>%s)\\s+(?<y>%s)\\s+(?<z>%s)".formatted(TILDE_HAT_NUM,TILDE_HAT_NUM,TILDE_HAT_NUM));
+		// (?<x>%s)\s+(?<y>%s)\s+(?<z>%s)
 
+	//public static final Pattern ROTATION=Pattern.compile("([~]?[+-]?\\d*)\\s+([~]?[+-]?\\d*)");// ([~]?[+-]?\d*)\s+([~]?[+-]?\d*)
+	public static final Pattern ROTATION=Pattern.compile("(?<ang1>%s)\\s+(?<ang2>%s)".formatted(TILDE_NOHAT_NUM,TILDE_NOHAT_NUM));
+	// (?<ang1>%s)\s+(?<ang2>%s)
 	
 	//selector: escape [] for arrays by doubling them: {Pos[[1]]: 0d}
 	public static final Pattern STRLIT=Pattern.compile(STRLITSTRING);// string escaping is so important that other regexes get to have it in them

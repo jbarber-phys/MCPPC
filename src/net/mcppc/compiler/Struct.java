@@ -293,7 +293,7 @@ public abstract class Struct {
 		}
 		p.printf("data modify %s set value %s\n",var.dataPhrase(), DEFAULT_COMPOUND);
 		//or data remove <this> will also work, as sets to members will create sub-compounds
-		for(String name:fieldNames) if(this.hasField(name, var.type)){
+		for(String name:fieldNames) if(this.hasField(var, name)){
 			Variable field=this.getField(var, name);
 			field.allocate(p, fillWithDefaultvalue);
 		}
@@ -325,11 +325,11 @@ public abstract class Struct {
 	/*
 	 * members:
 	 */
-	public abstract boolean hasField(String name,VarType mytype);
+	public abstract boolean hasField(Variable self,String name);
 	public abstract Variable getField(Variable self,String name) throws CompileError;
 	
 	
-	public boolean canIndexMe(int i) throws CompileError{
+	public boolean canIndexMe(Variable self, int i) throws CompileError{
 		return false;
 	}
 	public Variable getIndexRef(Variable self,int index) throws CompileError{throw new CompileError.VarNotFound(this, index);};
@@ -338,7 +338,7 @@ public abstract class Struct {
 	}
 	
 
-	public abstract boolean hasBuiltinMethod(String name,VarType mytype);
+	public abstract boolean hasBuiltinMethod(Variable self,String name);
 	public abstract BuiltinFunction getBuiltinMethod(Variable self,String name) throws CompileError;
 	//implementation Buffet
 	protected boolean hasBuiltinMethodBasic(String name,Map<String,BuiltinFunction> mds) {

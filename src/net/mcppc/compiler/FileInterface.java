@@ -165,6 +165,9 @@ public class FileInterface {
 		if(isSelf && s!=null && s.isInFunctionDefine()) {
 			//function args
 			Function f=s.function;
+			if(f.hasThis() && name.equals(Keyword.THIS.name)) {
+				return true;
+			}
 			for(Variable arg:f.args) {
 				if (arg.name.equals(name)) {
 					return true;
@@ -219,6 +222,9 @@ public class FileInterface {
 		if(isSelf && s!=null && s.isInFunctionDefine()) {
 			//function args
 			Function f=s.function;
+			if(f.hasThis() && name.equals(Keyword.THIS.name)) {
+				return f.self;
+			}
 			for(Variable arg:f.args) {
 				if (arg.name.equals(name)) {
 					return arg;
@@ -277,7 +283,7 @@ public class FileInterface {
 			return v;
 		}else {
 			if (!isVar && names.size()>=2+start)throw new CompileError("library (or variable) %s not found loaded in scope %s.".formatted(name,s.resBase));
-			else throw new CompileError("variable (or library) %s not found in scope %s".formatted(String.join(".", names),s.resBase));
+			else throw new CompileError("variable (or library) %s not found in scope %s".formatted(String.join(".", names),s.getSubRes()));
 		}
 	}
 
@@ -319,16 +325,27 @@ public class FileInterface {
 			throw new CompileError("var had member of member; not yet supported");
 		}
 		String name=names.get(0+start);
+		boolean hasNext = names.size()>start+1;
 		boolean isSelf=this.isSelf(s);
 		boolean isLib=this.libs.containsKey(name) && isSelf;
-		boolean isFunc=this.hasFunc(name, s);
+		boolean isVar=this.hasVar(name, s)&& hasNext && false;
+		boolean isFunc=this.hasFunc(name, s) ;
 		//boolean isVar=this.hasVar(name, s);
 		if(names.size()>=2+start && isLib) {
 			return this.libs.get(name).identifyFunction(names, s, start+1);
 		}else if (isFunc){
 			Function f=this.getFunc(name, s);
 			return f;
-		}else {
+		}else if (isVar){
+			//nonstatic members
+			Variable v = this.getVar(name, s);
+			if(!v.type.isStruct()) throw new CompileError("type %s has no members;".formatted(v.type.asString()));
+			Struct clazz = v.type.struct;
+			String nextname = names.get(1+start);
+			//unreached,
+			throw new CompileError("memb funcs do not exist yet unless builtin");
+			
+		} else {
 			if (!isFunc && names.size()>=2+start)throw new CompileError("library %s not found loaded in scope %s.".formatted(name,s.resBase));
 			else throw new CompileError("function %s not found in scope %s".formatted(String.join(".", names),s.resBase));
 		}

@@ -27,7 +27,6 @@ public class Selector {
 			public InvalidSelector(SelectorToken token) {
 				super("invalid selector '%s'; non-@ player names may not contain args in the [] (empty [] are ok)"
 						.formatted(token.selector().toCMD()));
-				// TODO Auto-generated constructor stub
 			}
 			
 		}
@@ -45,6 +44,10 @@ public class Selector {
 		public SelectorToken(int line, int col,Matcher m) {
 			super(line, col,ConstType.SELECTOR);
 			val=new Selector(m);
+		}
+		public SelectorToken(int line, int col,Selector s) {
+			super(line, col,ConstType.SELECTOR);
+			val=s;
 		}
 		@Override public String asString() {
 			return val.argsHDR;

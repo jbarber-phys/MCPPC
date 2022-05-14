@@ -51,6 +51,10 @@ public class RStack {
 	}
 	//reserves extra registers without type-ing them
 	public int reserve(int numReg) {
+		if(this.vartypes.isEmpty()) {
+			if(this.maxSizeEver<numReg)this.maxSizeEver=numReg;
+			return 0;
+		}
 		if(this.maxSizeEver<this.getTop()+this.getVarType(this.getTop()).sizeOf()+numReg)
 			this.maxSizeEver=this.getTop()+this.getVarType(this.getTop()).sizeOf()+numReg;
 		return this.getExtra();

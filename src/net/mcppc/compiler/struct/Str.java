@@ -11,7 +11,7 @@ import net.mcppc.compiler.VarType.Builtin;
 import net.mcppc.compiler.errors.CompileError;
 /**
  * string tags cannot be appended / inserted ...
- * 
+ * TODO can use data get to get string length (similar to array size)
  * @author jbarb_t8a3esk
  *
  */
@@ -67,7 +67,7 @@ public class Str extends Struct{
 		return Struct.DEFAULT_STRING;
 	}
 	@Override
-	public boolean hasField(String name, VarType mytype) {
+	public boolean hasField(Variable self, String name) {
 		return false;
 	}
 	@Override
@@ -75,7 +75,7 @@ public class Str extends Struct{
 		return null;
 	}
 	@Override
-	public boolean hasBuiltinMethod(String name, VarType mytype) {
+	public boolean hasBuiltinMethod(Variable self, String name) {
 		return false;
 	}
 	@Override

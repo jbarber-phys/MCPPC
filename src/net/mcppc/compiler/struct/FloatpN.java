@@ -195,7 +195,7 @@ public class FloatpN extends Struct {
 		return self.fieldMyNBTPath(PRECISION, VarType.INT);
 	}
 	@Override
-	public boolean hasField(String name, VarType mytype) {
+	public boolean hasField(Variable self, String name) {
 		return false;
 	}
 
@@ -205,7 +205,7 @@ public class FloatpN extends Struct {
 	}
 
 	@Override
-	public boolean hasBuiltinMethod(String name, VarType mytype) {
+	public boolean hasBuiltinMethod(Variable self, String name) {
 		return false;
 	}
 

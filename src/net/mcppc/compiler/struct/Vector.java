@@ -12,6 +12,7 @@ import net.mcppc.compiler.BuiltinFunction.BFCallToken;
 import net.mcppc.compiler.StructTypeParams.MembType;
 import net.mcppc.compiler.VarType.Builtin;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.functions.EquationMask;
 import net.mcppc.compiler.functions.FunctionMask;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Equation;
@@ -39,6 +40,7 @@ public class Vector extends Struct {
 	public static final Vector vector;
 	public static final Vector vec3d;
 	public static final Vector vec3i;
+	public static final ResourceLocation STDLIB = new ResourceLocation(CompileJob.STDLIB_NAMESPACE ,"vecmath");
 	static {
 		vector=new Vector("Vector");
 		vec3d=new Vector("Vec3d",VarType.DOUBLE);
@@ -47,7 +49,16 @@ public class Vector extends Struct {
 	}
 	public static void registerAll() {
 		vec3d.STATICMETHODS= Map.of(
-				LOOKAT.name, LOOKAT);
+				LOOKAT.name, LOOKAT,
+				LOOKING.name,LOOKING);
+		vec3i.METHODS = Map.of(
+				SqrMag.instance.name,SqrMag.instance
+				);
+		vec3d.METHODS = Map.of(
+				NORM.name,NORM
+				,MAG.name,MAG
+				,SqrMag.instance.name,SqrMag.instance
+				);
 		Struct.register(vector);
 		Struct.register(vec3d);
 		Struct.register(vec3i);
@@ -307,16 +318,7 @@ public class Vector extends Struct {
 		boolean oIsVec=other.isStruct()?other.struct instanceof Vector:false;
 		boolean oIsNum=other.isNumeric();//other.isStruct()?false:other.isNumeric();
 		if(oIsVec) {
-			//stack.runtimeOutShow(p, home1, home1+2);
-			//stack.runtimeOutShow(p, home2, home2+2);
 			this.elementwize(op, p, c, s, stack, home1, home2);
-			//stack.runtimeOutShow(p, home1, home1+2);
-			//stack.runtimeOutShow(p, home2, home2+2);
-			//TODO there appears to be a register fault of some kind
-			//at this point: for avec*avec, the first home contains garbage values if an operation was done before in a printf; - FIXED?
-			//TODO
-			//else it is fine, but dot prod always comes out as 1 for some reason; is it refusing to collect? NO;
-			//the nonprimary elements are being zeroed out
 			switch(op) {
 			case EQ:
 				this.collect(OpType.AND, p, c, s, stack, home1, home1, stack.getVarType(home1).sizeOf());
@@ -562,7 +564,7 @@ public class Vector extends Struct {
 		return -1;
 	}
 	@Override
-	public boolean hasField(String name, VarType mytype) {
+	public boolean hasField(Variable self, String name) {
 		return dir(name)>=0;
 	}
 	@Override
@@ -577,15 +579,43 @@ public class Vector extends Struct {
 	public static Variable componentOf(Variable self,int i)throws CompileError {
 		return ((Vector)self.type.struct).getComponent(self, i);
 	}
+	private Map<String,BuiltinFunction> METHODS;
+	public static final FunctionMask NORM=new FunctionMask("norm", STDLIB, "norm" , true);
+	public static final FunctionMask MAG=new FunctionMask("mag", STDLIB, "mag" , true);
 	@Override
-	public boolean hasBuiltinMethod(String name, VarType mytype) {
-		return false;
+	public boolean hasBuiltinMethod(Variable self, String name) {
+		return super.hasBuiltinMethodBasic(name, this.METHODS);
 	}
 	@Override
 	public BuiltinFunction getBuiltinMethod(Variable self, String name) throws CompileError {
-		return null;
+		return super.getBuiltinMethodBasic(self, name, this.METHODS);
 	}
-	
+	public static class SqrMag extends EquationMask{
+		public static final SqrMag instance = new SqrMag("sqrmag");
+		public SqrMag(String name) {
+			super(name);
+		}
+
+		@Override
+		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+			return super.tokenizeArgsNone(c, matcher, line, col);
+		}
+
+		@Override
+		public Equation convert(BFCallToken token, Compiler c, Scope s, RStack stack) throws CompileError {
+			if(!token.hasThisBound()) throw new CompileError("function %s must be called as a member of a Vector object".formatted(this.name));
+			Variable self=token.getThisBound();
+			Token vt = self.basicMemberName(s);
+			BiOperator op = new BiOperator(-1,-1,OpType.MULT);
+			Equation ret = Equation.subEqHusk(stack, vt,op,vt);
+			return ret;
+		}
+		@Override
+		public boolean isNonstaticMember() {
+			return true;
+		}
+		
+	}
 	@Override public BuiltinConstructor getConstructor(VarType myType) throws CompileError {
 		return new Constructor(this.name,myType);
 	}
@@ -646,9 +676,12 @@ public class Vector extends Struct {
 		}
 		
 	}
-	public static final ResourceLocation STDLIB = new ResourceLocation(CompileJob.STDLIB_NAMESPACE ,"vecmath");
 	public static final FunctionMask LOOKAT=new FunctionMask("lookAt", STDLIB, "lookAt"
 			, List.of(Token.NullArgDefault.instance,Token.NullArgDefault.instance,new Num(-1,-1,1,VarType.INT)));//List.of does not allow null members;
+	public static final FunctionMask LOOKING=new FunctionMask("looking", STDLIB, "looking"
+			, List.of(new Selector.SelectorToken(-1,-1,Selector.AT_S)));//List.of does not allow null members;
+
+
 	private Map<String,FunctionMask> STATICMETHODS;
 	@Override
 	public boolean hasStaticBuiltinMethod(String name) {

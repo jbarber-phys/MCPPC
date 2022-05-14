@@ -74,7 +74,8 @@ public class Function {
 			return this.tempArgs!=null;
 		}
 		@Override public String asString() {
-			return "%s(%s)".formatted(String.join(".", names),"(...)");
+			String ths=this.hasThisBound()?this.getThisBound().name+".":"";
+			return "%s%s(%s)".formatted(ths,String.join(".", names),"...");
 		}
 		@Override
 		public int identify(Compiler c,Scope s) throws CompileError {
@@ -104,6 +105,13 @@ public class Function {
 				eq.compileOps(p, c, s,arg.type);
 				eq.setVar(p, c, s, arg);
 			}
+			//System.err.printf("%s\n", this.asString());
+			if(this.hasThisBound()) {
+				if(!this.func.hasThis())
+					throw new CompileError("cannot call %s as a member of an object, it is not a nonstatic member;".formatted(func.name));
+				Variable.directSet(p, s, this.func.self, this.getThisBound(), stack);
+			}else if(this.func.hasThis())
+					throw new CompileError("cannot call %s in a global / static context as it is a nonstatic member".formatted(func.name));
 
 			//actually call the function
 			this.requestTemplate(s);
@@ -116,6 +124,12 @@ public class Function {
 					 Variable ref=((Equation)this.args.get(i)).getVarRef();
 					 Variable.directSet(p,s, ref, arg, stack);
 				}
+			}
+			//backcopy this if present
+			if(this.hasThisBound() && this.func.self.isReference()) {
+				if(!this.func.hasThis())
+					throw new CompileError("cannot call %s as a member of an object, it is not a nonstatic member;".formatted(func.name));
+				Variable.directSet(p, s, this.getThisBound() , this.func.self, stack);
 			}
 			//set retval later
 			
@@ -167,15 +181,18 @@ public class Function {
 	public final Map<String, Variable> locals=new HashMap<String, Variable>();
 	public final List<Const> localConsts=new ArrayList<Const>();
 	public final Variable returnV;
+	public final Variable self; //nullable
 	TemplateDefToken template=null;
 	private List<TemplateArgsToken> requestedBinds=new ArrayList<TemplateArgsToken>();
 	private final List<TemplateArgsToken> requestedBindsFilled=new ArrayList<TemplateArgsToken>();
-	public Function(String name,VarType ret,Keyword access, Compiler c) {
+	public Function(String name,VarType ret,VarType thisType,Keyword access, Compiler c) {
 		this.name=name;
 		this.retype=ret;
 		this.access=access;
 		this.resoucrelocation=c.resourcelocation;
 		this.returnV=new Variable("$return", ret, access, c).returnOf(this);
+		if(thisType!=null)this.self = new Variable("$this", thisType, access, c).thisOf(this);
+		else this.self=null;
 		this.mcf=Scope.getSubRes(c.resourcelocation, this);
 	}
 	public Function withArg(Variable var, Compiler c,boolean isRef) {
@@ -200,6 +217,9 @@ public class Function {
 		this.mcf=n;
 		
 		return this;
+	}
+	public boolean hasThis() {
+		return this.self!=null;
 	}
 	public ResourceLocation getMCF() {
 		return this.mcf;
@@ -256,14 +276,19 @@ public class Function {
 	
 	public String toHeader() throws CompileError {
 		String tmp = this.hasTemplate()? this.getTemplateInH()+" ":"";
+		String thisdot = this.hasThis()? this.self.type.asString()+".":"";
+		boolean isFinal = this.hasThis()? !this.self.isReference() : false;
+		String fnl = isFinal? " %s ".formatted(Keyword.FINAL.name):"";
 		String[] argss=new String[this.args.size()];
 		for(int i=0;i<argss.length;i++)argss[i]=this.args.get(i).toHeader();
-		return "%s%s %s (%s)".formatted(tmp,this.retype.headerString(),this.name,
+		return "%s%s %s%s (%s)%s".formatted(tmp,this.retype.headerString(),thisdot,this.name,
 				String.join(" , ", argss)
+				,fnl
 				);
 	}
 	
 	public static final String RET_TAG="\"$return\"";
+	public static final String THIS_TAG="\"$this\"";
 	@Deprecated public String returnDataPhrase() {
 		//use this.
 		return "storage %s %s.%s".formatted(this.resoucrelocation,this.name,RET_TAG);
@@ -272,6 +297,8 @@ public class Function {
 	public void allocateMyLocals(PrintStream p) throws CompileError {
 		for(Variable arg:this.args)if(arg.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))arg.allocate(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
 		if(this.returnV.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.returnV.allocate(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+		if(this.hasThis() &&this.self.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.self.allocate(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+
 		for(Variable local:this.locals.values())if(local.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))local.allocate(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
 
 	}

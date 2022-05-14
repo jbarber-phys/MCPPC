@@ -56,6 +56,8 @@ public class CompileJob {
 	public static final PrintStream fileLog=OutputDump.out;
 	public static final PrintStream compileHdrLog=System.out;
 	public static final PrintStream compileMcfLog=System.out;
+
+	public static final PrintStream dommentLog=OutputDump.out;
 	
 	public static final Scanner stdin = new Scanner(System.in);
 	public static class FFs{

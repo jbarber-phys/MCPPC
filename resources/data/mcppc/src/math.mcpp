@@ -9,19 +9,23 @@ public<num n= 1 .. 6 > double<n> sqrt(double<n> x) {
 	if(x<0) {errorf("Error, attempted to sqrt(%s); undoing minus sign to prevent inf loop",x);x = -x;}
 	while (true) {
 		if(x>2.1) {
+			stopLongMult();
 			mult = mult*2;
 			x = x/4;
 		}else if (x<0.49){
+			stopLongMult();
 			mult = mult/2;
 			x = x*4;
 		}
 		else {
 			break = true;//note: break ignores template
 		}
-		printf("x=%s",x);
+		//printf("x=%s",x);
 	}
 	private double<n> r=1;
 	for(iter,1,iters){
+		x~~2;
+		r~~1.5;
 		r = (r*r+x)/2/r;
 	}
 	return = mult * r;

@@ -392,7 +392,7 @@ public class Compiler{
 		List<Statement> compiledLines=this.CompileCodeNoScope();
 		
 		for(Statement s:compiledLines) {
-			//s.printStatementTree(CompileJob.compileMcfLog, 0);//
+			s.printStatementTree(CompileJob.compileMcfLog, 0);//
 		}
 
 		CompileJob.compileMcfLog.println("namespace '%s'".formatted(this.baseScope.resBase.namespace));

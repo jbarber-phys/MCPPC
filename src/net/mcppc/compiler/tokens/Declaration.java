@@ -75,6 +75,10 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			holder = c.nextNonNullMatch(Factories.checkForBasicName);
 			if(holder instanceof Token.BasicName) holder = ((Token.BasicName) holder).toMembName();
 			if(!(holder instanceof Token.MemberName)) throw new CompileError.UnexpectedToken(holder,"var name or mask target");
+			if(c.currentScope.isInFunctionDefine()) {
+				//System.err.printf("func: %s\n", c.currentScope.getFunction().name);
+				//System.err.printf("locals: %s\n", c.currentScope.getFunction().locals.keySet());
+			}
 			((MemberName)holder).identify(c, c.currentScope);
 		}
 		if (holder instanceof Coordinates.CoordToken) {
@@ -93,7 +97,8 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		isEntity = isEntity	|| (holder instanceof MemberName && ((MemberName) holder).var.type.struct==Entity.entity);
 		if (isEntity && op instanceof Token.TagOf) {
 			//entity
-			Selector selector = isSelector? ((Selector.SelectorToken)holder).selector():Entity.entities.getSelectorFor(((MemberName) holder).var);
+			Selector selector = Entity.getSelectorFor(holder,true);
+					//=isSelector? ((Selector.SelectorToken)holder).selector():Entity.entities.getSelectorFor(((MemberName) holder).var);
 			Token address=Const.checkForExpression(c,c.currentScope, matcher, line, col, ConstType.NBT);
 					//c.nextNonNullMatch(lookMaskNbt);
 			if(!(address instanceof NbtPath.NbtPathToken))throw new CompileError.UnexpectedToken(address,"nbt path");
@@ -101,7 +106,8 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			return;
 		}else if (isEntity && op instanceof Token.ScoreOf) {
 			//score
-			Selector selector = isSelector? ((Selector.SelectorToken)holder).selector():Entity.entities.getSelectorFor(((MemberName) holder).var);
+			Selector selector = Entity.getSelectorFor(holder,true);
+			//=isSelector? ((Selector.SelectorToken)holder).selector():Entity.entities.getSelectorFor(((MemberName) holder).var);
 			Token address=c.nextNonNullMatch(lookMaskScore);
 			if(!(address instanceof Token.BasicName))throw new CompileError.UnexpectedToken(address,"score");
 			if(!skip)this.variable.maskScore(selector, ((Token.BasicName)address).name);
@@ -165,6 +171,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	public void addVar(Compiler c,Scope s, boolean isReadingHeader, boolean isCompiling) throws CompileError {
 		if(isCompiling) return ;//skip
 		if(s.isInFunctionDefine()) {
+			//System.err.printf("local %s . %s created\n", s.getFunction().name,this.variable.name);
 			s.getFunction().withLocalVar(this.variable, c);
 		}else {
 			if(!c.myInterface.add(this)) throw new CompileError.DoubleDeclaration(this);
@@ -193,9 +200,16 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		
 		Type type=Type.tokenizeNextVarType(c,typescope, matcher, line, col);
 		
-		Token t2 = c.nextNonNullMatch(look);
 		
+		//test for nonstatic namespace: public retype membtype.fname(...)
+		Type thistypetok = Type.checkForVarType(c, typescope, matcher, line, col);VarType thisType=null;
+		if(thistypetok!=null) {
+			thisType=thistypetok.type;
+			Token dot=c.nextNonNullMatch(Factories.genericCheck(Token.Member.factory));
+			if(dot instanceof Token.WildChar) throw new CompileError("function name %s alligns with a type name;".formatted(thistypetok.asString()));
+		}
 		//thing name
+		Token t2 = c.nextNonNullMatch(look);
 		if (!(t2 instanceof Token.BasicName))throw new UnexpectedToken(t2,"name");
 		Token.BasicName varname=(BasicName) t2;
 		CompileJob.compileHdrLog.println("Declaration var/func: %s %s".formatted(type.asString(),varname.asString()));
@@ -208,7 +222,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			if (!((Token.Paren) t3).forward)throw new UnexpectedToken(t3);
 			CompileJob.compileHdrLog.println("Declaration its a function");
 			if (BuiltinFunction.BUILTIN_FUNCTIONS.containsKey(varname.name))throw new CompileError("function name %s conflicts with a builtin function on line %d column %d.".formatted(varname.line,varname.col));
-			d.function=new Function(varname.asString(),type.type,access,c);
+			d.function=new Function(varname.asString(),type.type,thisType,access,c);
 			d.function.withTemplate(template);
 			//Scope subscope=c.currentScope.subscope(d.function);
 			
@@ -229,6 +243,19 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			for(Variable p:d.function.args) {
 				CompileJob.compileHdrLog.println("\t parameter: %s %s".formatted(p.type.asString(),p.name));
 				
+			}
+			//final before -> or export
+
+			if(d.function.hasThis()) {
+				//check for final suffix
+				int start=c.cursor;
+				Token t=c.nextNonNullMatch(Factories.checkForKeyword);
+				if(t instanceof Token.BasicName) {
+					String kw=((Token.BasicName) t).name;
+					if(Keyword.fromString(kw)==Keyword.FINAL) {
+						d.function.self.makeFinalThis();
+					}else c.cursor=start;
+				}
 			}
 			if(access==Keyword.EXTERN) {
 				//-> statement for resourcelocation
@@ -281,7 +308,8 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			return d;
 		}else {
 			if (type.type.isVoid())throw new CompileError("unexpected type void for variable %s on line %d col %d.".formatted(varname.name,varname.line,varname.col));
-			if(template!=null)throw new CompileError ("varaible definition cannot contain template");
+			if(template!=null)throw new CompileError ("varaible definition cannot contain template;");
+			if(thisType!=null) throw new CompileError("variable definition cannot be a type-member;");
 			CompileJob.compileHdrLog.println("Declaration its a variable");
 			boolean isFuncLocal=c.currentScope.isInFunctionDefine();
 			if (isFuncLocal && d.access==Keyword.PUBLIC) {
@@ -343,9 +371,15 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		
 		Type type=Type.tokenizeNextVarType(c,typescope, matcher, line, col);
 		
-		Token t2 = c.nextNonNullMatch(look);
-		
+		//test for nonstatic namespace: public retype membtype.fname(...)
+		Type thistypetok = Type.checkForVarType(c, typescope, matcher, line, col);VarType thisType=null;
+		if(thistypetok!=null) {
+			thisType=thistypetok.type;
+			Token dot=c.nextNonNullMatch(Factories.genericCheck(Token.Member.factory));
+			if(dot instanceof Token.WildChar) throw new CompileError("function name %s alligns with a type name;".formatted(thistypetok.asString()));
+		}
 		//thing name
+		Token t2 = c.nextNonNullMatch(look);
 		if (!(t2 instanceof Token.BasicName))throw new UnexpectedToken(t2,"name");
 		Token.BasicName varname=(BasicName) t2;
 		CompileJob.compileMcfLog.println("compile: Declaration var/func: %s %s".formatted(type.asString(),varname.asString()));
@@ -359,6 +393,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			CompileJob.compileMcfLog.println("Declaration its a function");
 			if (BuiltinFunction.BUILTIN_FUNCTIONS.containsKey(varname.name))throw new CompileError("function name %s conflicts with a builtin function on line %d column %d.".formatted(varname.line,varname.col));
 			//d.function=new Function(varname.asString(),type.type,access,c);
+			///this remains the same
 			d.function=c.myInterface.identifyFunction(varname.name,c.currentScope);
 			//arglist!
 			if(!d.isNextCloseParen(c, matcher, line, col))while(true) {
@@ -377,6 +412,18 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			for(Variable p:d.function.args) {
 				CompileJob.compileMcfLog.println("\t parameter: %s%s %s".formatted(p.isReference()?"ref ":"" ,p.type.asString(),p.name));
 				
+			}
+			//final before -> and export
+			if(d.function.hasThis()) {
+				//check for final suffix
+				int start=c.cursor;
+				Token t=c.nextNonNullMatch(Factories.checkForKeyword);
+				if(t instanceof Token.BasicName) {
+					String kw=((Token.BasicName) t).name;
+					if(Keyword.fromString(kw)==Keyword.FINAL) {
+						//d.function.self.makeFinalThis();
+					}else c.cursor=start;
+				}
 			}
 			if(access==Keyword.EXTERN) {
 				//-> statement for resourcelocation
@@ -427,6 +474,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		}else {
 			if (type.type.isVoid())throw new CompileError("unexpected type void for variable %s on line %d col %d.".formatted(varname.name,varname.line,varname.col));
 
+			if(thisType!=null) throw new CompileError("variable definition cannot be a type-member;");
 			//if (c.currentScope.isInFunctionDefine())Warnings.warning("vars declared in functions are not supported, will not act like local vars, and could misbehave.");
 			//d.variable=new Variable(varname.asString(),type.type, access, c);
 			d.variable=c.myInterface.identifyVariable(varname.name,c.currentScope);

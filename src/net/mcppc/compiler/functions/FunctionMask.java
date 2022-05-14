@@ -32,17 +32,28 @@ public class FunctionMask extends BuiltinFunction {
 	}
 	final ResourceLocation lib;
 	final String fname;
+	final boolean isNonstaticMethod;
 	public List<Token> defaultArgs=null;
-	public FunctionMask(String name,ResourceLocation lib,String fname,List<Token> defaultArgs) {
+	public FunctionMask(String name,ResourceLocation lib,String fname,boolean isNonstaticMethod,List<Token> defaultArgs) {
 		super(name);
 		this.lib=lib;
 		this.fname=fname;
 		this.defaultArgs=defaultArgs;
+		this.isNonstaticMethod=isNonstaticMethod;
+	}
+	public FunctionMask(String name,ResourceLocation lib,String fname,boolean isNonstaticMethod) {
+		this(name,lib,fname,isNonstaticMethod,null);
+	}
+	public FunctionMask(String name,ResourceLocation lib,String fname,List<Token> defaultArgs) {
+		this(name,lib,fname,false,defaultArgs);
 	}
 	public FunctionMask(String name,ResourceLocation lib,String fname) {
-		this(name,lib,fname,null);
+		this(name,lib,fname,false,null);
 	}
 
+	public boolean isNonstaticMember() {
+		return this.isNonstaticMethod;
+	}
 	@Override
 	public VarType getRetType(BFCallToken token) {
 		// should never be called
@@ -98,7 +109,7 @@ public class FunctionMask extends BuiltinFunction {
 	}
 
 	@Override
-	public FuncCallToken convert(BFCallToken token, Compiler c) throws CompileError {
+	public FuncCallToken convert(BFCallToken token, Compiler c, Scope s, RStack stack) throws CompileError {
 		FileInterface fi;
 		try {
 			fi= c.job.getFileInterfaceFor(lib, true);
@@ -106,10 +117,12 @@ public class FunctionMask extends BuiltinFunction {
 			e.printStackTrace();
 			throw new CompileError("fileNotFoundException");
 		} 
-		Function f=fi.identifyFunction(fname, c.currentScope);
+		Function f=fi.identifyFunction(fname, s);
 		Function.FuncCallToken ft= new Function.FuncCallToken(token.line, token.col, this.fname,f) ;
+		ft.withThis(token.getThisBound());
 		ft.withTemplate(token.getTemplate());
 		((MCFArgs) token.getArgs()).add(ft);
+		//System.err.printf("converted %s -> %s\n", token.asString(),ft.asString());
 		return ft;
 	}
 	

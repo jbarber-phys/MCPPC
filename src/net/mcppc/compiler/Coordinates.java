@@ -12,12 +12,15 @@ import net.mcppc.compiler.tokens.Token;
 /**
  * coordinates that could appear in a command; there are 3; in mcpp they can be extra spaced but no newlines
  * coordinates move with the at/facing, they are not fixed
- * they 
+ * NOTE: integer absolute coordinates will actually center on the block (add a half integer to x and/or z):
+ * 			 0 0 0 = 0.5 0 0.5
+ * 			0 0 0.1 = 0.5 0 0.1
  * @author jbarb_t8a3esk
  *
  */
 public class Coordinates {
-	public static final CoordToken ZERO =new CoordToken(-1,-1, new Coordinates("0","0","0"));
+	public static final CoordToken ZERO =new CoordToken(-1,-1, new Coordinates("0.0","0.0","0.0"));
+	public static final CoordToken ZEROBLOCK =new CoordToken(-1,-1, new Coordinates("0","0","0"));
 	public static final CoordToken ATME =new CoordToken(-1,-1, new Coordinates("~","~","~"));
 	public static final CoordToken FORWARD =new CoordToken(-1,-1, new Coordinates("^","^","^1"));
 	public static class CoordToken extends Const.ConstExprToken{
@@ -67,7 +70,7 @@ public class Coordinates {
 	}
 	final String[] vec;
 	Coordinates(Matcher m){
-		vec=new String[]{m.group(1),m.group(2),m.group(3)};
+		vec=new String[]{m.group("x"),m.group("y"),m.group("z")};
 	}
 	Coordinates(String x,String y,String z){
 		vec=new String[]{x,y,z};

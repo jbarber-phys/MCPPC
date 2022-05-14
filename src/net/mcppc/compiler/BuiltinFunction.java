@@ -65,7 +65,7 @@ public abstract class BuiltinFunction {
 		}
 		if(v!=null && v.type.isStruct()) {
 			Struct st=v.type.struct;
-			if(st.hasBuiltinMethod(mname, v.type)){
+			if(st.hasBuiltinMethod(v, mname)){
 				try {
 					bf=st.getBuiltinMethod(v, mname);
 				} catch (CompileError e) {
@@ -105,7 +105,8 @@ public abstract class BuiltinFunction {
 		}
 		@Override
 		public String asString() {
-			return "%s(...)".formatted(f.name);
+			String ths=this.hasThisBound()?this.getThisBound().name+".":"";
+			return "%s%s(...)".formatted(ths,f.name);
 		}
 		@Override
 		public void call(PrintStream p, Compiler c, Scope s,RStack stack) throws CompileError {
@@ -135,14 +136,23 @@ public abstract class BuiltinFunction {
 		public BFCallToken withTemplate(TemplateArgsToken tgs) {
 			this.tempArgs=tgs;return this;
 		}
+		// for calls to (obj of type ...<args1...>).func<args2...>(); if converted, the total template is <args1...,args2...>
+		public BFCallToken prependTemplate(TemplateArgsToken tgs) {
+			if(this.tempArgs==null)this.tempArgs=tgs;
+			else if(tgs!=null){
+				this.tempArgs.values.addAll(0, tgs.values);
+			}
+			
+			return this;
+		}
 		public TemplateArgsToken getTemplate() {
 			return this.tempArgs;
 		}
 		public boolean canConvert() {
 			return this.getBF().canConvert(this);
 		}
-		public Function.FuncCallToken convert(Compiler c) throws CompileError{
-			return this.getBF().convert(this, c);
+		public Token convert(Compiler c, Scope s, RStack stack) throws CompileError{
+			return this.getBF().convert(this, c, s, stack);
 		}
 		public Args getArgs() {
 			return this.args;
@@ -324,8 +334,13 @@ public abstract class BuiltinFunction {
 	public boolean canConvert(BFCallToken token) {
 		return false;
 	}
-	public Function.FuncCallToken convert(BFCallToken token, Compiler c) throws CompileError{
+	public Token convert(BFCallToken token, Compiler c, Scope s, RStack stack) throws CompileError{
 		throw new CompileError("cannot convert %s to mcf;".formatted(token.getBF().name));
+	}
+	public void printStatementTree(PrintStream p,BFCallToken token,int tabs) {
+		//for debuging
+		StringBuffer s=new StringBuffer();while(s.length()<tabs)s.append('\t');
+		p.printf("%s... %s(...);\n",s.toString(), this.name);
 	}
 	public static class SetFlagStopMultiDiv extends BuiltinFunction {
 		public static final SetFlagStopMultiDiv instance = new SetFlagStopMultiDiv("stopLongMult");
@@ -343,6 +358,8 @@ public abstract class BuiltinFunction {
 			List<Const.ConstType> atps=new ArrayList<Const.ConstType>();
 			atps.add(ConstType.BOOLIT);
 			return BuiltinFunction.tokenizeArgsConsts(c, matcher, line, col, atps, true);
+			//TODO allow a precompiled condition dependante on templates;
+			//example: (precision<=4)
 		}
 
 		@Override

@@ -54,7 +54,7 @@ public class Rotation {
 	}
 	final String[] angs;
 	Rotation(Matcher m){
-		angs=new String[]{m.group(1),m.group(2)};
+		angs=new String[]{m.group("ang1"),m.group("ang2")};
 	}
 	public Rotation(Num yaw,Num pitch){
 		angs=new String[]{CMath.getMultiplierFor(yaw.value.floatValue())

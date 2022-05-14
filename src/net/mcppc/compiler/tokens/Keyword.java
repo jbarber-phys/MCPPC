@@ -23,8 +23,9 @@ public enum Keyword {
 	FOR("for"),
 	BREAK("break"),
 	RETURN("return"),
-	CONST("const")
-	
+	THIS("this"),
+	CONST("const"),
+	FINAL("final")
 	;
 	
 	public static final Map<String,Keyword> VALUES = new HashMap<String, Keyword>();

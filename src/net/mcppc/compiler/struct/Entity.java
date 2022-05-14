@@ -199,7 +199,7 @@ public class Entity extends Struct {
 	}
 
 	@Override
-	public boolean hasField(String name, VarType mytype) {
+	public boolean hasField(Variable self, String name) {
 		return false;
 	}
 
@@ -210,9 +210,11 @@ public class Entity extends Struct {
 	public static Map<String,BuiltinFunction> BFS = Map.of(
 			Summon.instance.name,Summon.instance
 			,Kill.instance.name,Kill.instance
+			,Count.exists.name,Count.exists
+			,Count.count.name,Count.count
 			);
 	@Override 
-	public boolean hasBuiltinMethod(String name, VarType mytype) {
+	public boolean hasBuiltinMethod(Variable self, String name) {
 		return super.hasBuiltinMethodBasic(name, BFS);
 	}
 
@@ -395,6 +397,78 @@ public class Entity extends Struct {
 		@Override
 		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
 				throws CompileError {
+		}
+
+		@Override
+		public Number getEstimate(BFCallToken token) {
+			return null;
+		}
+		
+	}
+	public static class Count extends BuiltinFunction{
+		public static final String SUCCESS="success";
+		public static final String RESULT="result";
+		public static Count exists = new Count("exists",VarType.BOOL,SUCCESS);
+		public static Count count = new Count("count",VarType.INT,RESULT);
+		public final VarType rtype;
+		public final String cmdRetType;
+		public Count(String name,VarType ret, String cmdRetType) {
+			super(name);
+			this.rtype=ret;
+			this.cmdRetType=cmdRetType;
+			
+		}
+		public boolean isNonstaticMember() {
+			return true;
+		}
+		@Override
+		public VarType getRetType(BFCallToken token) {
+			return this.rtype;
+		}
+
+		@Override
+		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+			return BuiltinFunction.tokenizeArgsNone(c, matcher, line, col);
+		}
+
+		@Override
+		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
+			//do nothing (yet)
+		}
+		/*
+		 * https://gaming.stackexchange.com/questions/365931/how-to-count-entities-with-commands-check-if-there-are-only-one-or-a-certain-num
+		 * /execute store result score @s entities if entity @e
+		 * the last bit acts as a testfor statement
+		 */
+		@Override
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+				throws CompileError {
+			Variable self=token.getThisBound();
+			if(self==null)throw new CompileError("function %s must be called as a nonstaic member".formatted(this.name));
+			if(!(self.isStruct() && self.type.struct instanceof Entity))throw new CompileError("function %s must be called from an entity object".formatted(this.name));
+			Entity clazz = (Entity) self.type.struct;
+			Selector slc = clazz.getSelectorFor(self);
+			int home=stackstart;
+			Register h=stack.getRegister(home);
+			//mc 1.13 has no testfor equivalent
+			//p.printf("execute store %s score %s run data get entity %s\n",this.cmdRetType, h.inCMD(),slc.toCMD());
+			p.printf("execute store %s score %s if entity %s\n",this.cmdRetType, h.inCMD(),slc.toCMD());
+			stack.setVarType(home, this.getRetType(token));
+		}
+
+		@Override
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
+				throws CompileError {
+			Variable self=token.getThisBound();
+			if(self==null)throw new CompileError("function %s must be called as a nonstaic member".formatted(this.name));
+			if(!(self.isStruct() && self.type.struct instanceof Entity))throw new CompileError("function %s must be called from an entity object".formatted(this.name));
+			Entity clazz = (Entity) self.type.struct;
+			Selector slc = clazz.getSelectorFor(self);
+			int home=stack.reserve(1);
+			Register h=stack.getRegister(home);
+			p.printf("execute store %s score %s if entity %s\n",this.cmdRetType, h.inCMD(),slc.toCMD());
+			stack.setVarType(home, this.getRetType(token));
+			v.setMe(p, s, stack, home);
 		}
 
 		@Override
