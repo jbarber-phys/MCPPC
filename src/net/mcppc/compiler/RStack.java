@@ -219,6 +219,16 @@ public class RStack {
 	public void debugOut(PrintStream p) {
 		p.printf("%s, \n %s ;\n", this.vartypes,this.regvarEstimates);
 	}
+	public void printTypes(PrintStream p,int start,int stop) {
+		int i=start;
+		p.printf("stack types: ");
+		while(i<=stop) {
+			VarType tp=this.getVarType(i);
+			p.printf("%d::%s, ", i,tp==null?"null":tp.asString());
+			i+=tp==null?1:tp.sizeOf();
+		}
+		p.printf("\n");
+	}
 
 	public void runtimeOutShow(PrintStream p,int start,int stop) throws CompileError {
 		runtimeOutShow(p,start,stop,PrintF.stdwarn);

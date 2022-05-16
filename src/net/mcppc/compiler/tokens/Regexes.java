@@ -122,6 +122,7 @@ public final class Regexes {
 	 * escape()
 	 *
 	 * Escape a give String to make it safe to be printed or stored.
+	 * does not add quotes on ends
 	 * 
 	 * Thx Dan: https://stackoverflow.com/questions/2406121/how-do-i-escape-a-string-in-java
 	 *

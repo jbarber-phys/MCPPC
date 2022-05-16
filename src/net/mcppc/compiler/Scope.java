@@ -217,6 +217,7 @@ public class Scope {
 	private TemplateDefToken templateBound=null;//can be def or args
 	private boolean isBound=false;//true if this scope has assigned values for all 
 	private boolean isFuncBase=false;
+	private boolean debugMode=false;
 	private Scope(Scope scope, TemplateDefToken templateDef) {
 		this.parent=scope.parent;
 		this.function=null;
@@ -339,4 +340,7 @@ public class Scope {
 	public void setProhibitLongMult(boolean prohibitLongMult) {
 		this.prohibitLongMult = prohibitLongMult;
 	}
+	public void setDebugMode(boolean b) {
+		this.debugMode = b;
+	} public boolean isDebugMode() {return this.debugMode;}
 }

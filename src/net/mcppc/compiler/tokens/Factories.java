@@ -249,8 +249,8 @@ public final class Factories {
 	public static final Token.Factory[] checkForAssignlikeOrOparen = Factories.genericCheck(Token.Assignlike.factoryAssign,Token.Assignlike.factoryEstimate,Token.Paren.factory);
 
 	//public static final Token.Factory[] checkForAssignlike = {newline,comment,space,Statement.Domment.factory,Token.Assignlike.factoryAssign,Token.Assignlike.factoryEstimate,Token.WildChar.dontPassFactory};
-	public static final Token.Factory[] nextNum = {newline,comment,domment,space,Num.factory};
-	public static final Token.Factory[] checkForNullableNumber = {newline,comment,domment,space,Num.factory,Num.nullfactory,Token.WildChar.dontPassFactory};	
+	public static final Token.Factory[] nextNum = Factories.genericLook(Num.factory);//{newline,comment,domment,space,Num.factory};
+	public static final Token.Factory[] checkForNullableNumber = Factories.genericCheck(Num.factory,Num.nullfactory);//{newline,comment,domment,space,Num.factory,Num.nullfactory,Token.WildChar.dontPassFactory};	
 	//returns a nonnull WildChar after space; does this without moving past the wildchar
 	public static final Token.Factory[] skipSpace = {newline,comment,domment,space,Token.WildChar.dontPassFactory};
 	

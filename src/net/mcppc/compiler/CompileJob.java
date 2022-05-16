@@ -43,6 +43,7 @@ public class CompileJob {
 	public static final String STDLIB_NAMESPACE="mcppc";
 	public static final String MINECRAFT="minecraft";
 	public static final boolean INCLUDE_STDLIB=true;
+	public static final boolean PRINT_TREE=false;
 	
 
 	public static final String SUBDIR_SRC="src";

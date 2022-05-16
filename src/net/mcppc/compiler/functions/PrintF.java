@@ -12,6 +12,7 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Entity;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Factories;
+import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.Token.StringToken;
 import net.mcppc.compiler.tokens.TreePrintable;
@@ -30,6 +31,18 @@ import net.mcppc.compiler.tokens.TreePrintable;
 public class PrintF extends BuiltinFunction{
 	public static interface IPrintable {
 		public String getJsonTextSafe();
+		public static PString string(String s) {return new PString(s);}
+		public static class PString implements IPrintable{
+			private final String lit;
+			public PString(String s) {
+				this.lit=Regexes.escape(s);
+			}
+			@Override
+			public String getJsonTextSafe() {
+				return "{\"text\": \"%s\"}".formatted(lit);
+			}
+			
+		}
 	}
 	public static abstract class TextColors{
 		public static final String RESET="reset";
@@ -211,6 +224,7 @@ public class PrintF extends BuiltinFunction{
 		p.printf("execute unless score %s matches 1.. run data modify %s set value \"false\"\n", r.inCMD(),var.dataPhrase());
 		
 	}
+	//String format comes as a literal
 	public void printf(PrintStream p, String format,IPrintable... args) throws CompileError {
 		this.printf(p,Selector.AT_S, format, args);
 	}

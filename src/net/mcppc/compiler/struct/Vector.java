@@ -12,8 +12,10 @@ import net.mcppc.compiler.BuiltinFunction.BFCallToken;
 import net.mcppc.compiler.StructTypeParams.MembType;
 import net.mcppc.compiler.VarType.Builtin;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.errors.RuntimeError;
 import net.mcppc.compiler.functions.EquationMask;
 import net.mcppc.compiler.functions.FunctionMask;
+import net.mcppc.compiler.functions.PrintF;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Num;
@@ -274,6 +276,7 @@ public class Vector extends Struct {
 	}
 	@Override
 	public void setMe(PrintStream p, Scope s, RStack stack, int home, Variable me) throws CompileError {
+		if(s.isDebugMode())stack.printTypes(System.err,home,home+me.type.sizeOf());
 		for(int j=0;j<DIM;j++) {
 			Variable cpn=this.getComponent(me, j);
 			int hj=home+j*cpn.type.sizeOf();
@@ -347,7 +350,17 @@ public class Vector extends Struct {
 			}
 			//next script should cap this properly
 		}else {
+			if(s.isDebugMode()) {
+				RuntimeError.printf(p,"", "scores, v = (%s,%s,%s) %s num %s"
+						, stack.getRegister(home1), stack.getRegister(home1+1), stack.getRegister(home1+2),
+						  PrintF.IPrintable.string(op.s),
+						 stack.getRegister(home2));
+			}
 			this.elementwizeHalf(op, p, c, s, stack, home1, home2);
+			if(s.isDebugMode()) {
+				RuntimeError.printf(p,"", "  = (%s,%s,%s)"
+						, stack.getRegister(home1), stack.getRegister(home1+1), stack.getRegister(home1+2));
+			}
 			VarType typef = stack.getVarType(home1+X);//x-coord
 			for(int i=0;i<DIM;i++)stack.castRegister(p,s, home1+i, typef);
 			switch(op) {
@@ -374,6 +387,8 @@ public class Vector extends Struct {
 	@Override
 	public void doBiOpSecond(OpType op, VarType mytype, PrintStream p, Compiler c, Scope s, RStack stack, Integer home1,
 			Integer home2) throws CompileError {
+		//TODO bug: vec*num != num * vec
+		//yz componentz are lost
 		VarType other=stack.getVarType(home1);
 		boolean oIsVec=other.isStruct()?other.struct instanceof Vector:false;
 		if(oIsVec) {
@@ -386,6 +401,7 @@ public class Vector extends Struct {
 			this.doBiOpFirst(op, mytype, p, c, s, stack, home2, home1);
 			//copy
 			stack.move(p, home1, home2);
+			//FIXED scalar vec order issue
 			
 		}
 	}
@@ -431,6 +447,9 @@ public class Vector extends Struct {
 		for(int j=0;j<DIM;j++) {
 			int hv=homevec+j*tev.sizeOf();
 			stack.setVarType(hv, tev);
+		}
+		for(int j=0;j<DIM;j++) {
+			int hv=homevec+j*tev.sizeOf();
 			opt.perform(p, c, s, stack, hv, homescalar);
 		}
 	}

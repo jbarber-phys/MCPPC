@@ -42,7 +42,8 @@ public abstract class BuiltinFunction {
 		Tp.registerAll();
 	}
 	private static void registerAll() {
-		register(SetFlagStopMultiDiv.instance);
+		register(SetScopeFlag.stopLongMult);
+		register(SetScopeFlag.debug);
 	}
 	
 	private static boolean isBuiltinFunc(List<String> names,Compiler c,Scope s) {
@@ -342,10 +343,22 @@ public abstract class BuiltinFunction {
 		StringBuffer s=new StringBuffer();while(s.length()<tabs)s.append('\t');
 		p.printf("%s... %s(...);\n",s.toString(), this.name);
 	}
-	public static class SetFlagStopMultiDiv extends BuiltinFunction {
-		public static final SetFlagStopMultiDiv instance = new SetFlagStopMultiDiv("stopLongMult");
-		public SetFlagStopMultiDiv(String name) {
+	public static class SetScopeFlag extends BuiltinFunction {
+		@FunctionalInterface
+		private static interface ScopeFlagSet {
+			public void set(Scope s,boolean flag);
+		}
+		public static final SetScopeFlag stopLongMult = new SetScopeFlag("stopLongMult", (s,b)->s.setProhibitLongMult(b),true);
+		public static final SetScopeFlag debug = new SetScopeFlag("debug", (s,b)->s.setDebugMode(b),true);
+		private final ScopeFlagSet setter;
+		private final boolean defaultFlag;
+		public SetScopeFlag(String name,ScopeFlagSet setter,boolean defaultFlag) {
 			super(name);
+			this.setter=setter;
+			this.defaultFlag=defaultFlag;
+		}
+		public SetScopeFlag(String name,ScopeFlagSet setter) {
+			this(name,setter,true);
 		}
 
 		@Override
@@ -371,7 +384,8 @@ public abstract class BuiltinFunction {
 				Bool t = (Bool) ((BasicArgs)args).arg(0);
 				b=t.val;
 			}
-			s.setProhibitLongMult(b);//edit the scope
+			//s.setProhibitLongMult(b);//edit the scope
+			this.setter.set(s, b);
 		}
 
 		@Override

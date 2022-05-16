@@ -391,7 +391,7 @@ public class Compiler{
 		
 		List<Statement> compiledLines=this.CompileCodeNoScope();
 		
-		for(Statement s:compiledLines) {
+		if(CompileJob.PRINT_TREE)for(Statement s:compiledLines) {
 			s.printStatementTree(CompileJob.compileMcfLog, 0);//
 		}
 

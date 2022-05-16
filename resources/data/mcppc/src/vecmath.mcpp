@@ -50,6 +50,7 @@ public<num n = 1 .. 6> Vec3d<n> lookAt(Entity from,Entity to,int pow) { //TESTED
 		if(counter<powhf) {hat = hat * scale; counter=counter+1;}
 		else {hat = hat / scale; counter=counter-1;}
 	}
+	//printf(@p[],"lookAt() -> %s",hat);//it is still working
 	return = hat;
 }
 public<num n = 1 .. 6> Vec3d<n> looking(Entity me) { 
