@@ -18,6 +18,23 @@ import java.util.regex.Matcher;
 //TODO allow estimate of function return value
 //example public int a(int b,int c) ~~ a*b*2 {...}
 //example public float sin(float x) ~~ min(x,1) {...}
+/**
+ * declares a function or variable or const:
+ * 
+ * for var:
+ * <public / private> <type> <name> [ -> mask] [~~ estimate] [= assignment];
+ * <extern> <type> <name>  -> < mask> [~~ estimate] [= assignment];
+ * for const:
+ * <public / private> const <const-type> <name>  = <value / other const>;
+ * for function:
+ * <public / private> [recursive] [template] <return type> [<thistype>.]<name>  (<args...>) [final] [ export <...>] {...};
+ * <extern> [recursive] [template] <return type> [<thistype>.]<name>  (<args...>) [final] [ export <...>] -> <mcfunction location>;
+ * for an arg:
+ * 	[ref] <type> name
+ * 	Separator: ','
+ * @author jbarb_t8a3esk
+ *
+ */
 public class Declaration extends Statement implements Statement.Headerable,DommentCollector,Statement.CodeBlockOpener{
 	
 	static final Token.Factory[] look = {Token.BasicName.factory,Factories.space,Factories.newline,Factories.comment,Factories.domment,Token.Paren.factory,
@@ -153,7 +170,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		// ...
 		Const.ConstExprToken value=Const.checkForExpression(c,s, matcher, line, col, ctype);
 		if(value.refsTemplate()) {
-			//TODO (currently unreachable)
+			// (currently unreachable)
 		}
 		this.constv=new Const(cname, c.resourcelocation, ctype,this.access, value);
 		this.objType=DeclareObjType.CONST;
@@ -189,10 +206,13 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		c.dommentCollector=d;
 		//typename
 		c.cursor=matcher.end();
+		boolean isRecursive=false;
 		Token isConst = c.nextNonNullMatch(Factories.checkForKeyword);
 		if(isConst instanceof Token.BasicName && Keyword.fromString(((Token.BasicName)isConst).name)==Keyword.CONST) {
 			d.addConst(c,c.currentScope, matcher, line, col, access, isReadingHeader,false);
 			return d;
+		}else if (isConst instanceof Token.BasicName && Keyword.fromString(((Token.BasicName)isConst).name)==Keyword.RECURSIVE) {
+			isRecursive=true;
 		}
 
 		TemplateDefToken template = TemplateDefToken.checkForDef(c,c.currentScope, matcher);
@@ -212,7 +232,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		Token t2 = c.nextNonNullMatch(look);
 		if (!(t2 instanceof Token.BasicName))throw new UnexpectedToken(t2,"name");
 		Token.BasicName varname=(BasicName) t2;
-		CompileJob.compileHdrLog.println("Declaration var/func: %s %s".formatted(type.asString(),varname.asString()));
+		//CompileJob.compileHdrLog.println("Declaration var/func: %s %s".formatted(type.asString(),varname.asString()));
 		
 		Token t3 = c.nextNonNullMatch(look);
 		
@@ -220,9 +240,9 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		if (t3 instanceof Token.Paren) {
 			if (c.currentScope.isInFunctionDefine())throw new CompileError("nested functions not supported");
 			if (!((Token.Paren) t3).forward)throw new UnexpectedToken(t3);
-			CompileJob.compileHdrLog.println("Declaration its a function");
+			//CompileJob.compileHdrLog.println("Declaration its a function");
 			if (BuiltinFunction.BUILTIN_FUNCTIONS.containsKey(varname.name))throw new CompileError("function name %s conflicts with a builtin function on line %d column %d.".formatted(varname.line,varname.col));
-			d.function=new Function(varname.asString(),type.type,thisType,access,c);
+			d.function=new Function(varname.asString(),type.type,thisType,access,c,isRecursive);
 			d.function.withTemplate(template);
 			//Scope subscope=c.currentScope.subscope(d.function);
 			
@@ -241,7 +261,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			}
 			d.objType=DeclareObjType.FUNC;
 			for(Variable p:d.function.args) {
-				CompileJob.compileHdrLog.println("\t parameter: %s %s".formatted(p.type.asString(),p.name));
+				//CompileJob.compileHdrLog.println("\t parameter: %s %s".formatted(p.type.asString(),p.name));
 				
 			}
 			//final before -> or export
@@ -268,7 +288,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 					asn=c.nextNonNullMatch(lookMaskOp);
 					if(asn instanceof Token.TagOf) {
 						//optional
-						CompileJob.compileHdrLog.println("custom func name");
+						//CompileJob.compileHdrLog.println("custom func name");
 						asn=c.nextNonNullMatch(look);
 						if (!(asn instanceof Token.BasicName)) throw new CompileError.UnexpectedToken(asn,"normal function name");
 						d.function.withMCFName(((Token.BasicName)asn).name);
@@ -310,7 +330,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			if (type.type.isVoid())throw new CompileError("unexpected type void for variable %s on line %d col %d.".formatted(varname.name,varname.line,varname.col));
 			if(template!=null)throw new CompileError ("varaible definition cannot contain template;");
 			if(thisType!=null) throw new CompileError("variable definition cannot be a type-member;");
-			CompileJob.compileHdrLog.println("Declaration its a variable");
+			//CompileJob.compileHdrLog.println("Declaration its a variable");
 			boolean isFuncLocal=c.currentScope.isInFunctionDefine();
 			if (isFuncLocal && d.access==Keyword.PUBLIC) {
 				Warnings.warning("vars declared in functions cannot be public; converted var %s to local;".formatted(varname.asString()));
@@ -360,10 +380,13 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		//typename
 		c.cursor=matcher.end();
 		Token isConst = c.nextNonNullMatch(Factories.checkForKeyword);
+		boolean isRecursive=false;
 		if(isConst instanceof Token.BasicName && Keyword.fromString(((Token.BasicName)isConst).name)==Keyword.CONST) {
 			d.addConst(c,c.currentScope, matcher, line, col, access, false,true);
 			return null;//ignore if in header file
 			//return d;
+		}else if (isConst instanceof Token.BasicName && Keyword.fromString(((Token.BasicName)isConst).name)==Keyword.RECURSIVE) {
+			isRecursive=true;
 		}
 
 		TemplateDefToken template = TemplateDefToken.checkForDef(c,c.currentScope, matcher);
@@ -382,7 +405,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		Token t2 = c.nextNonNullMatch(look);
 		if (!(t2 instanceof Token.BasicName))throw new UnexpectedToken(t2,"name");
 		Token.BasicName varname=(BasicName) t2;
-		CompileJob.compileMcfLog.println("compile: Declaration var/func: %s %s".formatted(type.asString(),varname.asString()));
+		//CompileJob.compileMcfLog.println("compile: Declaration var/func: %s %s".formatted(type.asString(),varname.asString()));
 		
 		Token t3 = c.nextNonNullMatch(look);
 		
@@ -390,7 +413,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		if (t3 instanceof Token.Paren) {
 			if (c.currentScope.isInFunctionDefine())throw new CompileError("nested functions not supported");
 			if (!((Token.Paren) t3).forward)throw new UnexpectedToken(t3);
-			CompileJob.compileMcfLog.println("Declaration its a function");
+			//CompileJob.compileMcfLog.println("Declaration its a function");
 			if (BuiltinFunction.BUILTIN_FUNCTIONS.containsKey(varname.name))throw new CompileError("function name %s conflicts with a builtin function on line %d column %d.".formatted(varname.line,varname.col));
 			//d.function=new Function(varname.asString(),type.type,access,c);
 			///this remains the same
@@ -410,7 +433,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			}
 			d.objType=DeclareObjType.FUNC;
 			for(Variable p:d.function.args) {
-				CompileJob.compileMcfLog.println("\t parameter: %s%s %s".formatted(p.isReference()?"ref ":"" ,p.type.asString(),p.name));
+				//CompileJob.compileMcfLog.println("\t parameter: %s%s %s".formatted(p.isReference()?"ref ":"" ,p.type.asString(),p.name));
 				
 			}
 			//final before -> and export
@@ -436,7 +459,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 					asn=c.nextNonNullMatch(lookMaskOp);
 					if(asn instanceof Token.TagOf) {
 						//optional
-						CompileJob.compileMcfLog.println("custom func name");
+						//CompileJob.compileMcfLog.println("custom func name");
 						asn=c.nextNonNullMatch(look);
 						if (!(asn instanceof Token.BasicName)) throw new CompileError.UnexpectedToken(asn,"normal function name");
 						//d.function.withMCFName(((Token.BasicName)asn).name);
@@ -613,9 +636,20 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 				.formatted(this.estimate!=null?"~~...":"",
 						this.assignment!=null?"=...":"");
 	}
+
+	@Override
+	public void addToStartOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
+		//do nothing
+		if(this.objType==DeclareObjType.FUNC) {
+			this.function.allocateMyLocalsCallInside(p);
+		}
+	}
 	@Override
 	public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
 		//do nothing
+		if(this.objType==DeclareObjType.FUNC) {
+			this.function.deallocateLocalAfterCallInside(p);
+		}
 	}
 	public DeclareObjType getObjType() {
 		return objType;

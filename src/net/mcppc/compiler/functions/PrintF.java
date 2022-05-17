@@ -145,7 +145,7 @@ public class PrintF extends BuiltinFunction{
 		}
 		s=s.playerify();
 		String litFstring=((StringToken) t).literal();
-		CompileJob.compileMcfLog.printf("printf: %s, %s;\n",s,litFstring);
+		//CompileJob.compileMcfLog.printf("printf: %s, %s;\n",s,litFstring);
 		PrintfArgs args=new PrintfArgs(s,litFstring);
 		boolean moreArgs=BuiltinFunction.findArgsep(c);
 		while(moreArgs) {
@@ -175,7 +175,7 @@ public class PrintF extends BuiltinFunction{
 		int index=1;
 		//if set to true, vars will be passed by reference and printf will display what they show after all ops have been performed
 		boolean REFARGS=false;
-		CompileJob.compileMcfLog.printf("printf compile begun;\n");
+		//CompileJob.compileMcfLog.printf("printf compile begun;\n");
 		for(Token t:pargs.targs) {
 			if(t instanceof Selector.SelectorToken) {
 				jsonargs.add(((Selector.SelectorToken) t).selector().getJsonText());
@@ -190,7 +190,8 @@ public class PrintF extends BuiltinFunction{
 					eq.compileOps(p, c, s, null);
 					NbtPath anonvn=new NbtPath("\"$printf\".\"$%d\"".formatted(index));
 					Variable anon=new Variable("anon",eq.retype,null,c).maskStorageAllocatable(c.resourcelocation, anonvn);
-					if(anon.willAllocateOnLoad(false))anon.allocate(p, false);
+					//anon vars must think they are being loaded
+					if(anon.willAllocateOnLoad(false))anon.allocateLoad(p, false);
 					eq.setVar(p, c, s, anon);
 					if(eq.retype.isLogical()) {
 						convertBoolToStr(p,anon,s,stack);

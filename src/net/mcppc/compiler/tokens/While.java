@@ -19,7 +19,7 @@ public class While extends Statement implements Statement.CodeBlockOpener,Statem
 		//CompileJob.compileMcfLog.println(t.getClass().getName());
 		if (!(t instanceof Token.Paren) || !((Token.Paren)t).forward)throw new CompileError.UnexpectedToken(t, "'('");
 		While me=new While(line,col,null,null);
-		me.mySubscope = c.currentScope.subscope(me);
+		me.mySubscope = c.currentScope.subscope(c,me,true);
 		Token term=Factories.carefullSkipStm(c, matcher, line, col);
 		if((!(term instanceof Token.CodeBlockBrace)) || (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{");
 		return me;
@@ -37,7 +37,7 @@ public class While extends Statement implements Statement.CodeBlockOpener,Statem
 		if(call.args.size()!=1)throw new CompileError("wrong number of args in while statement; expected 1;");
 		eq=call.args.get(0);
 		While me=new While(line,col,stack,eq);
-		me.mySubscope = c.currentScope.subscope(me);
+		me.mySubscope = c.currentScope.subscope(c,me,false);
 		Token term=c.nextNonNullMatch(Factories.nextIsLineEnd);
 		if((!(term instanceof Token.CodeBlockBrace)) || (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{");
 		return me;
@@ -60,7 +60,7 @@ public class While extends Statement implements Statement.CodeBlockOpener,Statem
 	public void compileMe(PrintStream p, Compiler c, Scope s) throws CompileError {
 		RStack stack=mystack;
 		ResourceLocation mcf=this.mySubscope.getSubRes();
-		Variable mybreak=this.mySubscope.getBreakVarInMe();
+		Variable mybreak=this.mySubscope.getBreakVarInMe(c);
 		mybreak.setMeToBoolean(p, c, s, stack, false);//on start only
 		this.test.compileOps(p, c, s, VarType.BOOL);
 		int ts=this.test.setReg(p, c, s, VarType.BOOL);
@@ -91,12 +91,15 @@ public class While extends Statement implements Statement.CodeBlockOpener,Statem
 	@Override public boolean canRecurr() {
 		return true;
 	}
-
+	@Override
+	public void addToStartOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
+		//do nothing
+	}
 	@Override
 	public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
 		RStack stack=mystack;
 		ResourceLocation mcf=this.mySubscope.getSubRes();
-		Variable mybreak=this.mySubscope.getBreakVarInMe();
+		Variable mybreak=this.mySubscope.getBreakVarInMe(c);
 		this.test.compileOps(p, c, s, VarType.BOOL);
 		int ts=this.test.setReg(p, c, s, VarType.BOOL);
 		Register tr=stack.getRegister(ts);

@@ -176,9 +176,17 @@ public class FloatpN extends Struct {
 
 	}
 
+	@Override public boolean canBeRecursive(VarType type) {
+		return true;
+	}
 	@Override
-	public void allocate(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
-		this.allocateCompound(p, var, fillWithDefaultvalue, this.fields);
+	public void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		this.allocateCompoundLoad(p, var, fillWithDefaultvalue, this.fields);
+
+	}
+	@Override
+	public void allocateCall(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		this.allocateCompoundCall(p, var, fillWithDefaultvalue, this.fields);
 
 	}
 

@@ -118,7 +118,7 @@ public class FunctionMask extends BuiltinFunction {
 			throw new CompileError("fileNotFoundException");
 		} 
 		Function f=fi.identifyFunction(fname, s);
-		Function.FuncCallToken ft= new Function.FuncCallToken(token.line, token.col, this.fname,f) ;
+		Function.FuncCallToken ft= new Function.FuncCallToken(token.line, token.col, this.fname,f,c,s) ;
 		ft.withThis(token.getThisBound());
 		ft.withTemplate(token.getTemplate());
 		((MCFArgs) token.getArgs()).add(ft);

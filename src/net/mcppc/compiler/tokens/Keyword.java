@@ -25,7 +25,8 @@ public enum Keyword {
 	RETURN("return"),
 	THIS("this"),
 	CONST("const"),
-	FINAL("final")
+	FINAL("final"),
+	RECURSIVE("recursive")
 	;
 	
 	public static final Map<String,Keyword> VALUES = new HashMap<String, Keyword>();

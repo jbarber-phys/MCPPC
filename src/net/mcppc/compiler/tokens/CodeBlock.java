@@ -57,6 +57,9 @@ public class CodeBlock extends Statement {
 	private void compileAScope(Compiler c,Scope s) throws CompileError, FileNotFoundException{
 		c.currentScope=s;
 		s.open(c.job);
+		
+
+		if(this.opener!=null)opener.addToStartOfMyBlock(s.out, c, s);
 		for(Statement st:this.statements) {
 			c.compileLine(s.out, s, st);
 			//st.compileMe(s.out, c, s);
@@ -79,7 +82,7 @@ public class CodeBlock extends Statement {
 		StringBuffer s=new StringBuffer();while(s.length()<tabs)s.append('\t');
 		p.printf("%s{\n", s.toString());
 		for(Statement sm:this.statements) {
-			sm.printStatementTree(CompileJob.compileMcfLog, tabs+1);
+			sm.printStatementTree(p, tabs+1);
 		}
 		p.printf("%s}\n", s.toString());
 	}

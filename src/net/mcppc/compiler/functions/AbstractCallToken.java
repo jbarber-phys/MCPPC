@@ -34,4 +34,5 @@ public abstract class AbstractCallToken extends Token {
 	public void withThis(Variable self) {
 		thisBound=self;
 	}
+	public abstract void dumpRet(PrintStream p, Compiler c, Scope s, RStack stack) throws CompileError ;
 }

@@ -56,7 +56,8 @@ public class FileInterface {
 	final Map<String,Const> constsPrivate=new HashMap<String, Const>();
 	
 	//template: const value is their default
-	final List<Const> template=new ArrayList<Const>();//warning: unused, template is at function level
+	@Deprecated
+	private final List<Const> template=new ArrayList<Const>();//warning: unused, template is at function level
 	
 	
 	//hypothetical: classes
@@ -187,6 +188,20 @@ public class FileInterface {
 		if(isSelf)ret=ret || this.funcsPrivate.containsKey(name);
 		if(isSelf)ret=ret || this.funcsExtern.containsKey(name);
 		return ret;
+	}
+	public boolean hasTheFunc(Function f) {
+		switch (f.access) {
+		case EXTERN:
+			return this.funcsExtern.containsKey(f.name) && this.funcsExtern.get(f.name) == f; // do compare address
+		case PRIVATE:
+			return this.funcsPrivate.containsKey(f.name) && this.funcsPrivate.get(f.name) == f;
+		case PUBLIC:
+			return this.funcsPublic.containsKey(f.name) && this.funcsPublic.get(f.name) == f;
+		default:
+			break;
+		
+		}
+		return false;
 	}
 	public boolean hasConst(String name,Scope s) {
 		boolean isSelf= this.isSelf(s);
@@ -420,7 +435,7 @@ public class FileInterface {
 	public void printmefordebug(PrintStream p,int depth,int tabs) {
 		StringBuffer s=new StringBuffer();while(s.length()<tabs)s.append('\t');
 		p.printf("%sinterface %s\n",s.toString(), this.path);
-		p.printf("%s\t template: %s;\n",s.toString(), this.template.stream().map(f->f.name));
+		//p.printf("%s\t template: %s;\n",s.toString(), this.template.stream().map(f->f.name));
 		p.printf("%s\t public consts: %s;\n",s.toString(), this.constsPublic.keySet());
 		p.printf("%s\t private consts: %s\n",s.toString(), this.constsPrivate.keySet());
 		
@@ -445,12 +460,12 @@ public class FileInterface {
 	}
 	public void allocateAll(PrintStream p,Namespace ns) throws CompileError {
 		//System.err.printf("allocate vars in %s;\n", this.path);
-		for(Variable v:this.varsPublic.values()) if (v.willAllocateOnLoad(ALLOCATE_WITH_DEFAULT_VALUES)) v.allocate(p, ALLOCATE_WITH_DEFAULT_VALUES);
-		for(Variable v:this.varsPrivate.values()) if (v.willAllocateOnLoad(ALLOCATE_WITH_DEFAULT_VALUES)) v.allocate(p, ALLOCATE_WITH_DEFAULT_VALUES);
+		for(Variable v:this.varsPublic.values()) if (v.willAllocateOnLoad(ALLOCATE_WITH_DEFAULT_VALUES)) v.allocateLoad(p, ALLOCATE_WITH_DEFAULT_VALUES);
+		for(Variable v:this.varsPrivate.values()) if (v.willAllocateOnLoad(ALLOCATE_WITH_DEFAULT_VALUES)) v.allocateLoad(p, ALLOCATE_WITH_DEFAULT_VALUES);
 		//for(Variable v:this.varsExtern.values()) if (v.willAllocateOnLoad()) v.allocate(p, ALLOCATE_WITH_DEFAULT_VALUES); //do not load externs
-		if(!Function.ALLOCATE_ON_CALL) {
-			for(Function f:this.funcsPublic.values()) f.allocateMyLocals(p);
-			for(Function f:this.funcsPrivate.values()) f.allocateMyLocals(p);
+		if(true) {
+			for(Function f:this.funcsPublic.values()) f.allocateMyLocalsLoad(p);
+			for(Function f:this.funcsPrivate.values()) f.allocateMyLocalsLoad(p);
 			//for(Function f:this.funcsExtern.values()) f.allocateMyLocals(p); // do not load externs
 		}
 	}

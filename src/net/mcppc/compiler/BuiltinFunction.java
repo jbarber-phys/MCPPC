@@ -158,6 +158,11 @@ public abstract class BuiltinFunction {
 		public Args getArgs() {
 			return this.args;
 		}
+		@Override
+		public void dumpRet(PrintStream p, Compiler c, Scope s, RStack stack) throws CompileError {
+			// do nothing
+			
+		}
 		
 	}
 	public static interface Args{

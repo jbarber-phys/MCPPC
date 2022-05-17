@@ -214,6 +214,7 @@ public class RStack {
 		return this.regvarEstimates.get(reg);
 	}
 	public int size() {
+		if(this.vartypes.isEmpty()) return 0;
 		return this.getTop()+this.getVarType(this.getTop()).sizeOf();
 	}
 	public void debugOut(PrintStream p) {

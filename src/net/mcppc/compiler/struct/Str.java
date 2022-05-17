@@ -58,9 +58,17 @@ public class Str extends Struct{
 	public void setMe(PrintStream p, Scope s, RStack stack, int home, Variable me) throws CompileError {
 		throw new CompileError.CannotStack(me.type);
 	}
+
+	@Override public boolean canBeRecursive(VarType type) {
+		return true;
+	}
 	@Override
-	public void allocate(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
-		this.allocateString(p, var, fillWithDefaultvalue);
+	public void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		var.allocateLoadBasic(p, fillWithDefaultvalue, Struct.DEFAULT_STRING);
+	}
+	@Override
+	public void allocateCall(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		var.allocateCallBasic(p, fillWithDefaultvalue, Struct.DEFAULT_STRING);
 	}
 	@Override
 	public String getDefaultValue(VarType var) {

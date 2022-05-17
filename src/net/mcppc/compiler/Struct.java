@@ -54,6 +54,10 @@ public abstract class Struct {
 	
 	protected static final Map<String,Struct> STRUCTS=new HashMap<String,Struct>();
 	public static void register(Struct s) {
+		if(s instanceof IInternalOnly) {
+			System.err.printf("struct %s is internal only so cannot be registered; skipping registry;\n",s.name);
+			return;
+		}
 		STRUCTS.put(s.name, s);
 	}
 	static {
@@ -76,6 +80,7 @@ public abstract class Struct {
 		//this wont work; lookbehinds must be fixed length
 		public String getGroup();
 	}
+	public static interface IInternalOnly{}
 	
 	public final String name;
 	public final boolean isNumeric;
@@ -231,8 +236,12 @@ public abstract class Struct {
 	public void setVarToBool(PrintStream p,Compiler c,Scope s, RStack stack,boolean val,Variable self)throws CompileError{throw new CompileError.CannotSet(self.type, "bool");}
 	public void setRegistersToBool(PrintStream p,Compiler c,Scope s, RStack stack,int home,boolean val,VarType myType)throws CompileError{throw new CompileError.CannotSet(myType, "bool");}
 	
+
+	public boolean canBeRecursive(VarType type) {
+		return false;
+	}
 	
-	public boolean willAllocate(Variable var, boolean fillWithDefaultvalue){
+	public boolean willAllocateLoad(Variable var, boolean fillWithDefaultvalue){
 		return true;
 	}
 	/**
@@ -248,7 +257,29 @@ public abstract class Struct {
 	 * @param fillWithDefaultvalue
 	 * @throws CompileError
 	 */
-	public abstract void allocate(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError;
+	public abstract void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError;
+	public abstract void allocateCall(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError;
+	
+	//all the members of the implimentation buffet just affect the member tag;
+	//all members of self do not see the recursive nature, they are called as if on load
+
+	protected void allocateArrayLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue,int size,VarType elementType) throws CompileError {
+		if(var.isRecursive())
+			var.allocateLoadBasic(p, fillWithDefaultvalue, DEFAULT_LIST);
+		else {
+			this.allocateArray(p, var, fillWithDefaultvalue, size, elementType);
+		}
+	}
+	protected void allocateArrayCall(PrintStream p, Variable var, boolean fillWithDefaultvalue,int size,VarType elementType) throws CompileError {
+		if(var.isRecursive()) {
+			var.allocateCallBasic(p, fillWithDefaultvalue, DEFAULT_LIST);
+			this.allocateArray(p, var, fillWithDefaultvalue, size, elementType);
+		}
+		else {
+			//this should never be called
+			this.allocateArray(p, var, fillWithDefaultvalue, size, elementType);
+		}
+	}
 	/**
 	 * an implimentation of allocate() for types stored as arrays
 	 * @param p
@@ -258,7 +289,7 @@ public abstract class Struct {
 	 * @param elementType
 	 * @throws CompileError 
 	 */
-	protected void allocateArray(PrintStream p, Variable var, boolean fillWithDefaultvalue,int size,VarType elementType) throws CompileError {
+	private void allocateArray(PrintStream p, Variable var, boolean fillWithDefaultvalue,int size,VarType elementType) throws CompileError {
 		//can set to empty array []
 		//then append 1 element to fix the type
 		//the type is fixed once the first element is added
@@ -277,9 +308,9 @@ public abstract class Struct {
 		String subname="\"$%s\".\"$allocate_fill\"".formatted(this.name);
 		Variable fill=new Variable(subname, elementType, null, new ResourceLocation("mcppc","load__allocate"));
 		if(fill.willAllocateOnLoad(fillWithDefaultvalue)) {
-			fill.allocate(p, fillWithDefaultvalue);
+			fill.allocateLoad(p, fillWithDefaultvalue);
 			for(int i=0;i<size;i++) p.printf("data modify %s append from %s\n",var.dataPhrase(), fill.dataPhrase());
-			fill.deallocate(p);
+			fill.deallocateLoad(p);
 		}else {
 			String fillstr = elementType.defaultValue();
 			for(int i=0;i<size;i++) p.printf("data modify %s append value %s\n",var.dataPhrase(), fillstr);
@@ -288,7 +319,26 @@ public abstract class Struct {
 		
 		
 	}
-	protected void allocateCompound(PrintStream p, Variable var, boolean fillWithDefaultvalue,List<String> fieldNames)  throws CompileError{
+
+	protected void allocateCompoundLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue,List<String> fieldNames)  throws CompileError{
+		if(var.isRecursive())
+			var.allocateLoadBasic(p, fillWithDefaultvalue, DEFAULT_LIST);
+		else {
+			this.allocateCompound(p, var, fillWithDefaultvalue, fieldNames);
+		}
+	}
+
+	protected void allocateCompoundCall(PrintStream p, Variable var, boolean fillWithDefaultvalue,List<String> fieldNames)  throws CompileError{
+		if(var.isRecursive()) {
+			var.allocateCallBasic(p, fillWithDefaultvalue, DEFAULT_LIST);
+			this.allocateCompound(p, var, fillWithDefaultvalue, fieldNames);
+		}
+		else {
+			//this should never be called
+			this.allocateCompound(p, var, fillWithDefaultvalue, fieldNames);
+		}
+	}
+	private void allocateCompound(PrintStream p, Variable var, boolean fillWithDefaultvalue,List<String> fieldNames)  throws CompileError{
 
 		//data modify <var> set value {}
 
@@ -300,10 +350,11 @@ public abstract class Struct {
 		//or data remove <this> will also work, as sets to members will create sub-compounds
 		for(String name:fieldNames) if(this.hasField(var, name)){
 			Variable field=this.getField(var, name);
-			field.allocate(p, fillWithDefaultvalue);
+			field.allocateLoad(p, fillWithDefaultvalue);
 		}
 	}
-	protected void allocateString(PrintStream p, Variable var, boolean fillWithDefaultvalue)  throws CompileError{
+	//use //var.allocateLoadBasic(p, fillWithDefaultvalue, DEFAULT_STRING);
+	@Deprecated private void allocateString(PrintStream p, Variable var, boolean fillWithDefaultvalue)  throws CompileError{
 		//data modify <var> set value ""
 		if(var.pointsTo!=Mask.STORAGE) {
 			Warnings.warningf("attempted to deallocate %s to non-storage %s;",var.name,var.pointsTo);
@@ -311,6 +362,7 @@ public abstract class Struct {
 		}
 		if(fillWithDefaultvalue)p.printf("data modify %s set value %s\n",var.dataPhrase(), DEFAULT_STRING);
 		else ;//do nothing
+		
 	}
 	/**
 	 * execute to delete storage for this var
@@ -319,8 +371,13 @@ public abstract class Struct {
 	 * @param p
 	 * @param var
 	 */
-	public void deallocate(PrintStream p, Variable var) {
-		var.basicdeallocate(p);
+	public void deallocateLoad(PrintStream p, Variable var) {
+		var.basicdeallocateBoth(p);
+		//data remove <var>
+	}
+	public void deallocateAfterCall(PrintStream p, Variable var) {
+		//this one is supposed to change the list size
+		var.basicdeallocateBoth(p);
 		//data remove <var>
 	}
 	public abstract String getDefaultValue (VarType var) throws CompileError;
@@ -338,8 +395,8 @@ public abstract class Struct {
 		return false;
 	}
 	public Variable getIndexRef(Variable self,int index) throws CompileError{throw new CompileError.VarNotFound(this, index);};
-	protected Variable basicTagIndexRef(Variable self,int index,VarType type) {
-		return self.indexMyNBTPath(index, type);
+	protected Variable basicTagIndexRef(Variable self,int index,VarType elementType) {
+		return self.indexMyNBTPath(index, elementType);
 	}
 	
 

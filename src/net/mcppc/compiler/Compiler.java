@@ -5,9 +5,16 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.regex.*;
+import java.util.stream.Collectors;
+
 import net.mcppc.compiler.errors.*;
 import net.mcppc.compiler.tokens.*;
 import net.mcppc.compiler.tokens.Statement.CodeBlockOpener;
@@ -418,9 +425,65 @@ public class Compiler{
 			((CodeBlock) block).compileMyBlock(this);
 		}
 		this.currentScope=this.baseScope;
+		if(!this.checkForUnallowedRecursion()) {
+			throw new CompileError("bad recursion (see description above)");
+		}
 		this.hasCompiled=true;
 	}
 	public boolean isHeaderOnly() {
 		return isHeaderOnly;
+	}
+	private Map<String,Set<String>> crosscalls = new HashMap<String,Set<String>>();
+	private Map<String,Boolean> funcsRecursive = new HashMap<String,Boolean>();
+	public void addCrossCall(Function caller, Function called,Scope s) {
+		if(!this.myInterface.hasTheFunc(caller))return;
+		if(!this.myInterface.hasTheFunc(called))return;
+		String from = caller.name;
+		String to = called.name;
+		if(!crosscalls.containsKey(from)) {
+			this.crosscalls.put(from, new HashSet<String>());
+		}
+		this.crosscalls.get(from).add(to);
+		if(!funcsRecursive.containsKey(from)) {
+			this.funcsRecursive.put(from, caller.canRecurr);
+		}
+	}
+	public boolean checkForUnallowedRecursion() throws CompileError{
+		//only count 
+		//System.err.printf("%s :: checkForUnallowedRecursion()\n",this.resourcelocation.toString());
+		//System.err.println(this.crosscalls.toString());
+		//System.err.println(this.funcsRecursive.toString());
+		
+		int N=0;
+		Map<String,Integer> idxs = new HashMap<String, Integer>();
+		Map<Integer,String> nms = new HashMap<Integer, String>();
+		for(String name:this.crosscalls.keySet()) {
+			int i = N++;
+			idxs.put(name, i);
+			nms.put(i, name);
+		}
+		//System.err.println(idxs.toString());
+		int[][] connections = new int[N][N];//fill with zeros
+		boolean[] exempt = new boolean[N];
+		for(String from:this.crosscalls.keySet()) {
+			exempt[idxs.get(from)] = this.funcsRecursive.get(from);
+			for(String to:this.crosscalls.get(from)) {
+				if(idxs.containsKey(to))
+					connections[idxs.get(from)][idxs.get(to)] = 1;
+			}
+		}
+		int[] loop = CMath.findCycle(connections, N, exempt);
+		if(loop!=null) {
+			System.err.println("Error: found an unalowed recursion loop between functions:");
+			for(int i=0;i<loop.length;i++) {
+				String name = nms.get(loop[i]);
+				String recursive = this.funcsRecursive.get(name)? " (recursive)":"";
+				System.err.printf("\t %s::%s(...) %s\n",this.resourcelocation.toString(),name,recursive);
+			}
+			System.err.println("This will likely result in bad behavior");
+			return false;
+				
+		}return true;
+		
 	}
 }

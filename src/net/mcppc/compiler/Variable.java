@@ -38,10 +38,11 @@ public class Variable implements PrintF.IPrintable{
 	//the resourcelocation or player selector(cmd) 
 	String holder;
 	//the tag address or score:
-	String address;
+	private String address;
 	boolean isParameter=false;
 	boolean isFuncLocal=false;
 	private boolean isReference=false;
+	private boolean isRecursive=false;
 	public boolean isReference() {
 		return isReference;
 	}
@@ -52,7 +53,22 @@ public class Variable implements PrintF.IPrintable{
 		return this.isbasic;
 	}
 	public String getHolder() {return this.holder;}
-	public String getAddress() {return this.address;}
+	public String getAddress() {
+		//referenced only in compileJob.Namespace.addObjective
+		return this.getAddressToGetset();
+		//return this.address;
+		//should have no index for score
+	}
+	public String getAddressToGetset() {
+		if(this.pointsTo==Mask.SCORE) {
+			return this.address;//to recurr score, would have to push vars onto a storage tag
+		}
+		return this.address + (this.isRecursive? "[0]":"");
+	}
+
+	public String getAddressToPrepend() {
+		return this.address;
+	}
 	public Mask getMaskType() {return this.pointsTo;}
 	/**
 	 * defaults to masking storage
@@ -85,30 +101,76 @@ public class Variable implements PrintF.IPrintable{
 		this.holder=holder;
 		this.pointsTo=pointsTo;
 	}
-	public Variable parameterOf(Function f,boolean ref) {
+	public Variable parameterOf(Function f,boolean ref) throws CompileError{
 		this.address="%s.%s".formatted(f.name,this.name);
 		this.holder=f.getResoucrelocation().toString();
 		this.isParameter=true;
 		this.isReference=ref;
+		this.isRecursive = f.canRecurr;
+		if(this.isRecursive &&!canIBeRecursive())throw new CompileError("Variable %s of type %s cannot be made recursive;".formatted(this.name,this.type.asString()));
+
 		return this;
 	}
-	public Variable localOf(Function f) {
+	public Variable localOf(Function f) throws CompileError{
 		this.address="%s.%s".formatted(f.name,this.name);
 		this.holder=f.getResoucrelocation().toString();
 		this.isReference=false;
 		this.isFuncLocal=true;
+		this.isRecursive = f.canRecurr;
+		if(this.isRecursive &&!canIBeRecursive())throw new CompileError("Variable %s of type %s cannot be made recursive;".formatted(this.name,this.type.asString()));
+
 		return this;
-	} Variable returnOf(Function f) {
+	}public Variable localFlowOf(Function f) throws CompileError{
+		//hidden local variables that control flow
+		this.address="%s.%s".formatted(f.name,this.name);
+		//do not //this.holder=f.getResoucrelocation().toString();
+		this.isReference=false;
+		this.isFuncLocal=true;
+		this.isRecursive = f.canRecurr;
+		if(this.isRecursive &&!canIBeRecursive())throw new CompileError("Variable %s of type %s cannot be made recursive;".formatted(this.name,this.type.asString()));
+
+		return this;
+	} Variable returnOf(Function f) throws CompileError{
 		this.address="%s.%s".formatted(f.name,Function.RET_TAG);
 		this.holder=f.getResoucrelocation().toString();
 		this.isParameter=true;
+		this.isRecursive = f.canRecurr;
+		if(this.isRecursive &&!canIBeRecursive())throw new CompileError("Variable %s of type %s cannot be made recursive;".formatted(this.name,this.type.asString()));
+
 		return this;
-	} Variable thisOf(Function f) {
+	} Variable thisOf(Function f) throws CompileError{
 		this.address="%s.%s".formatted(f.name,Function.THIS_TAG);
 		this.holder=f.getResoucrelocation().toString();
 		this.isParameter=true;
-		this.isReference=true;//this is always passed by reference
+		this.isReference=true;//this is always passed by reference unless func is final
+		this.isRecursive = f.canRecurr;
+		if(this.isRecursive &&!canIBeRecursive())throw new CompileError("Variable %s of type %s cannot be made recursive;".formatted(this.name,this.type.asString()));
 		return this;
+	}
+	Variable stackVarOf(Function f) throws CompileError{
+		this.address="%s.%s".formatted(f.name,Function.STACK_TAG);
+		this.holder=f.getResoucrelocation().toString();
+		this.isParameter=false;
+		this.isFuncLocal = true;
+		this.isReference=false;//this is always passed by reference unless func is final
+		this.isRecursive = true;
+		return this;
+	}
+	private boolean canIBeRecursive() {
+		if(this.type.isStruct())return this.type.struct.canBeRecursive(this.type);
+		if(this.pointsTo !=Mask.STORAGE)return false;
+		return true;
+		//if recursive::
+		//on load:
+		//data modify ns path set value [];
+		//on enter function:
+		//data modify ns path prepend <default item>
+		
+		//then run function
+			//data get/modify ns path[0] ....
+		
+		//after leaving function and getting values:
+		//data remove ns path[0]
 	}
 	public Variable maskEntity(Selector s,NbtPath path)  throws CompileError {
 		if(this.type.isStruct()) {
@@ -173,6 +235,7 @@ public class Variable implements PrintF.IPrintable{
 		this.holder=ref.holder;
 		this.address=ref.address;
 		this.pointsTo=ref.pointsTo;
+		this.isRecursive=ref.isRecursive; // behave identically to original var
 		return this;
 	}
 	public Variable maskStorageAllocatable(ResourceLocation res,NbtPath path) {
@@ -207,32 +270,31 @@ public class Variable implements PrintF.IPrintable{
 			setMe(f,s,reg,regtype);
 		}
 	}
-	private void setMe(PrintStream f,Scope s,Register reg,VarType regType) throws CompileError {
+	public void setMe(PrintStream f,Scope s,Register reg,VarType regType) throws CompileError {
 		if(this.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
 		if(!VarType.areBasicTypesCompadible(this.type, regType)) throw new CompileError.UnsupportedCast(this.type, regType);
 		//non structs only; structs need their own routines possibly multiple registers)
 		String tagtype=this.type.getNBTTagType();
 		double mult=Math.pow(10, -regType.getPrecision(s));//scientific notation may cause problems
-		
 		switch (this.pointsTo) {
 		case STORAGE:{
 			f.println("execute store result storage %s %s %s %s run scoreboard players get %s"
-					.formatted(this.holder,this.address,tagtype,CMath.getMultiplierFor(mult),reg.inCMD())); 
+					.formatted(this.holder,this.getAddressToGetset(),tagtype,CMath.getMultiplierFor(mult),reg.inCMD())); 
 		}break;
 		case BLOCK:{
 			f.println("execute store result block %s %s %s %s run scoreboard players get %s"
-					.formatted(this.holder,this.address,tagtype,CMath.getMultiplierFor(mult),reg.inCMD()));
+					.formatted(this.holder,this.getAddressToGetset(),tagtype,CMath.getMultiplierFor(mult),reg.inCMD()));
 		}break;
 		case ENTITY:{
 			f.println("execute store result entity %s %s %s %s run scoreboard players get %s"
-					.formatted(this.holder,this.address,tagtype,CMath.getMultiplierFor(mult),reg.inCMD()));
+					.formatted(this.holder,this.getAddressToGetset(),tagtype,CMath.getMultiplierFor(mult),reg.inCMD()));
 		}break;
 		case SCORE:{
 			mult=Math.pow(10, -regType.getPrecision(s)+this.type.getPrecision(s));
 			f.println("execute store result storage %s \"$dumps\".%s %s %s run scoreboard players get %s"
 					.formatted(this.holder,this.name,tagtype,CMath.getMultiplierFor(mult),reg.inCMD()));
 			f.println("execute store result score %s %s run data get storage %s \"$dumps\".%s"
-					.formatted(this.holder,this.address,this.holder,this.name));
+					.formatted(this.holder,this.getAddressToGetset(),this.holder,this.name));
 			
 		}break;
 		}
@@ -246,7 +308,7 @@ public class Variable implements PrintF.IPrintable{
 		}
 		
 	}
-	private void getMe(PrintStream f,Scope s,Register reg) throws CompileError {
+	public void getMe(PrintStream f,Scope s,Register reg) throws CompileError {
 		if(this.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
 
 		//non structs only; structs need their own routines possibly multiple registers)
@@ -255,31 +317,47 @@ public class Variable implements PrintF.IPrintable{
 		switch (this.pointsTo) {
 		case STORAGE:{
 			f.println("execute store result score %s run data get storage %s %s %s"
-					.formatted(reg.inCMD(),this.holder,this.address,CMath.getMultiplierFor(mult)));
+					.formatted(reg.inCMD(),this.holder,this.getAddressToGetset(),CMath.getMultiplierFor(mult)));
 		}break;
 		case BLOCK:{
 			f.println("execute store result score %s run data get block %s %s %s"
-					.formatted(reg.inCMD(),this.holder,this.address,CMath.getMultiplierFor(mult)));
+					.formatted(reg.inCMD(),this.holder,this.getAddressToGetset(),CMath.getMultiplierFor(mult)));
 		}break;
 		case ENTITY:{
 			f.println("execute store result score %s run data get entity %s %s %s"
-					.formatted(reg.inCMD(),this.holder,this.address,CMath.getMultiplierFor(mult)));
+					.formatted(reg.inCMD(),this.holder,this.getAddressToGetset(),CMath.getMultiplierFor(mult)));
 		}break;
 		case SCORE:{
-			f.println("scoreboard players operation %s = %s %s".formatted(reg.inCMD(),this.holder,this.address));
+			f.println("scoreboard players operation %s = %s %s".formatted(reg.inCMD(),this.holder,this.getAddressToGetset()));
 		}break;
 		}
 	}
 	public String dataPhrase() {
 		switch (this.pointsTo) {
 		case STORAGE:{
-			return "storage %s %s".formatted(this.holder,this.address);
+			return "storage %s %s".formatted(this.holder,this.getAddressToGetset());
 		}
 		case BLOCK:{
-			return "block %s %s".formatted(this.holder,this.address);
+			return "block %s %s".formatted(this.holder,this.getAddressToGetset());
 		}
 		case ENTITY:{
-			return "entity %s %s".formatted(this.holder,this.address);
+			return "entity %s %s".formatted(this.holder,this.getAddressToGetset());
+		}
+		case SCORE:{
+			return null;
+		} default:return null;
+		}
+	}
+	public String dataPhraseRecursive() {
+		switch (this.pointsTo) {
+		case STORAGE:{
+			return "storage %s %s".formatted(this.holder,this.getAddressToPrepend());
+		}
+		case BLOCK:{
+			return "block %s %s".formatted(this.holder,this.getAddressToPrepend());
+		}
+		case ENTITY:{
+			return "entity %s %s".formatted(this.holder,this.getAddressToPrepend());
 		}
 		case SCORE:{
 			return null;
@@ -291,13 +369,13 @@ public class Variable implements PrintF.IPrintable{
 		//also TODO {array[1]: 123} ->? (not array[2]: val)
 		switch (this.pointsTo) {
 		case STORAGE:{
-			return "data storage %s {%s: %s}".formatted(this.holder,this.address,matchtag);
+			return "data storage %s {%s: %s}".formatted(this.holder,this.getAddressToGetset(),matchtag);
 		}
 		case BLOCK:{
-			return "data block %s {%s: %s}".formatted(this.holder,this.address,matchtag);
+			return "data block %s {%s: %s}".formatted(this.holder,this.getAddressToGetset(),matchtag);
 		}
 		case ENTITY:{
-			return "data entity %s {%s: %s}".formatted(this.holder,this.address,matchtag);
+			return "data entity %s {%s: %s}".formatted(this.holder,this.getAddressToGetset(),matchtag);
 		}
 		case SCORE:{
 			return null;
@@ -306,7 +384,7 @@ public class Variable implements PrintF.IPrintable{
 	}
 	public String isTrue() {
 		if(this.pointsTo==Mask.SCORE) {
-			return "score %s %s matches 1..".formatted(this.holder,this.address);
+			return "score %s %s matches 1..".formatted(this.holder,this.getAddressToGetset());
 			
 		}
 		return this.matchesPhrase("1b");
@@ -326,7 +404,7 @@ public class Variable implements PrintF.IPrintable{
 		return this.getJsonTextBasic();
 	}
 	public String getJsonTextBasic() throws CompileError {
-		String edress = PrintF.ESCAPE_TAG_IN_JSON? Regexes.escape(this.address):this.address;
+		String edress = PrintF.ESCAPE_TAG_IN_JSON? Regexes.escape(this.getAddressToGetset()):this.getAddressToGetset();
 		//format string is in vartype
 		switch(this.pointsTo) {
 		case STORAGE: return "{\"storage\": \"%s\", \"nbt\": \"%s\"}".formatted(this.holder,edress);
@@ -351,13 +429,13 @@ public class Variable implements PrintF.IPrintable{
 		}
 		else switch(this.pointsTo) {
 		case BLOCK:
-			return "%s%s %s -> %s %s".formatted(refsrt,this.type.asString(),this.name,this.holder,this.address);
+			return "%s%s %s -> %s %s".formatted(refsrt,this.type.asString(),this.name,this.holder,this.address);//here go with the true address
 		case ENTITY:
-			return "%s%s %s -> %s.%s".formatted(refsrt,this.type.asString(),this.name,this.holderHeader,this.address);
+			return "%s%s %s -> %s.%s".formatted(refsrt,this.type.asString(),this.name,this.holderHeader,this.address);//here go with the true address
 		case SCORE:
-			return "%s%s %s -> %s::%s".formatted(refsrt,this.type.asString(),this.name,this.holderHeader,this.address);
+			return "%s%s %s -> %s::%s".formatted(refsrt,this.type.asString(),this.name,this.holderHeader,this.address);//here go with the true address
 		case STORAGE:
-			return "%s%s %s -> %s.%s".formatted(refsrt,this.type.asString(),this.name,this.holder,this.address);
+			return "%s%s %s -> %s.%s".formatted(refsrt,this.type.asString(),this.name,this.holder,this.address);//here go with the true address
 		default:
 			throw new CompileError("null mask");
 		
@@ -381,6 +459,10 @@ public class Variable implements PrintF.IPrintable{
 		}else {
 			p.printf("data modify %s set value %s\n", this.dataPhrase(),this.type.boolToStringNumber(value));
 		}
+	}
+	public void setMeToNbtValueBasic(PrintStream p,Compiler c,Scope s, RStack stack,String value) throws CompileError {
+		if(this.getMaskType() != Mask.STORAGE) throw new CompileError("cannot set nbt value of a score variable %s;".formatted(this.name));
+		p.printf("data modify %s set value %s\n", this.dataPhrase(),value);
 	}
 	public static void directSet(PrintStream f,Scope s,Variable to,Variable from,RStack stack) throws CompileError {
 		if(to.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
@@ -445,23 +527,23 @@ public class Variable implements PrintF.IPrintable{
 				boolean esgn=(to.type.getPrecision(s)-from.type.getPrecision(s))>=0;
 				boolean domult=(to.type.getPrecision(s)-from.type.getPrecision(s))!=0;
 				int mult=(int) Math.pow(10, Math.abs(to.type.getPrecision(s)-from.type.getPrecision(s)));//scientific notation may cause problems
-				f.printf("scoreboard players operation %s %s =  %s %s\n",to.holder,to.address,from.holder,from.address);
+				f.printf("scoreboard players operation %s %s =  %s %s\n",to.holder,to.getAddressToGetset(),from.holder,from.getAddressToGetset());
 				if(domult && floatp) {
 					int extraind=stack.getNext(stack.getTop());Register extra=stack.getRegister(extraind);
 					stack.reserve(1);
 					f.printf("scoreboard players set %s %d\n",extra.inCMD(),CMath.getMultiplierFor(mult));
-					if (esgn) f.printf("scoreboard players operation %s %s *=  %s\n",to.holder,to.address,extra.inCMD());
-					else f.printf("scoreboard players operation %s %s /=  %s\n",to.holder,to.address,extra.inCMD());
+					if (esgn) f.printf("scoreboard players operation %s %s *=  %s\n",to.holder,to.getAddressToGetset(),extra.inCMD());
+					else f.printf("scoreboard players operation %s %s /=  %s\n",to.holder,to.getAddressToGetset(),extra.inCMD());
 				}
 			}else {
 				String data=from.dataPhrase();
 				double mult=Math.pow(10, to.type.getPrecision(s));//scientific notation may cause problems
-				f.printf("execute store result score %s %s run data get %s %s\n",to.holder,to.address,data,CMath.getMultiplierFor(mult));
+				f.printf("execute store result score %s %s run data get %s %s\n",to.holder,to.getAddressToGetset(),data,CMath.getMultiplierFor(mult));
 			}
 		}else if(from.pointsTo==Mask.SCORE) {
 			String data=to.dataPhrase();
 			double mult=Math.pow(10, -from.type.getPrecision(s));//scientific notation may cause problems
-			f.printf("execute store result %s %s run scoreboard players get %s %s\n", data,CMath.getMultiplierFor(mult),from.holder,from.address);
+			f.printf("execute store result %s %s run scoreboard players get %s %s\n", data,CMath.getMultiplierFor(mult),from.holder,from.getAddressToGetset());
 		} else {
 			String dto=to.dataPhrase();
 			String dfrom=from.dataPhrase();
@@ -505,7 +587,7 @@ public class Variable implements PrintF.IPrintable{
 				this.access,
 				this.pointsTo,
 				this.holder,
-				"%s[%s]".formatted(this.address,index)
+				"%s[%s]".formatted(this.getAddressToGetset(),index)
 				);
 	}
 	public Variable fieldMyNBTPath(String field,VarType type) {
@@ -514,7 +596,7 @@ public class Variable implements PrintF.IPrintable{
 				this.access,
 				this.pointsTo,
 				this.holder,
-				"%s.%s".formatted(this.address,field)
+				"%s.%s".formatted(this.getAddressToGetset(),field) // fields revive the getset address
 				);
 	}
 	public boolean isStruct() {
@@ -544,13 +626,13 @@ public class Variable implements PrintF.IPrintable{
 	public boolean areRefsEqual(Variable ov) {
 		return this.pointsTo==ov.pointsTo
 				&&this.holder.equals(ov.holder)
-				&& this.address.equals(ov.address);
+				&& this.address.equals(ov.address);//ok
 	}
 	public boolean areTypesEqual(Variable ov) {
 		return this.type.equals(ov.type);
 	}
 	@Override public int hashCode() {
-		return Objects.hash(this.name,this.holder,this.address);
+		return Objects.hash(this.name,this.holder,this.address);//ok
 	}
 	
 	/**
@@ -559,15 +641,24 @@ public class Variable implements PrintF.IPrintable{
 	 * @return true if this var has no explicit mask (masks are assumed to already be existing locations)
 	 */
 	public boolean willAllocateOnLoad(boolean fillWithDefaultvalue) {
+		if(this.isRecursive)return true;
 		if(this.type.isStruct())
-			return this.isbasic  && this.type.struct.willAllocate(this, fillWithDefaultvalue);
+			return this.isbasic  && this.type.struct.willAllocateLoad(this, fillWithDefaultvalue);//usually true
 		return this.isbasic  && fillWithDefaultvalue;
 	}
-	public void allocate(PrintStream p,boolean fillWithDefaultvalue) throws CompileError {
+	public boolean willAllocateOnCall(boolean fillWithDefaultvalue) {
+		return this.isRecursive;
+	}
+	public void allocateLoad(PrintStream p,boolean fillWithDefaultvalue) throws CompileError {
 		if(this.type.isStruct()) {
-			this.type.struct.allocate(p, this, fillWithDefaultvalue);
+			this.type.struct.allocateLoad(p, this, fillWithDefaultvalue);
 			return;
 		}
+		if(this.type.isVoid())return;//skip
+		this.allocateLoadBasic(p,fillWithDefaultvalue,this.type.defaultValue());
+		
+	}
+	public void allocateLoadBasic(PrintStream p,boolean fillWithDefaultvalue,String defaultValue) throws CompileError  {
 		if(!this.isbasic) {
 			Warnings.warningf("attempted to allocate %s to non-basic %s;",this.name,this.pointsTo);
 			return;
@@ -576,8 +667,38 @@ public class Variable implements PrintF.IPrintable{
 			Warnings.warningf("attempted to allocate %s to non-storage %s;",this.name,this.pointsTo);
 			return;
 		}
-		p.printf("data modify %s set value %s\n",this.dataPhrase(), this.type.defaultValue());
+		String data = this.isRecursive ?
+				 this.dataPhraseRecursive()
+				:this.dataPhrase();
+		String value = this.isRecursive ?
+				 Struct.DEFAULT_LIST
+				:defaultValue; 
+		p.printf("data modify %s set value %s\n",data, value);
+	}
+	public void allocateCall(PrintStream p,boolean fillWithDefaultvalue) throws CompileError {
+		if(this.type.isStruct()) {
+			this.type.struct.allocateCall(p, this, fillWithDefaultvalue);
+			return;
+		}
+		if(this.type.isVoid())return;//skip
+		this.allocateCallBasic(p, fillWithDefaultvalue,this.type.defaultValue());
 		
+		
+	}
+	public void allocateCallBasic(PrintStream p,boolean fillWithDefaultvalue,String defaultValue) throws CompileError {
+		if(!this.isbasic) {
+			Warnings.warningf("attempted to allocate %s to non-basic %s;",this.name,this.pointsTo);
+			return;
+		}
+		if(this.pointsTo!=Mask.STORAGE) {
+			Warnings.warningf("attempted to allocate %s to non-storage %s;",this.name,this.pointsTo);
+			return;
+		}
+		if(this.isRecursive) {
+			p.printf("data modify %s prepend value %s\n",this.dataPhraseRecursive(), defaultValue);
+		}else {
+			p.printf("data modify %s set value %s\n",this.dataPhrase(), defaultValue);
+		}
 	}
 	public void makeObjective(PrintStream p) throws CompileError {
 		if(this.type.isStruct()) {
@@ -591,15 +712,23 @@ public class Variable implements PrintF.IPrintable{
 		p.printf("scoreboard objectives add %s dummy\n",this.address);
 		
 	}
-	public void deallocate(PrintStream p) {
+	public void deallocateLoad(PrintStream p) {
 		if(this.type.isStruct()) {
-			this.type.struct.deallocate(p, this);
+			this.type.struct.deallocateLoad(p, this);
 			return;
 		}
-		this.basicdeallocate(p);
+		this.basicdeallocateBoth(p);
 		
 	}
-	public void basicdeallocate(PrintStream p) {
+	public void deallocateAfterCall(PrintStream p) {
+		if(this.type.isStruct()) {
+			this.type.struct.deallocateAfterCall(p, this);
+			return;
+		}
+		this.basicdeallocateBoth(p);
+		
+	}
+	public void basicdeallocateBoth(PrintStream p) {
 		if(this.pointsTo!=Mask.STORAGE) {
 			Warnings.warningf("attempted to deallocate %s to non-storage %s;",this.name,this.pointsTo);
 			return;
@@ -608,7 +737,14 @@ public class Variable implements PrintF.IPrintable{
 			Warnings.warningf("attempted to deallocate %s to non-basic %s;",this.name,this.pointsTo);
 			return;
 		}
+		//this should work for both recursive and nonrecursive vars
 		p.printf("data remove %s\n", this.dataPhrase());
 		
+	}
+	public boolean isRecursive() {
+		return isRecursive;
+	}
+	public void makeRecursive() {
+		this.isRecursive=true;
 	}
 }

@@ -1,5 +1,8 @@
 package net.mcppc.compiler;
 
+import java.util.Arrays;
+import java.util.List;
+
 public abstract class CMath {
 	public static Number uminus(Number n) {
 		if(n instanceof Byte)return -n.byteValue();
@@ -66,16 +69,20 @@ public abstract class CMath {
 	 * @param states
 	 * @return
 	 */
-	private static int findCycle(int[][] graph,int N, int u, int[] states){
+	private static int findCycle(int[][] graph,int N, int u, int[] states, boolean[] exempt,boolean currentlyExempt){
 	    for(int v = 0; v < N; v++){
 	        if(graph[u][v] == 1){
+	        	boolean allexempt = currentlyExempt && exempt[v];
 	            if(states[v] == PUSHED){
 	                // cycle found
+            		//check to see if this loop is exempt; if so, 
+            		if(allexempt)continue;
+	            	
 	                cycleFound = true;
 	                return v;
 	            }else if(states[v] == NEW){
 	                states[v] = PUSHED;
-	                int poppedVertex = findCycle(graph, N, v, states);
+	                int poppedVertex = findCycle(graph, N, v, states,exempt,allexempt);
 	                states[v] = POPPED;
 	                if(cycleFound){
 	                    if(poppedVertex == u){
@@ -94,13 +101,17 @@ public abstract class CMath {
 	    return -1;
 	}
 	public static int[] findCycle(int[][] graph,int N){
+		boolean[] exempt = new boolean[N];Arrays.fill(exempt, false);
+		return findCycle(graph,N,exempt);
+	}
+	public static int[] findCycle(int[][] graph,int N,boolean[] exempt){
 	    int[] states = new int[N];
 	    cycleFound=false;
 	    for(int u=0;u<N;u++) if(states[u]==NEW){
 			cycleElements = new int[N];
 			cycleElementIndex=0;
 		    states[u] = PUSHED;
-		    findCycle(graph,N,u,states);
+		    findCycle(graph,N,u,states,exempt,true);
 		    if(cycleFound)break;
 	    }
 	    	

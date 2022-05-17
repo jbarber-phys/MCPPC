@@ -626,7 +626,7 @@ public class Equation extends Token  implements TreePrintable{
 							int nextreg=this.putTokenToRegister(p, c, s, typeWanted, nextval);
 							//stack.debugOut(System.err);
 							op.perform(p, c, s, stack, this.homeReg, nextreg);
-							CompileJob.compileMcfLog.printf("homeReg: %s;\n", this.homeReg);
+							//CompileJob.compileMcfLog.printf("homeReg: %s;\n", this.homeReg);
 							stack.cap(this.homeReg);//remove unused register IF it was created
 						}else if (prevNum!=null && newnum==null ) {
 							//first term is number
@@ -755,6 +755,30 @@ public class Equation extends Token  implements TreePrintable{
 			
 		}
 		return this.homeReg;
+	}
+	public void ignoreGet(PrintStream p,Compiler c,Scope s) throws CompileError {
+		if(this.hasSetToReg) {
+			//already done
+		}else {
+			if (this.elements.size()==0)throw new CompileError("unexpected empty equation asked to set to reg");
+			if(this.elements.size()>1)throw new CompileError("eq mistaken for a does no ops eq.");
+			Token e=this.elements.get(0);
+			if(e instanceof Token.MemberName) {
+				//Variable from=((Token.MemberName) e).var;
+				//from.getMe(p,s, stack, this.homeReg);
+			}else if(e instanceof Num) {
+				//stack.getRegister(this.homeReg).setValue(p,s, ((Num)e).value, ((Num)e).type);
+			}else if(e instanceof Token.Bool) {
+				//stack.getRegister(this.homeReg).setValue(p, ((Token.Bool)e).val);
+			}else if(e instanceof Function.FuncCallToken) {
+				((Function.FuncCallToken)e).dumpRet(p, c, s, stack);
+			} else if(e instanceof BuiltinFunction.BFCallToken) {
+				((BuiltinFunction.BFCallToken)e).dumpRet(p, c, s, stack);
+			}else if (e instanceof Const.ConstExprToken) {
+				throw new CompileError.CannotStack((Const.ConstExprToken)e);
+			}
+			
+		}
 	}
 
 	@Override

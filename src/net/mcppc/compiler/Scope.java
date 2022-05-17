@@ -37,6 +37,7 @@ public class Scope {
 	private int flowCounter;
 	
 	private final boolean isBreakable;
+	private final boolean isDoneable;
 	//file IO for compiling mcfs only
 	final List<Scope> children = new ArrayList<Scope>();
 	public PrintStream out=null;
@@ -202,6 +203,7 @@ public class Scope {
 		this.myFlowNumber=0;
 		this.resBase=c.resourcelocation;
 		this.isBreakable=false;
+		this.isDoneable = false;
 	}
 	private Scope(Scope s,Function f) {
 		this.parent=s;
@@ -211,6 +213,7 @@ public class Scope {
 		this.resBase=s.resBase;
 		s.children.add(this);
 		this.isBreakable=false;
+		this.isDoneable = false;
 		this.isFuncBase=true;
 	}
 	private TemplateDefToken template=null;//can be def or args
@@ -226,6 +229,7 @@ public class Scope {
 		template=templateDef;
 		templateBound=template;
 		this.isBreakable=false;
+		this.isDoneable = false;
 	}
 	@Deprecated
 	private Scope(Scope scope, TemplateArgsToken tempargs) throws CompileError {
@@ -236,6 +240,7 @@ public class Scope {
 		template=scope.template.bind(tempargs) ;
 		templateBound=template;
 		this.isBreakable=false;
+		this.isDoneable = false;
 	}
 	private Scope(Scope s,Statement.Flow flow) {
 		this.parent=s;
@@ -245,6 +250,10 @@ public class Scope {
 		this.flowType=flow.getFlowType();
 		this.hasExtraSuffix=true;
 		this.isBreakable=flow.canBreak();
+		if(flow instanceof Statement.MultiFlow) {
+			//then it has a done parameter
+			this.isDoneable = true;
+		}else this.isDoneable = false;
 		s.children.add(this);
 	}
 	public Scope subscope(Function f) throws CompileError{
@@ -252,14 +261,35 @@ public class Scope {
 		if(this.isInFunctionDefine()) throw new CompileError("functions inside functions not yet supproted");
 		return new Scope(this,f);
 	}
-	public Scope subscope(Statement.Flow flow) throws CompileError{
-		return new Scope(this,flow);
+	public Scope subscope(Compiler c,Statement.Flow flow, boolean isPass1) throws CompileError{
+		Scope s =new Scope(this,flow);
+		//System.err.printf("made flow subscope %s; break: %s, done: %s;\n",flow.getFlowType(),s.isBreakable,s.isDoneable);
+		if(s.isBreakable) s.initializeBreakVarInMe(c,isPass1);
+		if(s.isDoneable) {
+			if (((Statement.MultiFlow)flow).makeDoneVar())
+				s.initializeIfelseDoneVarExMe(c,isPass1);
+		}
+		//collect lo
+		return s;
 	}
-	
-	public Variable getIfelseDoneVarExMe() {
+	private Variable flowVarDone = null;
+	public Variable initializeIfelseDoneVarExMe(Compiler c,boolean add) throws CompileError {
+		if(this.flowVarDone==null) {
+			//only initialize once per scope
+			this.flowVarDone=new Variable("\"$ifelse_done\"",VarType.BOOL,null,this.getSubResNoTemplate());
+			if(this.isInFunctionDefine() && this.function.canRecurr) {
+				this.function.withLocalFlowVar(this.flowVarDone, c,add);
+			}
+		}
+		//System.err.printf("donevar: %s.%s\n",this.flowVarDone.holder,this.flowVarDone.getAddressToPrepend());
+		return this.flowVarDone;
+	}
+	public Variable getIfelseDoneVarExMe(Compiler c) throws CompileError {
 		//external to the if statement
-		final Variable done=new Variable("\"$ifelse_done\"",VarType.BOOL,null,this.getSubRes());
-		return done;
+		if(this.flowVarDone==null) {
+			throw new CompileError("tried to initialize ifelse var too late");
+		}
+		return this.flowVarDone;
 	}
 	public boolean hasBreak() {
 		return hasBreak(0);
@@ -273,22 +303,38 @@ public class Scope {
 		if(this.parent==null)return false;
 		return this.parent.hasBreak(depth);
 	}
-	public Variable getBreakVarInMe() {
-		return getBreakVarInMe(0);
+	public Variable getBreakVarInMe(Compiler c) throws CompileError {
+		return getBreakVarInMe(c, 0);
 	}
-	public Variable getBreakVarInMe(int depth) {
+	private Variable myBreakVar = null;
+	public Variable initializeBreakVarInMe(Compiler c,boolean add) throws CompileError {
+		if(this.isBreakable) {
+			if(this.myBreakVar==null) {
+				this.myBreakVar=new Variable("\"$break\"",VarType.BOOL,null,this.getSubResNoTemplate());
+				if(this.isInFunctionDefine() && this.function.canRecurr) {
+					this.function.withLocalFlowVar(this.myBreakVar, c, add);
+				}
+			}
+			
+			return this.myBreakVar;
+		}return null;
+	}
+	public Variable getBreakVarInMe(Compiler c, int depth) throws CompileError {
 		//note: break ignores template
 		if(this.isBreakable) {
 			//internal scope to the loop
 			if(depth==0) {
-				final Variable bk=new Variable("\"$break\"",VarType.BOOL,null,this.getSubResNoTemplate());
-				return bk;
+				if(this.myBreakVar==null) {
+					throw new CompileError("flowvar break initialized too late");
+				}
+				
+				return this.myBreakVar;
 			}
 			if(this.parent==null)return null;
-			return this.parent.getBreakVarInMe(depth-1);
+			return this.parent.getBreakVarInMe(c,depth-1);
 		}
 		if(this.parent==null)return null;
-		return this.parent.getBreakVarInMe(depth);
+		return this.parent.getBreakVarInMe(c,depth);
 	}
 	public Scope defTemplateScope(TemplateDefToken templateDef) throws CompileError {
 		if(this.parent!=null) throw new CompileError("template defs inside flow / functions not (yet) supproted");

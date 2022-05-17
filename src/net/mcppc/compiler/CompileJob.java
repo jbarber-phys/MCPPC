@@ -114,7 +114,7 @@ public class CompileJob {
 			return this.name.equals(MINECRAFT);
 		}
 		public void addObjective(Variable v) {
-			if(v.pointsTo==Mask.SCORE && !v.isStruct()) this.objectives.putIfAbsent(v.address, v);
+			if(v.pointsTo==Mask.SCORE && !v.isStruct()) this.objectives.putIfAbsent(v.getAddress(), v);
 		}
 	}
 	

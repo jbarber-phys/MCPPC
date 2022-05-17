@@ -21,7 +21,7 @@ public class ForStm extends Statement implements Statement.CodeBlockOpener,State
 		//CompileJob.compileMcfLog.println(t.getClass().getName());
 		if (!(t instanceof Token.Paren) || !((Token.Paren)t).forward)throw new CompileError.UnexpectedToken(t, "'('");
 		ForStm me=new ForStm(line,col,null);
-		me.mySubscope = c.currentScope.subscope(me);
+		me.mySubscope = c.currentScope.subscope(c,me,true);
 		Token term=Factories.carefullSkipStm(c, matcher, line, col);
 		if((!(term instanceof Token.CodeBlockBrace)) || (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{");
 		return me;
@@ -30,13 +30,13 @@ public class ForStm extends Statement implements Statement.CodeBlockOpener,State
 	public static ForStm makeMe(Compiler c, Matcher matcher, int line, int col,Keyword w) throws CompileError {
 		//test for else if
 		c.cursor=matcher.end();
-		CompileJob.compileMcfLog.printf("flow %s;\n", w);
+		//CompileJob.compileMcfLog.printf("flow %s;\n", w);
 		Token t;
 		
 		RStack stack=c.currentScope.getStackFor();
 
 		ForStm me=new ForStm(line,col,stack);
-		me.mySubscope = c.currentScope.subscope(me);
+		me.mySubscope = c.currentScope.subscope(c,me,false);
 		t=c.nextNonNullMatch(Factories.checkForParen);
 		if (!(t instanceof Token.Paren) || !((Token.Paren)t).forward)throw new CompileError.UnexpectedToken(t, "'('");
 		Function.FuncCallToken call=Function.FuncCallToken.make(c, line, col, matcher, ForStm.name, stack);
@@ -130,7 +130,7 @@ public class ForStm extends Statement implements Statement.CodeBlockOpener,State
 	@Override
 	public void compileMe(PrintStream p, Compiler c, Scope s) throws CompileError {
 		ResourceLocation mcf=this.mySubscope.getSubRes();
-		Variable mybreak=this.mySubscope.getBreakVarInMe();
+		Variable mybreak=this.mySubscope.getBreakVarInMe(c);
 		mybreak.setMeToBoolean(p, c, s, mystack, false);
 		for(Number n:this.span) {
 			this.counter.setMeToNumber(p, c, s, mystack, n);
@@ -147,6 +147,10 @@ public class ForStm extends Statement implements Statement.CodeBlockOpener,State
 	@Override
 	public boolean canBreak() {
 		return true;
+	}
+	@Override
+	public void addToStartOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
+		//do nothing
 	}
 	@Override
 	public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {

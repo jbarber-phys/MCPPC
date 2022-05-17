@@ -41,11 +41,16 @@ public abstract class Statement extends Token implements TreePrintable{
 		public boolean setPredicessor(MultiFlow pred) ;//tells this what the previous flow statement was; return success flag
 		public boolean claim();//false; make true if this block becomes the new previous flow
 		public boolean recive();//true for elif, else
+		
+		default public boolean makeDoneVar() {
+			return this.claim() || !this.recive();
+		}
 	}
 	public static interface CodeBlockOpener {
 		public boolean didOpenCodeBlock();
 		public Scope getNewScope();
 		public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s)throws CompileError;
+		public void addToStartOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError;
 	}
 	public static abstract class Factory extends Token.Factory {
 		public abstract Statement createStatement(Compiler c, Matcher matcher, int line, int col) throws CompileError;
@@ -245,7 +250,7 @@ public abstract class Statement extends Token implements TreePrintable{
 			}
 			Token asn=c.nextNonNullMatch(Factories.checkForAssignlike);
 			if(!c.currentScope.hasBreak(depth)) throw new CompileError("tried to break with depth %d that did not exist;".formatted(depth));
-			Variable brk=c.currentScope.getBreakVarInMe(depth);
+			Variable brk=c.currentScope.getBreakVarInMe(c,depth);
 			//? =
 			if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ASSIGNMENT) {
 				Equation eq=Equation.toAssign(line, col, c, m);
@@ -293,6 +298,7 @@ public abstract class Statement extends Token implements TreePrintable{
 		public void compileMe(PrintStream f,Compiler c,Scope s) throws CompileError {
 			RStack stack=this.s.getStackFor();
 			this.token.call(f, c, s, stack);
+			this.token.dumpRet(f, c, s, stack);
 			stack.finish(c.job);
 		}
 		

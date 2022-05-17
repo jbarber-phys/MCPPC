@@ -37,7 +37,7 @@ import net.mcppc.compiler.tokens.Token.MemberName;
  * can be set to track a single entity or multiple (can then append to)
  * @author jbarb_t8a3esk
  *
- *TODO Entity.summon(entitytype? entityType = marker,pos?) to summon new temp entity; also Entity.kill() to kill this entity;
+ *MAYBETODO make recurivable using a score for my entities;
  */
 public class Entity extends Struct {
 	public static final Entity entity;
@@ -79,7 +79,7 @@ public class Entity extends Struct {
 	 * @return
 	 */
 	public String getScoreTag(Variable self) throws CompileError{
-		String s=self.getHolder()+"."+self.getAddress();
+		String s=self.getHolder()+"."+self.getAddressToGetset(); //ignore the index
 		return NOTALLOWED.matcher(s).replaceAll("+");
 	}
 
@@ -188,9 +188,16 @@ public class Entity extends Struct {
 		return new Selector("@e", args);
 	}
 
+	@Override public boolean canBeRecursive(VarType type) {
+		return false;
+	}
 	@Override
-	public void allocate(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+	public void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
 		if(fillWithDefaultvalue)this.clear(p, var);
+	}
+	@Override
+	public void allocateCall(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		//do nothing yet
 	}
 
 	@Override

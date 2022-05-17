@@ -85,7 +85,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		//test for else if
 		c.cursor=matcher.end();
 		Execute me=new Execute(line,col,null);
-		me.mySubscope = c.currentScope.subscope(me);
+		me.mySubscope = c.currentScope.subscope(c,me,true);
 		Token term=Factories.carefullSkipStm(c, matcher, line, col);
 		if((!(term instanceof Token.CodeBlockBrace)) || (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{");
 		return me;
@@ -99,7 +99,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		//Equation eq=null;
 		RStack stack=c.currentScope.getStackFor();
 		Execute me=new Execute(line,col,stack);
-		me.mySubscope = c.currentScope.subscope(me);
+		me.mySubscope = c.currentScope.subscope(c,me,false);
 		final Token.Factory[] lookForSubs = Factories.genericLook(Token.BasicName.factory,Token.LineEnd.factory,Token.CodeBlockBrace.factory);
 		while(true) {
 			t=c.nextNonNullMatch(lookForSubs);
@@ -139,7 +139,10 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 	public Scope getNewScope() {
 		return this.mySubscope;
 	}
-
+	@Override
+	public void addToStartOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
+		//do nothing
+	}
 	@Override
 	public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
 		//do nothing

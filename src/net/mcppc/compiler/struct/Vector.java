@@ -193,10 +193,16 @@ public class Vector extends Struct {
 	public int sizeOf(VarType mytype) {
 		return 3*Vector.myMembType(mytype).sizeOf();
 	}
-
+	@Override public boolean canBeRecursive(VarType type) {
+		return true;
+	}
 	@Override
-	public void allocate(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
-		this.allocateArray(p, var, fillWithDefaultvalue, DIM, Vector.myMembType(var.type));
+	public void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		this.allocateArrayLoad(p, var, fillWithDefaultvalue, DIM, Vector.myMembType(var.type));
+	}
+	@Override
+	public void allocateCall(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		this.allocateArrayCall(p, var, fillWithDefaultvalue, DIM, Vector.myMembType(var.type));
 	}
 	@Override
 	public String getDefaultValue(VarType var) {
@@ -276,7 +282,7 @@ public class Vector extends Struct {
 	}
 	@Override
 	public void setMe(PrintStream p, Scope s, RStack stack, int home, Variable me) throws CompileError {
-		if(s.isDebugMode())stack.printTypes(System.err,home,home+me.type.sizeOf());
+		//if(s.isDebugMode())stack.printTypes(System.err,home,home+me.type.sizeOf());
 		for(int j=0;j<DIM;j++) {
 			Variable cpn=this.getComponent(me, j);
 			int hj=home+j*cpn.type.sizeOf();
@@ -665,7 +671,7 @@ public class Vector extends Struct {
 			//default to storage
 			BasicArgs args = (BasicArgs)token.getArgs();
 			Variable obj=this.newobj(c);
-			obj.allocate(p, false);
+			obj.allocateLoad(p, false);//anon must think its loaded
 			for(int i=0;i<DIM;i++) {
 				Variable arg=Vector.componentOf(obj, i);
 				Equation eq=(Equation) ((BasicArgs)args).arg(i);

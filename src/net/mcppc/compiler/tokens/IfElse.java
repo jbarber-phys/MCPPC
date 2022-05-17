@@ -33,7 +33,7 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 			
 		}
 		IfElse me=new IfElse(line,col,open,null,null);
-		me.mySubscope = c.currentScope.subscope(me);
+		me.mySubscope = c.currentScope.subscope(c,me,true);
 		Token term=Factories.carefullSkipStm(c, matcher, line, col);
 		if((!(term instanceof Token.CodeBlockBrace)) || (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{");
 		return me;
@@ -65,7 +65,7 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 		}
 		
 		IfElse me=new IfElse(line,col,open,stack,eq);
-		me.mySubscope = c.currentScope.subscope(me);
+		me.mySubscope = c.currentScope.subscope(c,me,false);
 		Token term=c.nextNonNullMatch(Factories.nextIsLineEnd);
 		if((!(term instanceof Token.CodeBlockBrace)) || (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{");
 		return me;
@@ -116,7 +116,7 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 		return this.role.name;
 	}
 
-	Variable done;
+	Variable done = null;
 	@Override
 	public void compileMe(PrintStream p, Compiler c, Scope s) throws CompileError {
 		ResourceLocation mcf=this.mySubscope.getSubRes();
@@ -125,7 +125,7 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 		BiOperator or = new BiOperator(this.line,-2,OpType.OR);
 		UnaryOp not = new UnaryOp(this.line,-3,UOType.NOT);
 		if(this.role==Keyword.IF) {
-			this.done=s.getIfelseDoneVarExMe();
+			if(this.done ==null )this.done=this.mySubscope.getIfelseDoneVarExMe(c);
 			this.done.setMeToBoolean(p, c, s, mystack, false);
 		}else {
 			if(this.predicessor==null) throw new CompileError("flow statement %s has no preceding if statement;".formatted(this.role.name));
@@ -176,6 +176,10 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 	@Override
 	public boolean canBreak() {
 		return false;
+	}
+	@Override
+	public void addToStartOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
+		//do nothing
 	}
 	@Override
 	public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
