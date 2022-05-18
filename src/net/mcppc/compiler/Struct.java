@@ -76,6 +76,9 @@ public abstract class Struct {
 	public static Struct getStruct(String name) {
 		return STRUCTS.get(name);
 	}
+	public static String[] getStructNames() {
+		return STRUCTS.keySet().toArray(new String[STRUCTS.keySet().size()]);
+	}
 	@Deprecated private static interface IMCFRetTypeStruct{
 		//this wont work; lookbehinds must be fixed length
 		public String getGroup();

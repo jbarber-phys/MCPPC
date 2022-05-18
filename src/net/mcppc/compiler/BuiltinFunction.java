@@ -83,6 +83,10 @@ public abstract class BuiltinFunction {
 	public static boolean alias(BuiltinFunction func,String alias) {
 		return BUILTIN_FUNCTIONS.put(alias, func)==null;
 	}
+
+	public static String[] getFuncNames() {
+		return BUILTIN_FUNCTIONS.keySet().toArray(new String[BUILTIN_FUNCTIONS.keySet().size()]);
+	}
 	public static class BFCallToken extends AbstractCallToken{
 		@Deprecated
 		private static BFCallToken make(Compiler c,Matcher m,int line, int col,RStack stack,List<String> names) throws CompileError {

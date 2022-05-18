@@ -55,7 +55,7 @@ public class VarType {
 		public boolean isStruct;
 		public boolean isVoid;
 		int sizeof = 1;//number of scores needed; currently it is always one
-		String typename;
+		public String typename;
 		String defaultValue;
 		Builtin(String name,String value,boolean num,boolean flt,boolean logic){
 			this.isNumber=num;
@@ -80,6 +80,9 @@ public class VarType {
 			if (this.isVoid)throw new CompileError("void cannot be set to tag");
 			if (this==BOOL)return BYTE.typename;
 			else return this.typename;
+		}
+		public static Builtin[] valuesNonStruct() {
+			return new Builtin[]{BYTE,SHORT,INT,LONG,  FLOAT, DOUBLE,  BOOL,  VOID};
 		}
 	}
 	public static final int DEFAULT_PRECISION = 3;

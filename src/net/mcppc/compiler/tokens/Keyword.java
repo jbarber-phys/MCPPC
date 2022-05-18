@@ -25,6 +25,7 @@ public enum Keyword {
 	RETURN("return"),
 	THIS("this"),
 	CONST("const"),
+	REF("ref"),
 	FINAL("final"),
 	RECURSIVE("recursive")
 	;

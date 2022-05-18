@@ -4,6 +4,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.util.regex.Matcher;
 
+import net.mcpp.vscode.MakeTmLanguage;
 import net.mcppc.compiler.CompileJob;
 import net.mcppc.compiler.tokens.Regexes;
 
@@ -71,7 +72,9 @@ public class Main {
 		//args
 		CompileJob job=new CompileJob();
 		boolean compStd=false;
-		boolean compStdOnly=false;
+		boolean makevscode=false;
+		boolean skipMainCompile=false;
+		String vscode_grammar_path = null;
 		for(int i=0;i<args.length;i++) {
 			String arg=args[i];
 			if(arg.equals("-o") && i+1<args.length) {
@@ -140,17 +143,28 @@ public class Main {
 
 			if(arg.equals("--std")) {
 				compStd=true;
-				compStdOnly=true;
+				skipMainCompile=true;
 				break;
 			}
 
 			if(arg.equals("-g")) {
 				job.debugMode();
 			}
+			if(arg.equals("--vscode")) {
+				makevscode=true;
+				skipMainCompile=true;
+				if(i+1<args.length) {
+					i++;
+					vscode_grammar_path=args[i];
+					
+				}
+				break;
+			}
 		}
 		boolean stdSuccess=true;
 		if(compStd) stdSuccess=compileStdLib();
-		if(compStdOnly)return;
+		if(makevscode) MakeTmLanguage.make(vscode_grammar_path);
+		if(skipMainCompile)return;
 		job.compileAll();
 		if(!stdSuccess)System.err.println("compilation of stdlib failed;");
 		//floatFormatTest();

@@ -15,9 +15,40 @@ public final class Regexes {
 	//if (m.group(5) == null) //not found
 	
 	//this one is used by some of the others
-	private static final String STRLITSTRING = "\\\"(\\\\\\\"|[^\\\"\\n])*\\\"|\\'(\\\\'|[^'\\n])*\\'" ;// \"(\\\"|[^\"\n])*\"|\'(\\'|[^'\n])*\'
-	
-	
+	public static class Strs {
+		public static final String STRLITSTRING = "\\\"(\\\\\\\"|[^\\\"\\n])*\\\"|\\'(\\\\'|[^'\\n])*\\'" ;// \"(\\\"|[^\"\n])*\"|\'(\\'|[^'\n])*\'
+		public static final String BASIC_FUNC = "([a-zA-Z]\\w*)(?=\\s*\\()"; // ([a-zA-Z]\w*)(?=\s*\()
+		public static final String NAME = "[A-Za-z]\\w*";// [A-Za-z]\w*;
+		public static final String COMMENT_LINE=("\\/\\/([^\\n\\/][^\\n]*)(?=\\n|$)");// \/\/([^\n\/][^\n]*)(?=\n|$)
+		public static final String DOMMENT_LINE=("\\/\\/\\/([^\\n]*)(?=\\n|$)");// \/\/\/([^\n]*)(?=\n|$)
+		
+		public static final String CMDGROUP = "(?<cmd>((%s)|[^\\\"';\\\\\\n])*)".formatted(Strs.STRLITSTRING); 
+		// (?<cmd>((%s)|[^\"';\\\n])*)
+
+		public static final int cmd_group = 1;
+		public static final String CMD_SAFE=("\\$/%s(?=;|\\n|$)".formatted(CMDGROUP));// \$/%s(?=;|\n|$)
+
+		public static final int player_group = 1;
+		public static final String SELECTOR=("(@?[\\w-]+)\\s*\\[(((%s)|[^\\\"\\[\\]\\n]|\\[\\[|\\]\\])*)\\]".formatted(Strs.STRLITSTRING));// (@?[\w-]+)\s*\[(((%s)|[^\"\[\]\n]|\[\[|\]\])*)\]
+
+		public static final String NUM_NEG=("(-?\\d+)(\\.\\d*)?([Ee]\\-?\\d+)?([fdilsbFDILSB])?");// (-?\d+)(\.\d*)?([Ee]\-?\d+)?([fdilsbFDILSB])?
+		public static final String BOOL=("\\b(true)|(false)\\b");// \b(true)|(false)\b
+		public static final String NULL=("\\bnull\\b");// \bnull\b
+
+		private static final int tildehatnumsize=6;
+		public static final int x_group = 1;
+		public static final int y_group = 1 + (tildehatnumsize + 1);
+		public static final int z_group = 1+ (tildehatnumsize + 1)*2;
+		public static final int ang1group = x_group;
+		public static final int ang2group = y_group;
+		public static final String COORDS=("(?<x>%s)\\s+(?<y>%s)\\s+(?<z>%s)".formatted(TILDE_HAT_NUM,TILDE_HAT_NUM,TILDE_HAT_NUM));
+		// (?<x>%s)\s+(?<y>%s)\s+(?<z>%s)
+		public static final String ROTATION=("(?<ang1>%s)\\s+(?<ang2>%s)".formatted(TILDE_NOHAT_NUM,TILDE_NOHAT_NUM));
+		// (?<ang1>%s)\s+(?<ang2>%s)
+		
+		public static final String RESOURCELOCATION=("(?<namespace>\\w+):(?<path>(\\w+\\/)*(?<end>\\w+))");// (?<namespace>\w+):(?<path>(\w+\/)*(?<end>\w+))
+
+	}
 	public static final Pattern ANY_CHAR=Pattern.compile(".");// .
 
 	public static final Pattern PARENS=Pattern.compile("(\\()|(\\))");// (\()|(\))
@@ -35,55 +66,52 @@ public final class Regexes {
 	public static final Pattern RANGESEP=Pattern.compile("\\.\\.");// \.\.
 	public static final Pattern SCOREOF=Pattern.compile("::");// ::
 	public static final Pattern TAGOF=Pattern.compile("\\.");// \.
-	public static final Pattern NAME=Pattern.compile("[A-Za-z]\\w*");// [A-Za-z]\w*
+	public static final Pattern NAME=Pattern.compile(Strs.NAME);
 	public static final Pattern REF_PREFIX=Pattern.compile("ref(?=[^\\w])");// ref(?=[^\w])
-	public static final Pattern NULL_KEYWORD=Pattern.compile("null(?=[^\\w])");// null(?=[^\w])
+	public static final Pattern NULL_KEYWORD=Pattern.compile(Strs.NULL);// null(?=[^\w])
 	public static final Pattern CODEBLOCKBRACE=Pattern.compile("(\\{)|(\\})");// (\{)|(\})
 	public static final Pattern CODEBLOCKBRACEDOUBLED=Pattern.compile("(\\{\\{)|(\\}\\})");// (\{\{)|(\}\})
-	public static final Pattern COMMENT=Pattern.compile("\\/\\/([^\\n\\/][^\\n]*)(?=\\n|$)");// \/\/([^\n\/][^\n]*)(?=\n|$)
-	public static final Pattern DOMMENT=Pattern.compile("\\/\\/\\/([^\\n]*)(?=\\n|$)");// \/\/\/([^\n]*)(?=\n|$)
+	public static final Pattern COMMENT=Pattern.compile(Strs.COMMENT_LINE);
+	public static final Pattern DOMMENT=Pattern.compile(Strs.DOMMENT_LINE);
 	
-	public static final Pattern SKIPLINE_MID=Pattern.compile("((%s)|[^;\\n])*\\n".formatted(STRLITSTRING)); // ((%s)|[^;\n])*\n
-	public static final Pattern SKIPLINE_END=Pattern.compile("((%s)|[^;\\n])*;".formatted(STRLITSTRING)); // ((%s)|[^;\n])*;
+	public static final Pattern SKIPLINE_MID=Pattern.compile("((%s)|[^;\\n])*\\n".formatted(Strs.STRLITSTRING)); // ((%s)|[^;\n])*\n
+	public static final Pattern SKIPLINE_END=Pattern.compile("((%s)|[^;\\n])*;".formatted(Strs.STRLITSTRING)); // ((%s)|[^;\n])*;
 	
 	
-	public static final String CMDGROUP = "(?<cmd>((%s)|[^\\\"';\\\\\\n])*)".formatted(STRLITSTRING); 
-	// (?<cmd>((%s)|[^\\\"';\\n])*)
-	// (?<cmd>((%s)|[^\"';\\\n])*)
-	public static final Pattern CMD=Pattern.compile("((?<=^|[^/])|\\$)/%s(?=;|\\n|$)".formatted(CMDGROUP));// ((?<=^|[^/])|\$)/%s(?=;|\n|$)
+	// (?<cmd>((%s)|[^\\\"';\\n])*) old
+	public static final Pattern CMD=Pattern.compile("((?<=^|[^/])|\\$)/%s(?=;|\\n|$)".formatted(Strs.CMDGROUP));// ((?<=^|[^/])|\$)/%s(?=;|\n|$)
 
-	public static final Pattern CMD_SAFE=Pattern.compile("\\$/%s(?=;|\\n|$)".formatted(CMDGROUP));// \$/%s(?=;|\n|$)
+	public static final Pattern CMD_SAFE=Pattern.compile(Strs.CMD_SAFE);
 
 	
 	
-	public static final Pattern SELECTOR=Pattern.compile("(@?[\\w-]+)\\s*\\[(((%s)|[^\\\"\\[\\]\\n]|\\[\\[|\\]\\])*)\\]".formatted(STRLITSTRING));// (@?[\w-]+)\s*\[(((%s)|[^\"\[\]\n]|\[\[|\]\])*)\]
+	public static final Pattern SELECTOR=Pattern.compile(Strs.SELECTOR);
 	//public static final Pattern COORDS_OLD=Pattern.compile("([\\^~]?[+-]?\\d+)\\s+([\\^~]?[+-]?\\d*)\\s+([\\^~]?[+-]?\\d*)");// ([\^~]?[+-]?\d+)\s+([\^~]?[+-]?\d*)\s+([\^~]?[+-]?\d*)
 	
 	//ungrouped: use (?<x>%s)
 	public static final String TILDE_HAT_NUM = "(-?(\\d+(\\.\\d*|)|\\.\\d+))|[\\^~](-?(\\d+(\\.\\d*|)|\\.\\d+))|[\\^~]";
 		// (-?(\d+(\.\d*|)|\.\d+))|[\^~](-?(\d+(\.\d*|)|\.\d+))|[\^~]
+		// 6 groups
 	public static final String TILDE_NOHAT_NUM = "(-?(\\d+(\\.\\d*|)|\\.\\d+))|[~](-?(\\d+(\\.\\d*|)|\\.\\d+))|[~]";
 		// (-?(\d+(\.\d*|)|\.\d+))|[~](-?(\d+(\.\d*|)|\.\d+))|[~]
 	//public static final Pattern COORDS=Pattern.compile("([\\^~]?[+-]?\\d*)\\s+([\\^~]?[+-]?\\d*)\\s+([\\^~]?[+-]?\\d*)");// ([\^~]?[+-]?\d*)\s+([\^~]?[+-]?\d*)\s+([\^~]?[+-]?\d*)
-	public static final Pattern COORDS=Pattern.compile("(?<x>%s)\\s+(?<y>%s)\\s+(?<z>%s)".formatted(TILDE_HAT_NUM,TILDE_HAT_NUM,TILDE_HAT_NUM));
-		// (?<x>%s)\s+(?<y>%s)\s+(?<z>%s)
+	public static final Pattern COORDS=Pattern.compile(Strs.COORDS);
 
 	//public static final Pattern ROTATION=Pattern.compile("([~]?[+-]?\\d*)\\s+([~]?[+-]?\\d*)");// ([~]?[+-]?\d*)\s+([~]?[+-]?\d*)
-	public static final Pattern ROTATION=Pattern.compile("(?<ang1>%s)\\s+(?<ang2>%s)".formatted(TILDE_NOHAT_NUM,TILDE_NOHAT_NUM));
-	// (?<ang1>%s)\s+(?<ang2>%s)
+	public static final Pattern ROTATION=Pattern.compile(Strs.ROTATION);
 	
 	//selector: escape [] for arrays by doubling them: {Pos[[1]]: 0d}
-	public static final Pattern STRLIT=Pattern.compile(STRLITSTRING);// string escaping is so important that other regexes get to have it in them
+	public static final Pattern STRLIT=Pattern.compile(Strs.STRLITSTRING);// string escaping is so important that other regexes get to have it in them
 	//I have double checked aand the STRLIT pattern is MC compadible
-	public static final Pattern RESOURCELOCATION=Pattern.compile("(?<namespace>\\w+):(?<path>(\\w+\\/)*(?<end>\\w+))");// (?<namespace>\w+):(?<path>(\w+\/)*(?<end>\w+))
+	public static final Pattern RESOURCELOCATION=Pattern.compile(Strs.RESOURCELOCATION);
 	//below only use if you know nbt is terminated by =~;\n
-	public static final Pattern NBTPATH=Pattern.compile("((%s)|[^~;=\\n])+".formatted(STRLITSTRING));// ((%s)|[^~;=\n])+
+	public static final Pattern NBTPATH=Pattern.compile("((%s)|[^~;=\\n])+".formatted(Strs.STRLITSTRING));// ((%s)|[^~;=\n])+
 	public static final Pattern STM_SKIP_MSCCHAR=Pattern.compile("[^\\\";{}@\\w/]+");// [^\";{}@\w/]+
 	public static final Pattern FSLASH=Pattern.compile("/");// /
 	//more carefull nbt tag parsers
-	public static final Pattern NBT_OPEN=Pattern.compile("(?<segment>((%s)|[^~;=\\{\\}\\n])+)(\\{)".formatted(STRLITSTRING));// (?<segment>((%s)|[^~;=\{\}\n])+)(\{)
-	public static final Pattern NBT_CLOSE=Pattern.compile("(?<segment>((%s)|[^~;=\\{\\}\\n])*)(\\})".formatted(STRLITSTRING));// (?<segment>((%s)|[^~;=\{\}\n])*)(\})
-	public static final Pattern NBT_THROUGH=Pattern.compile("(?<segment>((%s)|[^~;=\\{\\}\\n])+)".formatted(STRLITSTRING));// (?<segment>((%s)|[^~;=\{\}\n])+)
+	public static final Pattern NBT_OPEN=Pattern.compile("(?<segment>((%s)|[^~;=\\{\\}\\n])+)(\\{)".formatted(Strs.STRLITSTRING));// (?<segment>((%s)|[^~;=\{\}\n])+)(\{)
+	public static final Pattern NBT_CLOSE=Pattern.compile("(?<segment>((%s)|[^~;=\\{\\}\\n])*)(\\})".formatted(Strs.STRLITSTRING));// (?<segment>((%s)|[^~;=\{\}\n])*)(\})
+	public static final Pattern NBT_THROUGH=Pattern.compile("(?<segment>((%s)|[^~;=\\{\\}\\n])+)".formatted(Strs.STRLITSTRING));// (?<segment>((%s)|[^~;=\{\}\n])+)
 	//https://minecraft.fandom.com/wiki/NBT_path_format?so=search
 	//terminated by: \n, ; ~ =
 	//but it can have nested square brackets or it wont recognize
@@ -93,9 +121,9 @@ public final class Regexes {
 	//positive only:
 	public static final Pattern NUM=Pattern.compile("(\\d+)(\\.\\d*)?([Ee]\\-?\\d+)?([fdilsbFDILSB])?");// (\d+)(\.\d*)?([Ee]\-?\d+)?([fdilsbFDILSB])?
 	//can be negative:
-	public static final Pattern NUM_NEG=Pattern.compile("(-?\\d+)(\\.\\d*)?([Ee]\\-?\\d+)?([fdilsbFDILSB])?");// (-?\d+)(\.\d*)?([Ee]\-?\d+)?([fdilsbFDILSB])?
+	public static final Pattern NUM_NEG=Pattern.compile(Strs.NUM_NEG);
 
-	public static final Pattern BOOL=Pattern.compile("(true)|(false)");// (true)|(false)
+	public static final Pattern BOOL=Pattern.compile(Strs.BOOL);
 	public static final Pattern UNARY_MINUS=Pattern.compile("-");
 	public static final Pattern UNARY_NOT=Pattern.compile("!");
 	public static final Pattern EFLOP=Pattern.compile("\\^");// \^
