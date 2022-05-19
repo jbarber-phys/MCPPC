@@ -47,7 +47,8 @@ public final class Regexes {
 		// (?<ang1>%s)\s+(?<ang2>%s)
 		
 		public static final String RESOURCELOCATION=("(?<namespace>\\w+):(?<path>(\\w+\\/)*(?<end>\\w+))");// (?<namespace>\w+):(?<path>(\w+\/)*(?<end>\w+))
-
+		
+		public static final String ESTIMATE = "~~";
 	}
 	public static final Pattern ANY_CHAR=Pattern.compile(".");// .
 
@@ -58,7 +59,7 @@ public final class Regexes {
 	public static final Pattern SPACE_NEWLINE=Pattern.compile("\\n");// \n
 	public static final Pattern LINE_END=Pattern.compile(";");// ;
 	public static final Pattern ASSIGN=Pattern.compile("=");// =
-	public static final Pattern ESTIMATE=Pattern.compile("~~");// ~~
+	public static final Pattern ESTIMATE=Pattern.compile(Strs.ESTIMATE);// ~~
 	//the ~~ operator is used to estimate the value of a float-p to inform the compilers rounding decisions
 	public static final Pattern MASK=Pattern.compile("->");// ->
 	//public static final Pattern MEMBER=Pattern.compile("\\.");// \.

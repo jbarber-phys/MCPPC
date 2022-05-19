@@ -65,6 +65,7 @@ public class MakeTmLanguage extends Regexes.Strs{
 	private static final String number = "constant.numeric.mcpp"; // color is different than text just barely
 	
 	//no color:
+	public static final String operator = "operator.mcpp";
 	
 	//shoehorned:
 	private static final String bool = keyword; 
@@ -96,6 +97,8 @@ public class MakeTmLanguage extends Regexes.Strs{
 		addToRepo("domments",namedMatch(domment,DOMMENT_LINE,italic));
 		addToRepo("comments",namedMatch(comment,COMMENT_LINE));
 		
+		//estimate operator must be escaped
+		addToRepo("operators",namedMatch(operator,ESTIMATE));
 		//coords
 		addToRepo("coords",namedMatch(underlined, COORDS,
 				Map.of(x_group,color_x , y_group,color_y , z_group,color_z))
