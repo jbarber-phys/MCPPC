@@ -6,6 +6,7 @@ import java.util.List;
 
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.Const.ConstType;
+import net.mcppc.compiler.struct.Struct;
 
 public class CompileError extends Exception {
 	public final String error;

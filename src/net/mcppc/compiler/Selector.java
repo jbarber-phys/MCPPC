@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Entity;
+import net.mcppc.compiler.struct.Struct;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
 
@@ -25,12 +26,14 @@ public class Selector {
 	public static class SelectorToken extends Const.ConstLiteralToken{
 		static class InvalidSelector extends CompileError{
 			public InvalidSelector(SelectorToken token) {
+				//this is mostly done on the token-factory level now
 				super("invalid selector '%s'; non-@ player names may not contain args in the [] (empty [] are ok)"
 						.formatted(token.selector().toCMD()));
 			}
 			
 		}
-		public static final Factory factory = new Factory(Regexes.SELECTOR) {
+		@Deprecated
+		public static final Factory factory_old = new Factory(Regexes.SELECTOR) {
 			@Override	public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
 				c.cursor=matcher.end();
 				SelectorToken me=new SelectorToken(line,col,matcher);
@@ -38,6 +41,19 @@ public class Selector {
 				return me;
 			}
 		};
+		public static final Factory carefullfactory = new Factory(Regexes.SELECTOR) {
+			@Override	public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+				if(matcher.group(1).charAt(0) !='@' && matcher.group(2).length()!=0) {
+					//invalid selector or a var with array access
+					return new Token.WildChar(line, col, matcher.group(1).substring(0, 1));
+				}
+				c.cursor=matcher.end();
+				SelectorToken me=new SelectorToken(line,col,matcher);
+				if(me.selector().hasUnusableArgs())throw new InvalidSelector(me);
+				return me;
+			}
+		};
+		public static final Factory factory = carefullfactory;
 		private final boolean garbage1232343___ = Struct.load();
 		public final VarType type = new VarType(Entity.entities,new StructTypeParams.Blank());
 		Selector val;public Selector selector() {return this.val;}

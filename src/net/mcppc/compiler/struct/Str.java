@@ -43,7 +43,7 @@ public class Str extends Struct{
 		return "";
 	}
 	@Override
-	protected String getJsonTextFor(Variable variable) throws CompileError {
+	public String getJsonTextFor(Variable variable) throws CompileError {
 		return variable.getJsonTextBasic();
 	}
 	@Override

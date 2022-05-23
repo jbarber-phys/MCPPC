@@ -1,4 +1,4 @@
-package net.mcppc.compiler;
+package net.mcppc.compiler.struct;
 
 import java.io.PrintStream;
 import java.util.HashMap;
@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 
+import net.mcppc.compiler.*;
+import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Variable.Mask;
@@ -20,7 +22,6 @@ import net.mcppc.compiler.tokens.TemplateArgsToken;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.UnaryOp;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
-import net.mcppc.compiler.struct.*;
 
 /**
  * currently hypothetical
@@ -32,7 +33,10 @@ import net.mcppc.compiler.struct.*;
  * TODO it should be possible to also create a class; a struct that will interperet mcpp code as a class template and 
  * determine the behavior at compile time, but functions will be hard as they will need to copy this*
  * 
- * TODO allow nonstatic functions using copy $this
+ * TODO class for Queue, Stack, and List;
+ * may want to set up a binary search tree mcfunction
+ * 
+ * skip fixed size arrays as they always have confounding behavior (Vector, Rotation, UUID, ArmorItems)
  * 
  * FIXED list tags and compound tags need to be initialized or they wont work
  * must run code to initialize these types
@@ -136,7 +140,7 @@ public abstract class Struct {
 	 * @return the json text element to be used in /tellraw
 	 * @throws CompileError 
 	 */
-	protected abstract String getJsonTextFor(Variable variable) throws CompileError ;//no throws
+	public abstract String getJsonTextFor(Variable variable) throws CompileError ;//no throws
 	/**
 	 * the number of registers this object takes up
 	 * @param structArgs
@@ -152,7 +156,7 @@ public abstract class Struct {
 	public void castRegistersFrom(PrintStream p, Scope s,RStack stack,int start,VarType old, VarType mytype) throws CompileError{
 		//do nothing
 	}
-	protected void castVarFrom(PrintStream p, Scope s ,RStack stack,Variable vtag,VarType old, VarType mytype) throws CompileError{
+	public void castVarFrom(PrintStream p, Scope s ,RStack stack,Variable vtag,VarType old, VarType mytype) throws CompileError{
 		//do nothing
 	}
 	
@@ -160,7 +164,7 @@ public abstract class Struct {
 	public void castRegistersTo(PrintStream p, Scope s,RStack stack,int start,VarType newType, VarType mytype) throws CompileError{
 		//do nothing
 	}
-	protected void castVarTo(PrintStream p, Scope s,RStack stack,Variable vtag,VarType mytype, VarType newType) throws CompileError{
+	public void castVarTo(PrintStream p, Scope s,RStack stack,Variable vtag,VarType mytype, VarType newType) throws CompileError{
 		//do nothing
 	}
 	/**
@@ -301,8 +305,8 @@ public abstract class Struct {
 		//cannot change type of first element to change array type
 		
 		
-		if(var.pointsTo!=Mask.STORAGE) {
-			Warnings.warningf("attempted to deallocate %s to non-storage %s;",var.name,var.pointsTo);
+		if(var.getMaskType()!=Mask.STORAGE) {
+			Warnings.warningf("attempted to deallocate %s to non-storage %s;",var.name,var.getMaskType());
 			return;
 		}
 		p.printf("data modify %s set value %s\n",var.dataPhrase(), DEFAULT_LIST);
@@ -345,8 +349,8 @@ public abstract class Struct {
 
 		//data modify <var> set value {}
 
-		if(var.pointsTo!=Mask.STORAGE) {
-			Warnings.warningf("attempted to deallocate %s to non-storage %s;",var.name,var.pointsTo);
+		if(var.getMaskType()!=Mask.STORAGE) {
+			Warnings.warningf("attempted to deallocate %s to non-storage %s;",var.name,var.getMaskType());
 			return;
 		}
 		p.printf("data modify %s set value %s\n",var.dataPhrase(), DEFAULT_COMPOUND);
@@ -359,8 +363,8 @@ public abstract class Struct {
 	//use //var.allocateLoadBasic(p, fillWithDefaultvalue, DEFAULT_STRING);
 	@Deprecated private void allocateString(PrintStream p, Variable var, boolean fillWithDefaultvalue)  throws CompileError{
 		//data modify <var> set value ""
-		if(var.pointsTo!=Mask.STORAGE) {
-			Warnings.warningf("attempted to deallocate %s to non-storage %s;",var.name,var.pointsTo);
+		if(var.getMaskType()!=Mask.STORAGE) {
+			Warnings.warningf("attempted to deallocate %s to non-storage %s;",var.name,var.getMaskType());
 			return;
 		}
 		if(fillWithDefaultvalue)p.printf("data modify %s set value %s\n",var.dataPhrase(), DEFAULT_STRING);

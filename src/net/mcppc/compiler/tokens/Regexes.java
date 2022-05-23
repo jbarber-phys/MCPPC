@@ -30,6 +30,8 @@ public final class Regexes {
 
 		public static final int player_group = 1;
 		public static final String SELECTOR=("(@?[\\w-]+)\\s*\\[(((%s)|[^\\\"\\[\\]\\n]|\\[\\[|\\]\\])*)\\]".formatted(Strs.STRLITSTRING));// (@?[\w-]+)\s*\[(((%s)|[^\"\[\]\n]|\[\[|\]\])*)\]
+		public static final String SELECTOR_ATONLY=("(@[\\w-]+)\\s*\\[(((%s)|[^\\\"\\[\\]\\n]|\\[\\[|\\]\\])*)\\]".formatted(Strs.STRLITSTRING));// (@[\w-]+)\s*\[(((%s)|[^\"\[\]\n]|\[\[|\]\])*)\]
+		public static final String SELECTOR_NOAT=("([\\w-]+)\\s*\\[()\\]");// ([\w-]+)\s*\[()\]
 
 		public static final String NUM_NEG=("(-?\\d+)(\\.\\d*)?([Ee]\\-?\\d+)?([fdilsbFDILSB])?");// (-?\d+)(\.\d*)?([Ee]\-?\d+)?([fdilsbFDILSB])?
 		public static final String BOOL=("\\b(true)|(false)\\b");// \b(true)|(false)\b

@@ -14,7 +14,6 @@ import net.mcppc.compiler.VarType.Builtin;
 import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.Scope;
 import net.mcppc.compiler.Selector;
-import net.mcppc.compiler.Struct;
 import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.errors.CompileError;
@@ -77,7 +76,7 @@ public class FloatpN extends Struct {
 	}
 
 	@Override
-	protected String getJsonTextFor(Variable self) throws CompileError {
+	public String getJsonTextFor(Variable self) throws CompileError {
 		return this.varValue(self).getJsonText();
 	}
 

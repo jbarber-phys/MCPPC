@@ -39,7 +39,7 @@ public class StackStorage extends Struct implements Struct.IInternalOnly {
 	}
 
 	@Override
-	protected String getJsonTextFor(Variable variable) throws CompileError {
+	public String getJsonTextFor(Variable variable) throws CompileError {
 		return variable.getJsonTextBasic();
 	}
 

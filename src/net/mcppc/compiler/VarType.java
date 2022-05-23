@@ -5,6 +5,7 @@ import java.util.regex.Matcher;
 
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.struct.Struct;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.TemplateArgsToken;
@@ -245,7 +246,7 @@ public class VarType {
 		for (Builtin t: Builtin.values()) {
 			if ((!t.isStruct) && t.typename.equals(type)) return t;
 		}
-		return Struct.STRUCTS.containsKey(type)? Builtin.STRUCT:null;
+		return Struct.isStruct(type)? Builtin.STRUCT:null;
 		
 	}
 	//must be 

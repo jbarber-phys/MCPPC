@@ -10,6 +10,7 @@ import java.util.Map.Entry;
 
 import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.struct.Struct;
 import net.mcppc.compiler.tokens.Declaration;
 import net.mcppc.compiler.tokens.Import;
 import net.mcppc.compiler.tokens.Keyword;

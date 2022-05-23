@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 import net.mcppc.compiler.BuiltinFunction;
 import net.mcppc.compiler.CompileJob;
 import net.mcppc.compiler.Const.ConstType;
-import net.mcppc.compiler.Struct;
+import net.mcppc.compiler.struct.Struct;
 import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.tokens.Execute;
 import net.mcppc.compiler.tokens.Keyword;
@@ -126,7 +126,10 @@ public class MakeTmLanguage extends Regexes.Strs{
 		//bools
 		addToRepo("bools",namedMatch(bool,BOOL));
 		//selector
-		addToRepo("targetselectors",namedMatch(selector,SELECTOR,italic));
+		//TODO split into @ and non-@ cases
+		//addToRepo("targetselectors",namedMatch(selector,SELECTOR,italic));
+		addToRepo("targetselectors_at",namedMatch(selector,SELECTOR_ATONLY,italic));
+		addToRepo("targetselectors_noat",namedMatch(selector,SELECTOR_NOAT,italic));
 		//mcfunction calls
 		//addToRepo("mcfs_simple",namedMatch(escapeChar,CMD_SAFE));
 		Map mcfs = Map.of("name", escapeChar,

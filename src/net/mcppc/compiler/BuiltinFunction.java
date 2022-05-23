@@ -14,6 +14,7 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.AbstractCallToken;
 import net.mcppc.compiler.functions.PrintF;
 import net.mcppc.compiler.functions.Tp;
+import net.mcppc.compiler.struct.Struct;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.TemplateArgsToken;

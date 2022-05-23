@@ -184,7 +184,7 @@ public class Vector extends Struct {
 		return Vector.myMembType(mytype).getPrecisionStr();
 	}
 	@Override
-	protected String getJsonTextFor(Variable self) throws CompileError {
+	public String getJsonTextFor(Variable self) throws CompileError {
 		String[] cpnts=new String[DIM];
 		for(int i=0;i<DIM;i++)cpnts[i]=this.getComponent(self, i).getJsonText();
 		return Regexes.formatJsonWith("Vector(%s,%s,%s)", cpnts);
