@@ -63,7 +63,7 @@ public class RStack {
 		this.regvarEstimates.put(reg, est);
 	}
 	public int setNext(VarType v) throws CompileError {
-		if(v.sizeOf()<=0)throw new CompileError("cant put type %s on registers;".formatted(v.asString()));
+		if(v.sizeOf()<=0)throw new CompileError.CannotStack(v);
 		int max=this.vartypes.isEmpty()?0:this.vartypes.lastKey();
 		int s2=this.vartypes.isEmpty()?0:this.vartypes.get(max).sizeOf();
 		int s=v.sizeOf();

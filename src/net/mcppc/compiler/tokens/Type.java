@@ -102,11 +102,17 @@ public class Type extends Const.ConstLiteralToken {
 			Const cv=cvt.constv;//TODO support type templates
 			return (Type) cv.getValue();
 		}
-		//int aftertypename=c.cursor;
+		int aftertypename=c.cursor;
 		Token t2 = c.nextNonNullMatch(Token.AbstractBracket.checkForTypeargBracket);
 		Type type;
 		//CompileJob.compileMcfLog.printf("t2=%s;\n", t2.asString());
-		if (t2 instanceof Token.AbstractBracket && Token.AbstractBracket.isArgTypeArg((AbstractBracket) t2)) {
+		boolean hasArgs = t2 instanceof Token.AbstractBracket && Token.AbstractBracket.isArgTypeArg((AbstractBracket) t2);
+		if (hasArgs && !((Token.AbstractBracket) t2).forward) {
+			//bracket is for outer type
+			c.cursor=aftertypename;
+			hasArgs=false;
+		}
+		if (hasArgs) {
 			//CompileJob.compileMcfLog.printf("tokenizeType\n");
 			if (!((Token.AbstractBracket) t2).forward) {
 				//error

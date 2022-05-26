@@ -116,7 +116,7 @@ public class Vector extends Struct {
 	@Override
 	public String getNBTTagType(VarType varType) {
 		//should be unused
-		return "tag_compound";//?
+		return "tag_list";//?
 	}
 	@Override
 	public StructTypeParams tokenizeTypeArgs(Compiler c,Scope s, Matcher matcher, int line, int col, List<Const> forbidden) throws CompileError {
@@ -171,7 +171,6 @@ public class Vector extends Struct {
 		}
 	}
 	private static VarType myMembType(VarType mytype) {
-		//TODO add scope to find full-template type
 		return ((MembType) mytype.structArgs).myType;
 	}
 	@Override
@@ -599,7 +598,7 @@ public class Vector extends Struct {
 	}
 	public Variable getComponent(Variable self, int i) throws CompileError {
 		if(i<0)throw new CompileError.VarNotFound(this, name);
-		return self.indexMyNBTPath(i, Vector.myMembType(self.type));
+		return self.indexMyNBTPathBasic(i, Vector.myMembType(self.type));
 	}
 	public static Variable componentOf(Variable self,int i)throws CompileError {
 		return ((Vector)self.type.struct).getComponent(self, i);

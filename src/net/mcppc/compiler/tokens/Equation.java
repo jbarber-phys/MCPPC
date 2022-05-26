@@ -10,6 +10,7 @@ import java.util.regex.Matcher;
 
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.Compiler;
+import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Function.FuncCallToken;
 import net.mcppc.compiler.errors.CompileError;
@@ -24,7 +25,7 @@ import net.mcppc.compiler.tokens.BiOperator.OpType;
  * @author jbarb_t8a3esk
  *
  */
-public class Equation extends Token  implements TreePrintable{
+public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	private static final boolean PRE_EVAL_EXP = false;
 	public static Equation toAssign(int line,int col,Compiler c,Matcher m) throws CompileError {
 		Equation e=new Equation(line,col,c);
@@ -155,6 +156,27 @@ public class Equation extends Token  implements TreePrintable{
 		return CMath.uminus(n1);
 	}
 
+	public boolean isConstable() {
+		if(this.isNumber())return true;
+		if(this.isSelectable())return true;
+		return this.elements.size()==1 && this.elements.get(0) instanceof Const.ConstExprToken;
+	}
+	public Const.ConstExprToken getConst() throws CompileError {
+		if(this.isNumber())return this.getNumToken();
+		if(this.isSelectable())return this.getSelectorToken();
+		return (ConstExprToken) this.elements.get(0);
+	}
+	public Const.ConstExprToken getConstNbt(){
+		if(this.isNumber())return this.getNumToken();
+		if(this.isSelectable())return null;
+		return (ConstExprToken) this.elements.get(0);
+	}
+	private Num getNumToken() {
+		Number n1=this.getNumber();
+		Num old = (Num) this.elements.get(this.elements.size()-1);
+		return new Num(this.line,this.col,CMath.uminus(n1),old.type);
+	}
+
 	public boolean isNumber() {
 		if(this.elements.size()==1) {
 			if(!(this.elements.get(0) instanceof Num))return false;
@@ -189,6 +211,9 @@ public class Equation extends Token  implements TreePrintable{
 		}
 		return null;
 	}
+	public Selector.SelectorToken getSelectorToken() throws CompileError {
+		return new Selector.SelectorToken(line, -1, this.getSelector());
+	}
 	public Number getNumber() {
 		if(this.elements.size()==1) {
 			if((this.elements.get(0) instanceof Num))return ((Num)this.elements.get(0)).value;
@@ -207,19 +232,29 @@ public class Equation extends Token  implements TreePrintable{
 		if(!(this.elements.get(0) instanceof Function.FuncCallToken))return false;
 		return true;
 	}
-	public Variable getVarRef() throws CompileError{
-		if(!this.isRefable())throw new CompileError("attempted to pass non-trivial equation as a ref to function demanding ref arg on line %d col %d;"
-				.formatted(this.line,this.col));
+	public Variable getVarRef(){
+		if(!this.isRefable())return null;
 		Token.MemberName core=(MemberName) this.elements.get(0);
 		return core.var;
 	}
-	public Variable getConstVarRef() throws CompileError{
+	private Variable getVarRef(Token t){
+		if(!(t instanceof MemberName))return null;
+		Token.MemberName core=(MemberName) t;
+		return core.var;
+	}
+	public Variable getConstVarRef(){
 		//a function return var
 		//warning: avoid passing to other functions as other ops may be performed
 		if(this.isRefable())return this.getVarRef();
-		if(!this.isConstRefable())throw new CompileError("attempted to pass non-trivial equation as a const-ref to builtin function on line %d col %d;"
-				.formatted(this.line,this.col));
+		if(!this.isConstRefable())
+			return null;
 		Function.FuncCallToken core=(Function.FuncCallToken) this.elements.get(0);
+		return core.getRetConstRef();
+	}
+	private Variable getConstVarRef(Token t) throws CompileError{
+		if((t instanceof MemberName)) return getVarRef(t);
+		if(!(t instanceof Function.FuncCallToken)) return null;
+		Function.FuncCallToken core=(Function.FuncCallToken) t;
 		return core.getRetConstRef();
 	}
 	
@@ -603,10 +638,20 @@ public class Equation extends Token  implements TreePrintable{
 			}else {
 				Token first=this.elements.get(0);
 				//CompileJob.compileMcfLog.println(Token.asStrings(elements));
-				this.homeReg=this.putTokenToRegister(p, c, s, typeWanted, first);//may be redundant but that is OK
+				CompileError.CannotStack nostack1=null; boolean hasHome1=false;
+				try{
+					this.homeReg=this.putTokenToRegister(p, c, s, typeWanted, first);//may be redundant but that is OK
+					hasHome1=true;
+				}catch (CompileError.CannotStack e) {
+					nostack1=e;
+				}
+				
 				if(this.elements.size()%2==0)throw new CompileError.UnexpectedTokens(elements, "an odd number of tokens alternating value, operation");
 				List<Number> exponents=new ArrayList<Number>(); 
 				Number prevNum=null;if(first instanceof Num) prevNum=((Num) first).value;
+				INbtValueProvider prevVar = this.getConstVarRef(first); prevVar = (prevVar==null) ?
+						((first instanceof INbtValueProvider && ((INbtValueProvider) first).hasData())
+						? (INbtValueProvider) first : null) : prevVar;
 				for(int i=1;i<this.elements.size()-1;i+=2) {
 					Token opt=this.elements.get(i);if(!(opt instanceof BiOperator))throw new CompileError.UnexpectedToken(opt, "bi-operator");
 					BiOperator op=(BiOperator) opt;
@@ -622,7 +667,31 @@ public class Equation extends Token  implements TreePrintable{
 						exponents.add(e);
 					}else {
 						Number newnum=null;if(nextval instanceof Num) newnum=((Num) nextval).value;
-						if((newnum==null && prevNum==null) | (!op.canLiteralMult())) {
+						INbtValueProvider newVar = this.getConstVarRef(nextval); newVar = (newVar==null) ?
+								((nextval instanceof INbtValueProvider && ((INbtValueProvider) nextval).hasData())
+								? (INbtValueProvider) nextval : null) : newVar;
+						boolean didDirect = false;
+						if(prevVar !=null && newVar !=null) {
+							if(prevVar.getType().isStruct() && prevVar.getType().struct.canDoBiOpDirect(op, prevVar.getType(), newVar.getType(), true)) {
+								if(hasHome1) stack.pop();
+								this.homeReg=Variable.directOp(p, c, s, prevVar, op, newVar, stack);
+								didDirect=true;
+							}else if (newVar.getType().isStruct() && newVar.getType().struct.canDoBiOpDirect(op, newVar.getType(), prevVar.getType(), false)) {
+								if(hasHome1) stack.pop();
+								this.homeReg=Variable.directOp(p, c, s, prevVar, op, newVar, stack);
+								didDirect=true;
+							}
+							
+							prevVar=null;
+							if(nostack1!=null && !didDirect) throw nostack1;
+							nostack1=null;
+						}else {
+							if(nostack1!=null && !didDirect) throw nostack1;
+						}
+						if (didDirect) {
+							//already done
+						}
+						else if((newnum==null && prevNum==null) | (!op.canLiteralMult())) {
 							int nextreg=this.putTokenToRegister(p, c, s, typeWanted, nextval);
 							//stack.debugOut(System.err);
 							op.perform(p, c, s, stack, this.homeReg, nextreg);
@@ -785,5 +854,48 @@ public class Equation extends Token  implements TreePrintable{
 	public void printStatementTree(PrintStream p, int tabs) {
 		this.printTree(p, tabs);
 		
+	}
+
+	@Override
+	public boolean hasData() {
+		if(this.isConstable()) {
+			Const.ConstExprToken c = this.getConstNbt();
+			if (c!=null && c instanceof INbtValueProvider) {
+				return ((INbtValueProvider) c).hasData();
+			}
+			
+		} if (this.isConstRefable()) {
+			return this.getConstVarRef().hasData();
+		}
+		return false;
+	}
+	
+
+	@Override
+	public String fromCMDStatement() {
+		if(this.isConstable()) {
+			Const.ConstExprToken c = this.getConstNbt();
+			if (c!=null && c instanceof INbtValueProvider) {
+				return ((INbtValueProvider) c).fromCMDStatement();
+			}
+			
+		} if (this.isConstRefable()) {
+			return this.getConstVarRef().fromCMDStatement();
+		}
+		return null;
+	}
+
+	@Override
+	public VarType getType() {
+		if(this.isConstable()) {
+			Const.ConstExprToken c = this.getConstNbt();
+			if (c!=null && c instanceof INbtValueProvider) {
+				return ((INbtValueProvider) c).getType();
+			}
+			
+		} if (this.isConstRefable()) {
+			return this.getConstVarRef().type;
+		}
+		return null;
 	}
 }

@@ -11,6 +11,7 @@ import net.mcppc.compiler.Scope;
 import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.Const.ConstType;
+import net.mcppc.compiler.INbtValueProvider;
 import net.mcppc.compiler.VarType.Builtin;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Str;
@@ -188,7 +189,7 @@ public abstract class Token {
 			return forward?"<":">";
 		}
 	}
-	public static class Bool extends Const.ConstLiteralToken{
+	public static class Bool extends Const.ConstLiteralToken implements INbtValueProvider{
 		public static final Factory factory = new Factory(Regexes.BOOL) {
 			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
 				c.cursor=matcher.end();
@@ -214,6 +215,19 @@ public abstract class Token {
 		@Override
 		public String resSuffix() {
 			return "bool_%s".formatted(this.asString());
+		}
+
+		@Override
+		public boolean hasData() {
+			return true;
+		}
+		@Override
+		public String fromCMDStatement() {
+			return INbtValueProvider.VALUE.formatted(this.type.boolToStringNumber(this.val));
+		}
+		@Override
+		public VarType getType() {
+			return this.type;
 		}
 	}
 	public static class CodeBlockBrace extends AbstractBracket{
@@ -291,7 +305,7 @@ public abstract class Token {
 			return this.name;
 		}
 	}
-	public static class StringToken extends Const.ConstLiteralToken{
+	public static class StringToken extends Const.ConstLiteralToken implements INbtValueProvider{
 		public static final Factory factory = new Factory(Regexes.STRLIT) {
 			@Override
 			public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
@@ -332,6 +346,20 @@ public abstract class Token {
 		public String resSuffix() {
 			// TODO Auto-generated method stub
 			return "str_%s".formatted(this.resCase());
+		}
+
+		@Override
+		public boolean hasData() {
+			return true;
+		}
+		@Override
+		public String fromCMDStatement() {
+			return INbtValueProvider.VALUE.formatted(this.literal);
+		}
+
+		@Override
+		public VarType getType() {
+			return this.type;
 		}
 	}
 	public static class MemberName extends Token implements Identifiable{

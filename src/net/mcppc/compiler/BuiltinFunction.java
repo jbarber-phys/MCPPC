@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 
+import net.mcppc.compiler.BuiltinFunction.Args;
+import net.mcppc.compiler.BuiltinFunction.BFCallToken;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Function.FuncCallToken;
@@ -166,7 +168,7 @@ public abstract class BuiltinFunction {
 		@Override
 		public void dumpRet(PrintStream p, Compiler c, Scope s, RStack stack) throws CompileError {
 			// do nothing
-			
+			this.getBF().dumpRet(p, c, s, this, stack);
 		}
 		
 	}
@@ -233,6 +235,9 @@ public abstract class BuiltinFunction {
 	public abstract void call(PrintStream p, Compiler c, Scope s,BFCallToken token,RStack stack) throws CompileError;
 	public abstract void getRet(PrintStream p, Compiler c, Scope s,BFCallToken token,RStack stack,int stackstart) throws CompileError;
 	public abstract void getRet(PrintStream p, Compiler c, Scope s,BFCallToken token,Variable v,RStack stack) throws CompileError;
+	public void dumpRet(PrintStream p,Compiler c,Scope s, BFCallToken token,RStack stack) throws CompileError  {
+		//default to doing nothing
+	}
 	public abstract Number getEstimate(BFCallToken token);
 	
 	

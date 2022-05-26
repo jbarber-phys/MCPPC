@@ -11,10 +11,11 @@ import net.mcppc.compiler.Scope;
 import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
+import net.mcppc.compiler.INbtValueProvider;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Token.Factory;
 
-public class Num extends Const.ConstLiteralToken{
+public class Num extends Const.ConstLiteralToken implements INbtValueProvider{
 	//do not use these functiosn in equations
 	public static class Numrange extends Num{
 		///use with care, not all behavior is polymorphic;
@@ -197,5 +198,18 @@ public class Num extends Const.ConstLiteralToken{
 	public String resSuffix() {
 		return "num%s".formatted(this.resCase());
 	}
+	@Override
+	public boolean hasData() {
+		return true;
+	}
+	@Override
+	public String fromCMDStatement() {
+		return INbtValueProvider.VALUE.formatted(this.type.numToString(this.value));
+	}
+	@Override
+	public VarType getType() {
+		return this.type;
+	}
+	
 	
 }

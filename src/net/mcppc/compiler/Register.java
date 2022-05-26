@@ -58,6 +58,10 @@ public class Register implements Comparable<Register>,PrintF.IPrintable{
 		long val=(long) (value.doubleValue()*Math.pow(10, type.getPrecision(s)));
 		p.printf("scoreboard players set %s %d\n", this.inCMD(),val);
 	}
+	public void capValue(PrintStream p,int cap) {
+		String r=this.inCMD();
+		p.printf("execute if score %s matches %d.. run scoreboard players set %s %d\n", r,cap,r,cap);
+	}
 	public void increment(PrintStream p,long ammount) {
 		p.printf("scoreboard players add %s %d\n", this.inCMD(),ammount);
 	}

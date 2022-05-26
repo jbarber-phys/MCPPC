@@ -22,6 +22,7 @@ import net.mcppc.compiler.tokens.TemplateArgsToken;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.UnaryOp;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
+import net.mcppc.compiler.tokens.UnaryOp.UOType;
 
 /**
  * currently hypothetical
@@ -68,6 +69,7 @@ public abstract class Struct {
 		Vector.registerAll();
 		Str.registerAll();
 		Entity.registerAll();
+		NbtCollection.registerAll();
 	}
 	public static boolean load() {
 		//a dumb method that exists soly to make sure this initializes before something else else
@@ -215,14 +217,45 @@ public abstract class Struct {
 	public void doBiOpSecond(BiOperator.OpType op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Integer home1,Integer home2)
 			throws CompileError{throw new CompileError.UnsupportedOperation(stack.getVarType(home1), op, mytype);}
 	
+	//the inputs stay off stack but these funcs push a new register (return index) to the stack
+	//example: struct comparisons
+	public boolean canDoBiOpDirect(BiOperator op,VarType mytype,VarType other,boolean isFirst)throws CompileError {return false;};
+	public int doBiOpFirstDirect(BiOperator op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,INbtValueProvider me,INbtValueProvider other)
+			throws CompileError{throw new CompileError.UnsupportedOperation(mytype, op, other.getType());}
+	public int doBiOpSecondDirect(BiOperator op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,INbtValueProvider other,INbtValueProvider me)
+			throws CompileError{throw new CompileError.UnsupportedOperation(other.getType(), op, mytype);}
+	protected static int basicDirectEquals(PrintStream p,Compiler c,Scope s, RStack stack,INbtValueProvider first,INbtValueProvider second
+			,boolean invert) throws CompileError {
+		//compare tags for equality;
+		int home=stack.setNext(VarType.BOOL);
+		Register reg=stack.getRegister(home);
+		
+		if (first.equals(second)) {
+			//then they are equal
+			reg.setValue(p,!invert);
+			return home;
+		}
+		Variable temp = new Variable("\"$temp\"",first.getType(),null,Mask.STORAGE,"mcpp:temp","\"$temp\"");
+		String dtemp=temp.dataPhrase();
+		String nbtcmd1=first.fromCMDStatement();
+		String nbtcmd2=second.fromCMDStatement();
+		p.printf("data modify %s set %s\n",dtemp,nbtcmd1);
+		//int ex = stack.reserve(1);Register rex = stack.getRegister(ex);
+		String cmd = "data modify %s set %s".formatted(dtemp,nbtcmd2);
+		reg.setToSuccess(p, cmd); // see if nothing changed
+		if(!invert) {
+			UnaryOp not = new UnaryOp(-1,-1,UOType.NOT);
+			not.perform(p, c, s, stack, home);
+		}
+		return home;
+	}
+	
 	//the first term is the destination
 	//the second term should be immutable
 	//these will be avoided if normal ops are possible
-	public boolean canDoBiOpDirect(BiOperator.OpType op,VarType mytype,VarType other,boolean isFirst)throws CompileError {return false;};
-	public void doBiOpFirstDirect(BiOperator.OpType op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Variable set,Variable other)
-			throws CompileError{throw new CompileError.UnsupportedOperation(mytype, op, other.type);}
-	public void doBiOpSecondDirect(BiOperator.OpType op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Variable set,Variable other)
-			throws CompileError{throw new CompileError.UnsupportedOperation(set.type, op, mytype);}
+	public boolean canDoBiOpDirectOn(BiOperator op,VarType mytype,VarType other)throws CompileError {return false;};
+	public void doBiOpFirstDirectOn(BiOperator op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Variable me,INbtValueProvider other)
+			throws CompileError{throw new CompileError.UnsupportedOperation(mytype, op, other.getType());}
 	
 	
 	public void exp(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Number exponent) throws CompileError {
@@ -403,7 +436,7 @@ public abstract class Struct {
 	}
 	public Variable getIndexRef(Variable self,int index) throws CompileError{throw new CompileError.VarNotFound(this, index);};
 	protected Variable basicTagIndexRef(Variable self,int index,VarType elementType) {
-		return self.indexMyNBTPath(index, elementType);
+		return self.indexMyNBTPathBasic(index, elementType);
 	}
 	
 
@@ -459,5 +492,8 @@ public abstract class Struct {
 	}
 	public TemplateArgsToken getTemplateArgs(VarType varType, Scope s) throws CompileError {
 		return null;
+	}
+	public void setMeToCmd(PrintStream p, Scope s, Variable variable, String cmd) throws CompileError{
+		throw new CompileError.CannotSet(variable.type, "a command output");
 	}
 }

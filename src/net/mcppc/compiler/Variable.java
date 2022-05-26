@@ -20,7 +20,7 @@ import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
 
 //TODO list on data get returns its size
-public class Variable implements PrintF.IPrintable{
+public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	public final String name;
 	public final VarType type;
 	public final Keyword access;
@@ -28,7 +28,11 @@ public class Variable implements PrintF.IPrintable{
 	//mask parameters (non-final)
 	
 	public static enum Mask{
-		STORAGE,ENTITY,BLOCK,SCORE;
+		STORAGE(true),ENTITY(true),BLOCK(true),SCORE(false);
+		public final boolean isNbt;
+		Mask(boolean isNbt){
+			this.isNbt=isNbt;
+		}
 	}
 	Mask pointsTo;
 	/**
@@ -300,6 +304,45 @@ public class Variable implements PrintF.IPrintable{
 		}break;
 		}
 	}
+	public void setMeToCmd(PrintStream f,Scope s,String cmd) throws CompileError {
+		if(this.isStruct()) {
+			this.type.struct.setMeToCmd(f,s,this,cmd);
+			return;
+		}
+		String resultsuccess = this.type.isNumeric()? "result":"success";
+		this.setMeToCmdBasic(f, s, cmd, resultsuccess);
+		
+	}
+	public void setMeToCmdBasic(PrintStream f,Scope s,String cmd,String resultsuccess) throws CompileError {
+		if(this.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
+		VarType cmdType = this.type;
+		//if(!VarType.areBasicTypesCompadible(this.type, cmdType)) throw new CompileError.UnsupportedCast(this.type, cmdType);
+		//non structs only; structs need their own routines possibly multiple registers)
+		String tagtype=this.type.getNBTTagType();
+		double mult=Math.pow(10, -cmdType.getPrecision(s));//scientific notation may cause problems
+		switch (this.pointsTo) {
+		case STORAGE:{
+			f.println("execute store %s storage %s %s %s %s run %s\n"
+					.formatted(resultsuccess,this.holder,this.getAddressToGetset(),tagtype,CMath.getMultiplierFor(mult),cmd)); 
+		}break;
+		case BLOCK:{
+			f.println("execute store %s block %s %s %s %s run %s\n"
+					.formatted(resultsuccess,this.getAddressToGetset(),tagtype,CMath.getMultiplierFor(mult),cmd));
+		}break;
+		case ENTITY:{
+			f.println("execute store %s entity %s %s %s %s run %s\n"
+					.formatted(resultsuccess,this.getAddressToGetset(),tagtype,CMath.getMultiplierFor(mult),cmd));
+		}break;
+		case SCORE:{
+			mult=Math.pow(10, -cmdType.getPrecision(s)+this.type.getPrecision(s));
+			f.println("execute store %s storage %s \"$dumps\".%s %s %s run %s\n"
+					.formatted(resultsuccess,this.holder,this.name,tagtype,CMath.getMultiplierFor(mult),cmd));
+			f.println("execute store result score %s %s run data get storage %s \"$dumps\".%s\n"
+					.formatted(this.holder,this.getAddressToGetset(),this.holder,this.name));
+			
+		}break;
+		}
+	}
 	public void getMe(PrintStream p,Scope s,RStack stack,int home) throws CompileError {
 		if(this.type.isStruct()) {
 			this.type.struct.getMe(p, s, stack, home, this);
@@ -332,6 +375,10 @@ public class Variable implements PrintF.IPrintable{
 			f.println("scoreboard players operation %s = %s %s".formatted(reg.inCMD(),this.holder,this.getAddressToGetset()));
 		}break;
 		}
+	}
+	public String scorePhrase() {
+		if(this.getMaskType()!=Mask.SCORE)return null;
+		return "%s %s".formatted(this.holder,this.getAddressToGetset());
 	}
 	public String dataPhrase() {
 		switch (this.pointsTo) {
@@ -489,23 +536,35 @@ public class Variable implements PrintF.IPrintable{
 		}
 	}
 
-	public static void directOp(PrintStream p,Compiler c,Scope s,Variable to,BiOperator op,Variable from,RStack stack) throws CompileError {
-		Variable.directOp(p,c, s, to,op, from, stack,false);
+	public static void directOpOn(PrintStream p,Compiler c,Scope s,Variable to,BiOperator op,INbtValueProvider from,RStack stack) throws CompileError {
+		Variable.directOpOn(p,c, s, to,op, from, stack,false);
 	}
-	public static void directOp(PrintStream p,Compiler c,Scope s,Variable to,BiOperator op,Variable from,RStack stack,boolean mustBeDirect) throws CompileError {
+	public static void directOpOn(PrintStream p,Compiler c,Scope s,Variable to,BiOperator op,INbtValueProvider from,RStack stack,boolean mustBeDirect) throws CompileError {
 		if(to.type.isVoid())throw new CompileError("Varaible.directOp() not for voids.");
-		if(from.type.isVoid())throw new CompileError("Varaible.directOp() not for voids.");
-		if(to.type.isStruct() && to.type.struct.canDoBiOpDirect(op.op, to.type, from.type, true)) {
-			to.type.struct.doBiOpFirstDirect(op.op, to.type, p, c, s, stack, to, from);
-			return;
-		}else if(from.type.isStruct() && from.type.struct.canDoBiOpDirect(op.op, from.type, to.type, false)) {
-			to.type.struct.doBiOpSecondDirect(op.op, to.type, p, c, s, stack, to, from);
+		if(from.getType().isVoid())throw new CompileError("Varaible.directOp() not for voids.");
+		if(to.type.isStruct() && to.type.struct.canDoBiOpDirectOn(op, to.type, from.getType())) {
+			to.type.struct.doBiOpFirstDirectOn(op, to.type, p, c, s, stack, to, from);
 			return;
 		}
-		if(mustBeDirect)throw new CompileError.UnsupportedOperation(to.type, op, from.type);
-		Equation eq=Equation.toAssignHusk(stack, to.basicMemberName(s),op,from.basicMemberName(s));
+		if(mustBeDirect)throw new CompileError.UnsupportedOperation(to.type, op, from.getType());
+		Token fromt = from instanceof Variable? ((Variable) from).basicMemberName(s) : (Token) from;
+		Equation eq=Equation.toAssignHusk(stack, to.basicMemberName(s),op,fromt);
 		eq.compileOps(p, c, s, to.type);
 		eq.setVar(p, c, s, to);
+	}public static int directOp(PrintStream p,Compiler c,Scope s,INbtValueProvider prevVar,BiOperator op,INbtValueProvider newVar,RStack stack) throws CompileError {
+		return Variable.directOp(p,c, s, prevVar,op, newVar, stack,true);
+	}
+	private static int directOp(PrintStream p,Compiler c,Scope s,INbtValueProvider prevVar,BiOperator op,INbtValueProvider newVar,RStack stack,boolean mustBeDirect) throws CompileError {
+		if(prevVar.getType().isVoid())throw new CompileError("Varaible.directOp() not for voids.");
+		if(newVar.getType().isVoid())throw new CompileError("Varaible.directOp() not for voids.");
+		if(prevVar.getType().isStruct() && prevVar.getType().struct.canDoBiOpDirect(op, prevVar.getType(), newVar.getType(), true)) {
+			return prevVar.getType().struct.doBiOpFirstDirect( op, prevVar.getType(),p, c, s, stack, prevVar, newVar);
+		}else if(newVar.getType().isStruct() && newVar.getType().struct.canDoBiOpDirect(op, newVar.getType(), prevVar.getType(), false)) {
+			return prevVar.getType().struct.doBiOpSecondDirect(op,newVar.getType(), p, c, s, stack, prevVar, newVar);
+		}
+		if(mustBeDirect)throw new CompileError.UnsupportedOperation(prevVar.getType(), op, newVar.getType());
+		throw new CompileError.UnsupportedOperation(prevVar.getType(), op, newVar.getType());
+		
 	}
 	public Token basicMemberName(Scope s) {
 		Token.MemberName t=new Token.MemberName(-1,-1,this.name);
@@ -582,7 +641,15 @@ public class Variable implements PrintF.IPrintable{
 		}
 		
 	}
-	public Variable indexMyNBTPath(int index,VarType type) {
+	public Variable indexMyNBTPath(int index) throws CompileError {
+		if(this.isStruct()) {
+			if(this.type.struct.canIndexMe(null, index)) return this.type.struct.getIndexRef(this, index);
+			else throw new CompileError("Index %d invalid for type %s;".formatted(index,this.type));
+		}else {
+			throw new CompileError("Basic type %s is not indexable;".formatted(this.type));
+		}
+	}
+	public Variable indexMyNBTPathBasic(int index,VarType type) {
 		return new Variable("%s[%s]".formatted(this.name,index),
 				type,
 				this.access,
@@ -748,4 +815,17 @@ public class Variable implements PrintF.IPrintable{
 	public void makeRecursive() {
 		this.isRecursive=true;
 	}
+	@Override
+	public boolean hasData() {
+		return this.getMaskType().isNbt;
+	}
+	@Override
+	public String fromCMDStatement() {
+		return INbtValueProvider.FROM.formatted(this.dataPhrase());
+	}
+	@Override
+	public VarType getType() {
+		return this.type;
+	}
+	
 }
