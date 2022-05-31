@@ -31,7 +31,7 @@ public class Function {
 	//this no longer applies with functions being recursive now
 	@Deprecated public static final boolean ALLOCATE_ON_CALL = false;//this is false to save lines
 	public static class FuncCallToken extends AbstractCallToken implements Identifiable{
-		public static FuncCallToken make(Compiler c,int line,int col,Matcher m,Token.MemberName func,RStack stack) throws CompileError {
+		public static FuncCallToken make(Compiler c,int line,int col,Matcher m,MemberName func,RStack stack) throws CompileError {
 			FuncCallToken f=new FuncCallToken(line,col,func);
 			FuncCallToken.addArgs(c, line, col, m,  stack, f.args);
 			
@@ -42,7 +42,7 @@ public class Function {
 				Equation arg=new Equation(line, col, stack);
 				arg.isAnArg=true;
 				arg.isTopLevel=false;
-				arg.populate(c, m);
+				arg=arg.populate(c, m);
 				if(arg.elements.size()==0) {
 					break fargs;
 				}

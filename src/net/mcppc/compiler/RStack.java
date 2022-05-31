@@ -22,7 +22,7 @@ public class RStack {
 	}
 	public RStack(ResourceLocation r,Scope currentScope){
 		this.res=r;
-		this.f=currentScope.function;
+		this.f= currentScope ==null? null :currentScope.function;
 		
 	}
 	public RStack(Scope currentScope){

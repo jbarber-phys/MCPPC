@@ -10,9 +10,9 @@ public interface INbtValueProvider {
 	//super Variable and some ConstExprs
 	//data phrase:
 	// from {...}
-	public static final String FROM = "from %s";
+	static final String FROM = "from %s";
 	// value ###
-	public static final String VALUE = "value %s";
+	static final String VALUE = "value %s";
 	public String fromCMDStatement();
 	public VarType getType();
 }

@@ -33,8 +33,12 @@ public class Size extends BuiltinFunction{
 	@Override
 	public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
 			throws CompileError {
-		String cmd = "data get %s".formatted(token.getThisBound().dataPhrase());
-		String line = "execute store result score %s run %s\n".formatted(stack.getRegister(stackstart).inCMD(),cmd);
+		
+		Size.lengthOf(p,  stack.getRegister(stackstart), token.getThisBound());
+	}
+	public static void lengthOf(PrintStream p, Register to,Variable var) {
+		String cmd = "data get %s".formatted(var.dataPhrase());
+		String line = "execute store result score %s run %s\n".formatted(to.inCMD(),cmd);
 		p.printf(line);
 	}
 

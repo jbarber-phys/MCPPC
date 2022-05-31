@@ -27,9 +27,9 @@ import net.mcppc.compiler.ResourceLocation;
 import net.mcppc.compiler.ResourceLocation.ResourceToken;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Factories;
+import net.mcppc.compiler.tokens.MemberName;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
-import net.mcppc.compiler.tokens.Token.MemberName;
 
 /**
  * a struct that uses tags to create an assignable selector abstraction
@@ -255,21 +255,21 @@ public class Entity extends Struct {
 		}else throw new CompileError.UnexpectedToken(t, "entity / selector");
 	}
 	public static Selector checkForEntityVar(Compiler c,Scope s, Matcher matcher, int line, int col) throws CompileError {
-		Token.MemberName vt=Entity.checkForEntityToken(c, s, matcher, line, col);
+		MemberName vt=Entity.checkForEntityToken(c, s, matcher, line, col);
 		return vt==null?null:((Entity)vt.getVar().type.struct).getSelectorFor(vt.getVar());
 	}
-	public static Token.MemberName checkForEntityToken(Compiler c,Scope s, Matcher matcher, int line, int col) throws CompileError {
+	public static MemberName checkForEntityToken(Compiler c,Scope s, Matcher matcher, int line, int col) throws CompileError {
 		int start=c.cursor;
 		Token vn = c.nextNonNullMatch(Factories.checkForMembName);
-		if(!(vn instanceof Token.MemberName)) {
+		if(!(vn instanceof MemberName)) {
 			c.cursor=start; return null;
 		}
 		
-		if(!((Token.MemberName) vn).identifySafe(c, s)) {
+		if(!((MemberName) vn).identifySafe(c, s)) {
 			c.cursor=start;
 			return null;
 		}
-		Variable v=((Token.MemberName) vn).getVar();
+		Variable v=((MemberName) vn).getVar();
 		//TODO functions;
 		if(v.type.isStruct() && v.type.struct instanceof Entity) {
 			return (MemberName) vn;//((Entity)v.type.struct).getSelectorFor(v);

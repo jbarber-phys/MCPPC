@@ -10,7 +10,7 @@ import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.UnaryOp.UOType;
 
 public class IfElse extends Statement implements Statement.MultiFlow,Statement.CodeBlockOpener{
-	private static final Token.MemberName name=new Token.MemberName(-1, -1, "$ifelse");
+	private static final MemberName name=new MemberName(-1, -1, "$ifelse");
 	public static IfElse skipMe(Compiler c, Matcher matcher, int line, int col,Keyword opener) throws CompileError {
 		//test for else if
 		c.cursor=matcher.end();

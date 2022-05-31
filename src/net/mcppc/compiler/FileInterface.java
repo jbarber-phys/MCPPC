@@ -14,7 +14,7 @@ import net.mcppc.compiler.struct.Struct;
 import net.mcppc.compiler.tokens.Declaration;
 import net.mcppc.compiler.tokens.Import;
 import net.mcppc.compiler.tokens.Keyword;
-import net.mcppc.compiler.tokens.Token;
+import net.mcppc.compiler.tokens.MemberName;
 
 /**
  * contains all of the fields used by a mcpp file;
@@ -146,7 +146,7 @@ public class FileInterface {
 		}
 		this.hasReadLibs=true;
 	}
-	public  Variable identifyVariable(Token.MemberName t,Scope s) throws CompileError {
+	public  Variable identifyVariable(MemberName t,Scope s) throws CompileError {
 		return this.identifyVariable(t.names,s);
 	}
 	public  Variable identifyVariable(String name,Scope s) throws CompileError {//in declaration
@@ -377,7 +377,7 @@ public class FileInterface {
 		
 	}
 
-	public  Const identifyConst(Token.MemberName t,Scope s) throws CompileError {
+	public  Const identifyConst(MemberName t,Scope s) throws CompileError {
 		return this.identifyConst(t.names,s);
 	}
 	public  Const identifyConst(String name,Scope s) throws CompileError {

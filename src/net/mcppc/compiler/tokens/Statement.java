@@ -9,7 +9,9 @@ import java.util.regex.Pattern;
 
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.*;
+import net.mcppc.compiler.BuiltinFunction.BFCallToken;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.functions.AbstractCallToken;
 import net.mcppc.compiler.tokens.Equation.End;
 import net.mcppc.compiler.tokens.Token.Assignlike;
 import net.mcppc.compiler.tokens.Token.Assignlike.Kind;
@@ -198,13 +200,17 @@ public abstract class Statement extends Token implements TreePrintable{
 		final Equation eq;
 		public Assignment(int line, int col,Variable var,Equation eq) {
 			super(line, col);
-			this.var=var;
 			this.eq=eq;
+			this.var=var;
 		}
 		@Override public void compileMe(PrintStream f,Compiler c,Scope s) throws CompileError {
-			this.eq.compileOps(f, c, s, this.var.type);
-			this.eq.setVar(f, c, s, this.var);
-			this.eq.stack.finish(c.job);
+			if(this.var!=null) {
+				this.eq.compileOps(f, c, s, this.var.type);
+				this.eq.setVar(f, c, s, this.var);
+				this.eq.stack.finish(c.job);
+			}else {
+				//never
+			}
 		}
 		@Override
 		public String asString() {
@@ -282,13 +288,11 @@ public abstract class Statement extends Token implements TreePrintable{
 		}
 		
 	}
-	public static class FuncCallStatement extends Statement{
-		final Function.FuncCallToken token;
-		Scope s;
-		public FuncCallStatement(int line, int col,Function.FuncCallToken f,Compiler c) {
+	public static class CallStatement extends Statement{
+		final AbstractCallToken token;
+		public CallStatement(int line, int col,AbstractCallToken f,Compiler c) {
 			super(line, col);
 			this.token=f;
-			this.s=c.currentScope;
 		}
 		@Override
 		public String asString() {
@@ -296,37 +300,18 @@ public abstract class Statement extends Token implements TreePrintable{
 		}
 		@Override
 		public void compileMe(PrintStream f,Compiler c,Scope s) throws CompileError {
-			RStack stack=this.s.getStackFor();
+			RStack stack=s.getStackFor();
 			this.token.call(f, c, s, stack);
 			this.token.dumpRet(f, c, s, stack);
-			stack.finish(c.job);
-		}
-		
-	}
-	public static class BuiltinFuncCallStatement extends Statement{
-		final BuiltinFunction.BFCallToken token;
-		Scope s;
-		public BuiltinFuncCallStatement(int line, int col,BuiltinFunction.BFCallToken f) {
-			super(line, col);
-			this.token=f;
-		}
-		@Override
-		public String asString() {
-			return "%s;".formatted(this.token.asString());
-		}
-		@Override
-		public void compileMe(PrintStream f,Compiler c,Scope s) throws CompileError {
-			this.s=s;
-			RStack stack=this.s.getStackFor();
-			token.call(f, c, s, stack);
 			stack.finish(c.job);
 		}
 		@Override 
 		public void printStatementTree(PrintStream p,int tabs) {
 			//for debuging
-			this.token.getBF().printStatementTree(p, this.token, tabs);
+			if(this.token instanceof BuiltinFunction.BFCallToken)
+				((BFCallToken) this.token).getBF().printStatementTree(p, (BFCallToken) this.token, tabs);
+			else super.printStatementTree(p, tabs);
 		}
-		
 		
 	}
 }

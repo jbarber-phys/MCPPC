@@ -18,10 +18,12 @@ import net.mcppc.compiler.functions.FunctionMask;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Num;
+import net.mcppc.compiler.tokens.Statement;
 import net.mcppc.compiler.tokens.TemplateArgsToken;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.UnaryOp;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
+import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.UnaryOp.UOType;
 
 /**
@@ -309,6 +311,9 @@ public abstract class Struct {
 		else {
 			this.allocateArray(p, var, fillWithDefaultvalue, size, elementType);
 		}
+		//(could also prepend / insert)
+		Variable idxbuff = this.getIndexVarBuff(var, 0);
+		if(idxbuff!=null)idxbuff.allocateLoad(p, fillWithDefaultvalue);
 	}
 	protected void allocateArrayCall(PrintStream p, Variable var, boolean fillWithDefaultvalue,int size,VarType elementType) throws CompileError {
 		if(var.isRecursive()) {
@@ -319,6 +324,9 @@ public abstract class Struct {
 			//this should never be called
 			this.allocateArray(p, var, fillWithDefaultvalue, size, elementType);
 		}
+		//(could also prepend / insert)
+		Variable idxbuff = this.getIndexVarBuff(var, 0);
+		if(idxbuff!=null)idxbuff.allocateCall(p, fillWithDefaultvalue);
 	}
 	/**
 	 * an implimentation of allocate() for types stored as arrays
@@ -355,8 +363,6 @@ public abstract class Struct {
 			String fillstr = elementType.defaultValue();
 			for(int i=0;i<size;i++) p.printf("data modify %s append value %s\n",var.dataPhrase(), fillstr);
 		}
-		//(could also prepend / insert)
-		
 		
 	}
 
@@ -430,11 +436,47 @@ public abstract class Struct {
 	public abstract boolean hasField(Variable self,String name);
 	public abstract Variable getField(Variable self,String name) throws CompileError;
 	
-	
+	public boolean canIndexMe(Variable self, INbtValueProvider index) throws CompileError{
+		//default: const int only
+		Number num = index instanceof Token? Num.getNumber((Token) index, VarType.INT) : null;
+		if(num!=null) {
+			return this.canIndexMe(self, num.intValue());
+		}
+		return false;
+	}
 	public boolean canIndexMe(Variable self, int i) throws CompileError{
 		return false;
 	}
+	@Deprecated
+	public boolean canIndexMe(Variable self, Variable index) throws CompileError{
+		return false;
+	}
+	public Variable getIndexVarBuff(Variable self,int depth) {
+		return null;//deprecated so far
+	}
+	@Deprecated
+	public Variable getIndexRef(Variable self,INbtValueProvider index) throws CompileError{
+		//default: const int only
+		Variable var = Variable.getVariable(index);
+		if(var!=null) {
+			return this.getIndexRef(self, var);
+		}
+		Number num = index instanceof Token? Num.getNumber((Token) index, VarType.INT) : null;
+		if(num!=null) {
+			return this.getIndexRef(self, num.intValue());
+		}
+		throw new CompileError.VarNotFound(this, (Token)index);
+	}
+	public Token convertIndexGet(Variable self,Equation index) throws CompileError{
+		throw new CompileError.VarNotFound(this, index);
+	}
+	public Token convertIndexSet(Variable self,Equation index, Equation setTo) throws CompileError{
+		//just give the call token, not the statement
+		throw new CompileError.VarNotFound(this, index);
+	}
 	public Variable getIndexRef(Variable self,int index) throws CompileError{throw new CompileError.VarNotFound(this, index);};
+	public Variable getIndexRef(Variable self,Variable index) throws CompileError{throw new CompileError.VarNotFound(this, index);};
+
 	protected Variable basicTagIndexRef(Variable self,int index,VarType elementType) {
 		return self.indexMyNBTPathBasic(index, elementType);
 	}

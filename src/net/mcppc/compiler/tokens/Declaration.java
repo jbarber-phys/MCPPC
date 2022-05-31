@@ -91,7 +91,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			//optional: require an & before var to mark it as a reference
 			holder = c.nextNonNullMatch(Factories.checkForBasicName);
 			if(holder instanceof Token.BasicName) holder = ((Token.BasicName) holder).toMembName();
-			if(!(holder instanceof Token.MemberName)) throw new CompileError.UnexpectedToken(holder,"var name or mask target");
+			if(!(holder instanceof MemberName)) throw new CompileError.UnexpectedToken(holder,"var name or mask target");
 			if(c.currentScope.isInFunctionDefine()) {
 				//System.err.printf("func: %s\n", c.currentScope.getFunction().name);
 				//System.err.printf("locals: %s\n", c.currentScope.getFunction().locals.keySet());
@@ -137,10 +137,10 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			if(!(address instanceof NbtPath.NbtPathToken))throw new CompileError.UnexpectedToken(address,"nbt path");
 			if(!skip)this.variable.maskStorage(((ResourceLocation.ResourceToken)holder).res, ((NbtPath.NbtPathToken)address).path());
 			return;	
-		}else if (holder instanceof Token.MemberName && (op instanceof Token.LineEnd || op instanceof Token.CodeBlockBrace)) {
+		}else if (holder instanceof MemberName && (op instanceof Token.LineEnd || op instanceof Token.CodeBlockBrace)) {
 			//another var
 			c.cursor=beforeop;
-			if(!skip)this.variable.maskOtherVar(((Token.MemberName) holder).var);
+			if(!skip)this.variable.maskOtherVar(((MemberName) holder).var);
 			return;	
 		}
 		else {

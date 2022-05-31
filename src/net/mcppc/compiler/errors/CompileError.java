@@ -121,6 +121,12 @@ public class CompileError extends Exception {
 		public VarNotFound(Struct s,int index) {
 			super("Could not find index member  %s[%s];".formatted(s.name,index));
 		}
+		public VarNotFound(Struct s,Token index) {
+			super("Could not find index member  %s[%s];".formatted(s.name,index.asString()));
+		}
+		public VarNotFound(Struct s, Variable index) {
+			super("Could not find variable-index member  %s[%s];".formatted(s.name,index.name));
+		}
 		
 	}
 	public static class BFuncNotFound extends CompileError{

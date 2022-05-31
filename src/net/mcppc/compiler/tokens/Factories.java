@@ -15,11 +15,10 @@ import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.Function.FuncCallToken;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Equation.End;
-import net.mcppc.compiler.tokens.Statement.FuncCallStatement;
+import net.mcppc.compiler.tokens.Statement.CallStatement;
 import net.mcppc.compiler.tokens.Token.Assignlike;
 import net.mcppc.compiler.tokens.Token.BasicName;
 import net.mcppc.compiler.tokens.Token.Factory;
-import net.mcppc.compiler.tokens.Token.MemberName;
 import net.mcppc.compiler.tokens.Token.Assignlike.Kind;
 
 public final class Factories {
@@ -104,8 +103,8 @@ public final class Factories {
 				//its a normal name
 			}
 			//its a normal name
-			Token.MemberName nm=(MemberName) Token.MemberName.factory.createToken(c, matcher, line, col);
-			Token par=c.nextNonNullMatch(checkForParen);
+			MemberName nm=(MemberName) MemberName.factory.createToken(c, matcher, line, col);
+			Token par=c.nextNonNullMatch(checkForParenOrIndexBracket);
 			if (par instanceof Token.Paren && ((Token.Paren) par).forward) {
 				//function call
 				//constructor has its own hook
@@ -118,7 +117,7 @@ public final class Factories {
 					RStack stack=c.currentScope.getStackFor();
 					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, matcher, nm.line, nm.col,stack, bf);
 					if(bf.isNonstaticMember()) {
-						List<String> nms=((Token.MemberName) nm).names;nms=nms.subList(0, nms.size()-1);
+						List<String> nms=((MemberName) nm).names;nms=nms.subList(0, nms.size()-1);
 						Variable self = c.myInterface.identifyVariable(nms, c.currentScope);
 						sub.withThis(self);
 					}if(sub.canConvert()) {
@@ -130,13 +129,13 @@ public final class Factories {
 							((FuncCallToken) ft).linkMeByForce(c, c.currentScope);
 							Token end=c.nextNonNullMatch(Factories.nextIsLineEnd);
 							if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(end, ";","code block after builtin func not yet supported");
-							return new Statement.FuncCallStatement(line,col,((FuncCallToken) ft),c);
+							return new Statement.CallStatement(line,col,((FuncCallToken) ft),c);
 							
 						}
 					}
 					Token end=c.nextNonNullMatch(Factories.nextIsLineEnd);
 					if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(end, ";","code block after builtin func not yet supported");
-					return new Statement.BuiltinFuncCallStatement(line, col, sub);
+					return new Statement.CallStatement(line, col, sub,c);
 
 				}else {
 					//a normal function
@@ -144,11 +143,26 @@ public final class Factories {
 					ft.identify(c,c.currentScope);
 					Token end=c.nextNonNullMatch(Factories.nextIsLineEnd);
 					if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(end, ";","code block after builtin func not yet supported");
-					return new Statement.FuncCallStatement(line,col,ft,c);
+					return new Statement.CallStatement(line,col,ft,c);
 				}
 				
-			}else {
+			}
+			else {
 				nm.identify(c,c.currentScope);
+				//Token sbk = c.nextNonNullMatch(checkForIndexBrace);
+				Token sbk = par;
+				//System.err.printf("sbk = %s\n",sbk.asString());
+				Token v=nm;
+				boolean indexed=false;
+				while (sbk instanceof Token.IndexBrace && ((Token.IndexBrace) sbk).forward) {
+					//if(!(v instanceof Token.MemberName) )throw new CompileError("%s is not a variable and so cannot be indexed []".formatted(v.asString()));
+					Token vet=VariableElementToken.make(c, matcher,  v, new RStack(c.resourcelocation,c.currentScope), v.line, v.col,true);
+					v=vet;
+					sbk=c.nextNonNullMatch(checkForIndexBrace);
+					//System.err.printf("sbk = %s\n",sbk.asString());
+					if(indexed && vet instanceof VariableElementToken) throw new CompileError("double var-index on assignment not supported");
+					indexed=true;
+				}
 				Token asn = c.nextNonNullMatch(Factories.checkForAssignlike);
 				//? ->
 				if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.MASK) {
@@ -157,6 +171,7 @@ public final class Factories {
 				
 				//? ~~
 				if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ESTIMATE) {
+					//ignore index
 					Token est=c.nextNonNullMatch(Factories.checkForNullableNumber);
 					if(!(est instanceof Num)) {
 						est=Num.tokenizeNextNumNonNull(c,c.currentScope, matcher, line, col);
@@ -175,6 +190,10 @@ public final class Factories {
 					Equation eq=Equation.toAssign(line, col, c, matcher);
 					//equation finds the semicolon;
 					if(eq.end !=End.STMTEND) throw new CompileError("assignment ended with a non-';'");
+					if(indexed) {
+						if (v instanceof VariableElementToken)return ((VariableElementToken) v).convertSet(c, c.currentScope, eq);
+						else nm = (MemberName) v;
+					}
 					return new Statement.Assignment(line, col, nm.var, eq);
 				}else
 					throw new CompileError.UnexpectedToken(asn, "'=' or '~~' or '('");
@@ -237,14 +256,16 @@ public final class Factories {
 	public static final Token.Factory[] headerLnStart = {headerName,space,newline,comment,domment,Statement.Domment.factory,Token.CodeBlockBrace.unscopeFactory,skiplineEnd,skiplineMid};
 	public static final Token.Factory[] headerSkipline = {comment,skipDomment,newline,skiplineEnd,skiplineMid,domment,space};
 	public static final Token.Factory[] closeParen = {newline,comment,domment,space,Statement.Domment.factory,Token.Paren.factory};
-	public static final Token.Factory[] checkForParen = {newline,comment,domment,space,Statement.Domment.factory,Token.Paren.factory,Token.WildChar.dontPassFactory};
+	public static final Token.Factory[] checkForParen = Factories.genericCheck(Token.Paren.factory);
+	public static final Token.Factory[] checkForParenOrIndexBracket = Factories.genericCheck(Token.Paren.factory,Token.IndexBrace.factory);
 	public static final Token.Factory[] checkForMinus = {newline,comment,domment,space,Statement.Domment.factory,UnaryOp.uminusfactory,Token.WildChar.dontPassFactory};
 	public static final Token.Factory[] checkForKeyword = Factories.genericCheck(Factories.basicNameKeyword);
 		//{newline,comment,domment,space,Statement.Domment.factory,Factories.basicNameKeyword,Token.WildChar.dontPassFactory};
-	public static final Token.Factory[] checkForMembName = Factories.genericCheck(Token.MemberName.factory);
+	public static final Token.Factory[] checkForMembName = Factories.genericCheck(MemberName.factory);
 	public static final Token.Factory[] checkForBasicName = Factories.genericCheck(Token.BasicName.factory);
 	public static final Token.Factory[] checkForRangesep = Factories.genericCheck(Token.RangeSep.factory);
 	public static final Token.Factory[] checkForAssignlike = Factories.genericCheck(Token.Assignlike.factoryAssign,Token.Assignlike.factoryEstimate);
+	public static final Token.Factory[] checkForIndexBrace = Factories.genericCheck(Token.IndexBrace.factory);
 	public static final Token.Factory[] checkForAssignlikeOrMemb = Factories.genericCheck(Token.Assignlike.factoryAssign,Token.Assignlike.factoryEstimate,Token.Member.factory);
 	public static final Token.Factory[] checkForAssignlikeOrOparen = Factories.genericCheck(Token.Assignlike.factoryAssign,Token.Assignlike.factoryEstimate,Token.Paren.factory);
 

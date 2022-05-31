@@ -356,7 +356,7 @@ public class CompileJob {
 		for(Namespace ns: srcNamespaces) {
 			this.genMcf(ns);
 		}
-		if(this.isBuildingStdLib) {
+		if(true) { //do even if not this.isBuildingStdLib
 			CodeGenerator.generateAll(this);
 		}
 		this.traceExternalImports();

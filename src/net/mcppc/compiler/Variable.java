@@ -1,6 +1,7 @@
 package net.mcppc.compiler;
 
 import java.io.PrintStream;
+import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
 
@@ -15,6 +16,7 @@ import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Keyword;
+import net.mcppc.compiler.tokens.MemberName;
 import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
@@ -566,8 +568,13 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		throw new CompileError.UnsupportedOperation(prevVar.getType(), op, newVar.getType());
 		
 	}
-	public Token basicMemberName(Scope s) {
-		Token.MemberName t=new Token.MemberName(-1,-1,this.name);
+	public MemberName basicMemberName(Scope s) {
+		MemberName t=new MemberName(-1,-1,this.name);
+		t.identifyWith(this);
+		return t;
+	}
+	public MemberName memberName(Scope s,Token pos,String nameOverload) {
+		MemberName t=new MemberName(pos.line,pos.col,nameOverload);
 		t.identifyWith(this);
 		return t;
 	}
@@ -611,15 +618,25 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		}
 		//USE STRING FORMAT EVEN FOR FLOATS - DONT USE %f BECAUSE IT ROUNDS- SCI NOTATION IS OK IN MCF (except for in multipliers - its a bug with mc)
 	}
+	/**
+	 * does not check for indexed refs
+	 * @param c
+	 * @param s
+	 * @param matcher
+	 * @param line
+	 * @param col
+	 * @return
+	 * @throws CompileError
+	 */
 	public static Variable checkForVar(Compiler c,Scope s, Matcher matcher, int line, int col) throws CompileError {
 		int start=c.cursor;
 		Token vn = c.nextNonNullMatch(Factories.checkForMembName);
-		if(!(vn instanceof Token.MemberName)) {
+		if(!(vn instanceof MemberName)) {
 			c.cursor=start; return null;
 		}
 		
-		((Token.MemberName) vn).identify(c, s);
-		Variable v=((Token.MemberName) vn).getVar();
+		((MemberName) vn).identify(c, s);
+		Variable v=((MemberName) vn).getVar();
 		return v;
 		
 	}
@@ -643,15 +660,15 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	}
 	public Variable indexMyNBTPath(int index) throws CompileError {
 		if(this.isStruct()) {
-			if(this.type.struct.canIndexMe(null, index)) return this.type.struct.getIndexRef(this, index);
+			if(this.type.struct.canIndexMe(this, index)) return this.type.struct.getIndexRef(this, index);
 			else throw new CompileError("Index %d invalid for type %s;".formatted(index,this.type));
 		}else {
 			throw new CompileError("Basic type %s is not indexable;".formatted(this.type));
 		}
 	}
-	public Variable indexMyNBTPathBasic(int index,VarType type) {
+	public Variable indexMyNBTPathBasic(int index,VarType membtype) {
 		return new Variable("%s[%s]".formatted(this.name,index),
-				type,
+				membtype,
 				this.access,
 				this.pointsTo,
 				this.holder,
@@ -826,6 +843,12 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	@Override
 	public VarType getType() {
 		return this.type;
+	}
+	public static Variable getVariable(INbtValueProvider stm) {
+		if(stm instanceof Variable)return (Variable) stm;
+		else if (stm instanceof Equation && ((Equation) stm).isConstRefable())
+			return ((Equation) stm).getConstVarRef();
+		else return null;
 	}
 	
 }

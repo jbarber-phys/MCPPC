@@ -210,6 +210,24 @@ public class Num extends Const.ConstLiteralToken implements INbtValueProvider{
 	public VarType getType() {
 		return this.type;
 	}
-	
-	
+
+	public static final Number getNumber(Token t) {
+		return getNumber(t,null);
+	}
+	public static final Number getNumber(Token t, VarType requireType) {
+		if(t==null)return null;
+		if(t instanceof Num) {
+			if(requireType==null ||((Num) t).type.type == requireType.type)
+				return ((Num) t).value;
+			else return null;
+		}else if (t instanceof Const.ConstVarToken) {
+			return getNumber(((Const.ConstVarToken) t).constv.getValue(),requireType);
+		}else if (t instanceof Equation && ((Equation) t).isNumber()) {
+			Equation eq = ((Equation) t);
+			
+			Const.ConstExprToken ce=eq.getConstNbt();
+			return getNumber(ce,requireType);
+		}
+		return null;
+	}
 }

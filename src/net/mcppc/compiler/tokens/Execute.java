@@ -80,7 +80,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		//start after the name of this
 		public Subexecute make(Compiler c, Matcher matcher, int line, int col) throws CompileError;
 	}
-	private static final Token.MemberName name=new Token.MemberName(-1, -1, "$execute");
+	private static final MemberName name=new MemberName(-1, -1, "$execute");
 	public static Execute skipMe(Compiler c, Matcher matcher, int line, int col,Keyword w) throws CompileError {
 		//test for else if
 		c.cursor=matcher.end();

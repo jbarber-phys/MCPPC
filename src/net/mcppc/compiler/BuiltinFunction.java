@@ -165,6 +165,9 @@ public abstract class BuiltinFunction {
 		public Args getArgs() {
 			return this.args;
 		}
+		public void withArgs(Args args) {
+			this.args=args;
+		}
 		@Override
 		public void dumpRet(PrintStream p, Compiler c, Scope s, RStack stack) throws CompileError {
 			// do nothing
@@ -260,7 +263,7 @@ public abstract class BuiltinFunction {
 			Token t=look!=null?
 					c.nextNonNullMatch(look)
 					:
-					Equation.toArgue(c.line, c.column(), c, matcher).populate(c, matcher);
+					Equation.toArgue(c.line, c.column(), c, matcher);//.populate(c, matcher);
 			args.add(t);
 			if(t instanceof Equation) {
 				switch (((Equation)t).end) {
@@ -288,6 +291,12 @@ public abstract class BuiltinFunction {
 			
 		}
 		throw new CompileError("too many args in builtin function;");
+	}
+	public static final BasicArgs tokenizeArgsEquations(Compiler c, Matcher matcher, int line, int col,RStack stack)throws CompileError {
+		BasicArgs args = new BasicArgs();
+		args.equations(c, line, col, matcher, stack);
+		return args;
+		
 	}
 	public static final Args tokenizeArgsConsts(Compiler c, Matcher matcher, int line, int col,List<Const.ConstType> types,boolean endEarly)throws CompileError {
 		if(types.size()==0)return BuiltinFunction.tokenizeArgsNone(c, matcher, line, col);

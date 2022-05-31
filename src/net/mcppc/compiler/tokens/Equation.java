@@ -17,6 +17,8 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.struct.*;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
+import net.mcppc.compiler.tokens.Equation.End;
+import net.mcppc.compiler.tokens.UnaryOp.UOType;
 
 /**
  * a numeric equation;
@@ -31,7 +33,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		Equation e=new Equation(line,col,c);
 		e.isTopLevel=true;
 		e.wasOpenedWithParen=false;
-		e.populate(c, m);
+		e=e.populate(c, m);
 		return e;
 	}
 
@@ -49,7 +51,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		e.isTopLevel=false;
 		e.wasOpenedWithParen=false;
 		e.isAnArg=true;
-		e.populate(c, m);
+		e=e.populate(c, m);
 		return e;
 	}
 	public static Equation toArgueHusk(RStack stack,Token... tokens) throws CompileError {
@@ -101,6 +103,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		ARGSEP,
 		CLOSEPAREN,
 		BLOCKBRACE,
+		INDEXBRACE,
 		LATEROP//this one is excluded from token
 	}
 	public End end=null;
@@ -131,7 +134,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			UnaryOp.factory,
 			Token.Bool.factory,
 			Selector.SelectorToken.factory,//new edition; may interfere with indexing
-			Token.MemberName.factory,Num.factory,Statement.CommandToken.factory,
+			MemberName.factory,Num.factory,Statement.CommandToken.factory,
 			Token.Paren.factory,//sub-eq or caste
 			Token.LineEnd.factory, Token.CodeBlockBrace.factory,Token.ArgEnd.factory, //possible terminators; unexpected
 			Token.StringToken.factory//just in case of trivial equations
@@ -140,11 +143,13 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			Factories.newline,Factories.comment,Factories.domment,Factories.space,
 			Token.Member.factory,
 			Token.Paren.factory,//func call
+			Token.IndexBrace.factory, //index of list-struct
 			BiOperator.factory,
 			Token.LineEnd.factory, Token.CodeBlockBrace.factory,Token.ArgEnd.factory //possible terminators
 			
 	};
 	public List<Token> elements=new ArrayList<Token>();
+	private boolean claimedSubEnd = false;
 	
 	private Number getNegativeNumberLiteral() {
 		if(this.elements.size()!=2)return null;
@@ -174,7 +179,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	private Num getNumToken() {
 		Number n1=this.getNumber();
 		Num old = (Num) this.elements.get(this.elements.size()-1);
-		return new Num(this.line,this.col,CMath.uminus(n1),old.type);
+		return new Num(this.line,this.col,n1,old.type);
 	}
 
 	public boolean isNumber() {
@@ -193,8 +198,8 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	public boolean isSelectable() {
 		if(this.elements.size()==1) {
 			if((this.elements.get(0) instanceof Selector.SelectorToken))return true;
-			if(!(this.elements.get(0) instanceof Token.MemberName))return false;
-			VarType type=((Token.MemberName)this.elements.get(0)).var.type;
+			if(!(this.elements.get(0) instanceof MemberName))return false;
+			VarType type=((MemberName)this.elements.get(0)).var.type;
 			if (!type.isStruct() || !(type.struct instanceof Entity))return false;
 			return true;
 		}
@@ -204,10 +209,10 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		if(this.elements.size()==1) {
 			if((this.elements.get(0) instanceof Selector.SelectorToken))
 				return ((Selector.SelectorToken) this.elements.get(0)).selector();
-			if(!(this.elements.get(0) instanceof Token.MemberName))return null;
-			VarType type=((Token.MemberName)this.elements.get(0)).var.type;
+			if(!(this.elements.get(0) instanceof MemberName))return null;
+			VarType type=((MemberName)this.elements.get(0)).var.type;
 			if (!type.isStruct() || !(type.struct instanceof Entity))return null;
-			return ((Entity)type.struct).getSelectorFor(((Token.MemberName)this.elements.get(0)).var);
+			return ((Entity)type.struct).getSelectorFor(((MemberName)this.elements.get(0)).var);
 		}
 		return null;
 	}
@@ -223,7 +228,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	}
 	public boolean isRefable() {
 		if(this.elements.size()!=1)return false;
-		if(!(this.elements.get(0) instanceof Token.MemberName))return false;
+		if(!(this.elements.get(0) instanceof MemberName))return false;
 		return true;
 	}
 	public boolean isConstRefable() {
@@ -234,12 +239,12 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	}
 	public Variable getVarRef(){
 		if(!this.isRefable())return null;
-		Token.MemberName core=(MemberName) this.elements.get(0);
+		MemberName core=(MemberName) this.elements.get(0);
 		return core.var;
 	}
 	private Variable getVarRef(Token t){
 		if(!(t instanceof MemberName))return null;
-		Token.MemberName core=(MemberName) t;
+		MemberName core=(MemberName) t;
 		return core.var;
 	}
 	public Variable getConstVarRef(){
@@ -261,6 +266,12 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	public Equation populate(Compiler c,Matcher m) throws CompileError {
 		return populate(c,m,0);
 	}
+	private Token nextValueNoType(Compiler c,Matcher m) throws CompileError {
+		Token v=c.nextNonNullMatch(lookForValue);
+		//may be wildchar if is indexable invalid selector
+		if(v instanceof Token.WildChar) v = c.nextNonNullMatch(Factories.checkForMembName);
+		return v;
+	}
 	public Equation populate(Compiler c,Matcher m,int recurrs) throws CompileError {
 		if(recurrs==10)Warnings.warning("equation recurred 10 times; warning");
 		if(recurrs==20)throw new CompileError("equation recurred 20 times; overflow for debug purposes;");
@@ -269,7 +280,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			int pc=c.cursor;
 			//Token v=c.nextNonNullMatch(lookForValue);//old
 			Token v=Const.checkForExpressionSafe(c,c.currentScope, m, line, col, ConstType.TYPE); 
-			if(v==null) v=c.nextNonNullMatch(lookForValue);
+			if(v==null) v=this.nextValueNoType(c, m);
 			//boolean willAddV=false;
 
 			//if (v instanceof Token.MemberName &&
@@ -285,14 +296,14 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 					//static methods
 					if(!((Type)v).type.isStruct()) throw new CompileError("cannot construct non-struct type: %s;".formatted(((Type)v).type.asString()));
 					Struct struct=((Type)v).type.struct;
-					Token name=c.nextNonNullMatch(lookForValue);
-					if(name instanceof Token.MemberName &&
-							(((Token.MemberName) name).names.size()==1) )
+					Token name=this.nextValueNoType(c, m);
+					if(name instanceof MemberName &&
+							(((MemberName) name).names.size()==1) )
 						;
 					else throw new CompileError.UnexpectedToken(name, "static function of struct %s".formatted(v.asString()));
-					if(!struct.hasStaticBuiltinMethod((((Token.MemberName) name).names.get(0)))) 
+					if(!struct.hasStaticBuiltinMethod((((MemberName) name).names.get(0)))) 
 						throw new CompileError.UnexpectedToken(name, "static function %s not found in struct %s".formatted(name.asString(),v.asString()));
-					BuiltinFunction bf=struct.getStaticBuiltinMethod((((Token.MemberName) name).names.get(0)), ((Type)v).type);
+					BuiltinFunction bf=struct.getStaticBuiltinMethod((((MemberName) name).names.get(0)), ((Type)v).type);
 					BuiltinFunction.open(c);
 					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col,this.stack, bf);
 					sub.withTemplate(((Type)v).type.getTemplateArgs(c.currentScope));//transfer template from arg to function
@@ -330,7 +341,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 						this.end=End.CLOSEPAREN;
 						this.isCast=true;
 						this.elements.add(v);
-						return this;
+						return this.collapse();
 						
 					}
 				}
@@ -340,7 +351,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 					if(this.elements.size()==0 && this.isAnArg) {
 						//empty eq with close paren, allowed in function args
 						this.end=End.CLOSEPAREN;
-						return this;
+						return this.collapse();
 					}
 					else throw new CompileError.UnexpectedToken(v,"(");
 				}
@@ -348,7 +359,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 				Equation sub=new Equation(v.line,v.col,this.stack);
 				sub.isTopLevel=false;
 				sub.wasOpenedWithParen=true;
-				sub.populate(c, m,recurrs+1);
+				sub=sub.populate(c, m,recurrs+1);
 				if(sub.end!=End.CLOSEPAREN)throw new CompileError("unexpected subeq ending %s, expected a ')'".formatted(sub.end.name()));
 				
 				if(sub.isCast) {
@@ -357,12 +368,13 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 					sub2.wasOpenedWithParen=false;
 					sub2.elements.add(sub);
 					sub2.lastOp=OperationOrder.CAST;
-					sub2.populate(c, m,recurrs+1);
+					sub2=sub2.populate(c, m,recurrs+1);
 					v=sub2;
 					if(sub2.end!=End.LATEROP) {
 						this.elements.add(sub2);
 						this.end=sub2.end;
-						return this;
+						this.claimedSubEnd =true;
+						return this.collapse();
 					}
 				}else {
 					//this.elements.add(sub);//dont add yet
@@ -380,12 +392,13 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 				sub.wasOpenedWithParen=false;
 				sub.elements.add(v);
 				sub.lastOp=((UnaryOp) v).getOpOrder();
-				sub.populate(c, m,recurrs+1);
+				sub=sub.populate(c, m,recurrs+1);
 				v=sub;
 				if(sub.end!=End.LATEROP) {
 					this.elements.add(sub);
 					this.end=sub.end;
-					return this;
+					this.claimedSubEnd =true;
+					return this.collapse();
 				}
 				//create sub equation w forward unary
 			}else if (v instanceof Token.ArgEnd||v instanceof Token.LineEnd||v instanceof Token.CodeBlockBrace) {
@@ -410,13 +423,13 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 				//function call
 				//constructor has its own hook
 				BuiltinFunction bf = null;
-				if(v instanceof Token.MemberName )bf=BuiltinFunction.getBuiltinFunc(((Token.MemberName) v).names, c, c.currentScope);
+				if(v instanceof MemberName )bf=BuiltinFunction.getBuiltinFunc(((MemberName) v).names, c, c.currentScope);
 				if(bf!=null) {
 					//a builtin function
 					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col,this.stack, bf);
 					if(tempargs!=null)sub.withTemplate(tempargs);
 					if(bf.isNonstaticMember()) {
-						List<String> nms=((Token.MemberName) v).names;nms=nms.subList(0, nms.size()-1);
+						List<String> nms=((MemberName) v).names;nms=nms.subList(0, nms.size()-1);
 						Variable self = c.myInterface.identifyVariable(nms, c.currentScope);
 						sub.withThis(self);
 						TemplateArgsToken typetemp = self.type.getTemplateArgs(c.currentScope);
@@ -435,7 +448,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 
 				}
 				else {
-					if(!(v instanceof Token.MemberName)) throw new CompileError.UnexpectedToken(v, "name before '('");
+					if(!(v instanceof MemberName)) throw new CompileError.UnexpectedToken(v, "name before '('");
 					//a normal function
 					Function.FuncCallToken ft=Function.FuncCallToken.make(c, v.line, v.col, m, (MemberName) v, this.stack);
 					ft.identify(c,c.currentScope);
@@ -448,8 +461,9 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 				//willAddV=false;
 				pc=c.cursor;
 				op=c.nextNonNullMatch(lookForOperation);
-			}else {
-				if(v instanceof Token.MemberName) {
+			}
+			else {
+				if(v instanceof MemberName) {
 					//see if it is a const
 					Const cv;
 					try{
@@ -459,13 +473,20 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 					}
 					if(cv==null) {
 						//a var
-						((Token.MemberName) v).identify(c,c.currentScope);
+						((MemberName) v).identify(c,c.currentScope);
 						//do not add here
 					}else {
 						v=cv.getValue();
 					}
 					
 				}
+			}
+			while (op instanceof Token.IndexBrace && ((Token.IndexBrace) op).forward) {
+				//if(!(v instanceof Token.MemberName) )throw new CompileError("%s is not a variable and so cannot be indexed []".formatted(v.asString()));
+				Token vet=VariableElementToken.make(c, m,  v, this.stack, v.line, v.col,false);
+				v=vet;
+				if(v instanceof VariableElementToken) v = ((VariableElementToken) v).convertGet(c, c.currentScope);
+				op=c.nextNonNullMatch(lookForOperation);
 			}
 			oploop: while(op instanceof BiOperator) {
 				//will loop again if an equation statement just ended
@@ -481,14 +502,15 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 					sub.elements.add(v);
 					sub.elements.add(op);
 					sub.lastOp=((BiOperator) op).getOpOrder();
-					sub.populate(c, m,recurrs+1);
+					sub=sub.populate(c, m,recurrs+1);
 					//this.elements.add(sub);
 					v=sub;
 					//CompileJob.compileMcfLog.printf("sub of size %s;\n", sub.elements.size());
 					if(sub.end!=End.LATEROP) {
 						this.elements.add(v);
 						this.end=sub.end;
-						return this;
+						this.claimedSubEnd =true;
+						return this.collapse();
 					}
 					//keep going for another op; will loop; dont worry about the () function finder because it cannot be activated
 					pc=c.cursor;
@@ -499,7 +521,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 					this.elements.add(v);
 					c.cursor=pc;//reset cursor if it is later op
 					this.end=End.LATEROP;
-					return this;
+					return this.collapse();
 				}else {
 					//equal
 					//add op to elements
@@ -514,20 +536,25 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 				//close paren (non-empty)
 				this.elements.add(v);
 				this.end=End.CLOSEPAREN;
-				return this;
+				return this.collapse();
+			}else if (op instanceof Token.IndexBrace && !((Token.IndexBrace) op).forward) {
+				//close paren (non-empty)
+				this.elements.add(v);
+				this.end=End.INDEXBRACE;
+				return this.collapse();
 			}else if(op instanceof Token.ArgEnd) {
 				this.elements.add(v);
 				this.end=End.ARGSEP;
-				return this;
+				return this.collapse();
 			}else if(op instanceof Token.LineEnd) {
 				this.elements.add(v);
 				this.end=End.STMTEND;
-				return this;
+				return this.collapse();
 			}else if(op instanceof Token.CodeBlockBrace) {
-				if(!((CodeBlockBrace)op).forward) throw new CompileError.UnexpectedToken(op, "subequation end: '; , ) {'");
+				if(!((CodeBlockBrace)op).forward) throw new CompileError.UnexpectedToken(op, "subequation end: '; , ) ] {'");
 				this.elements.add(v);
 				this.end=End.BLOCKBRACE;
-				return this;
+				return this.collapse();
 			}
 			else if (!(op instanceof BiOperator)){
 				if(op instanceof Token.Member) {
@@ -542,6 +569,20 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			}
 		}
 		
+		
+	}
+	private Equation collapse() {
+		if (this.elements.size()==2 &&
+				this.elements.get(0) instanceof UnaryOp &&
+				((UnaryOp) this.elements.get(0)).isUminus() &&
+				this.elements.get(1) instanceof Num) {
+			Num n = this.getNumToken();
+			this.elements.clear();this.elements.add(n);
+		}
+		if(this.elements.size()==1 && this.elements.get(0) instanceof Equation && this.claimedSubEnd) {
+			return (Equation) this.elements.get(0);
+		}
+		return this;
 	}
 	public void printTree(PrintStream p) {
 		this.printTree(p, 0);
@@ -567,10 +608,10 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		if (in instanceof Equation) {
 			((Equation) in).compileOps(p, c, s, typeWanted);
 			regnum=((Equation) in).setReg(p, c, s, typeWanted);
-		}else if (in instanceof Token.MemberName) {
-			regnum=stack.setNext(((Token.MemberName) in).var.type);
-			((Token.MemberName) in).var.getMe(p,s, stack,regnum);
-			this.stack.estmiate(regnum, ((Token.MemberName) in).estimate);
+		}else if (in instanceof MemberName) {
+			regnum=stack.setNext(((MemberName) in).var.type);
+			((MemberName) in).var.getMe(p,s, stack,regnum);
+			this.stack.estmiate(regnum, ((MemberName) in).estimate);
 		}else if (in instanceof Num) {
 			regnum=stack.setNext(((Num) in).type);
 			stack.getRegister(regnum).setValue(p,s, ((Num) in).value,((Num) in).type);
@@ -738,10 +779,10 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			if (this.elements.size()==0)return ;//done
 			if(this.elements.size()>1)throw new CompileError("eq mistaken for a does no ops eq.");
 			Token e=this.elements.get(0);
-			if(e instanceof Token.MemberName) {
+			if(e instanceof MemberName) {
 				//do nothing
 
-				this.retype=((Token.MemberName)e).var.type;
+				this.retype=((MemberName)e).var.type;
 			}else if(e instanceof Num) {
 				//do nothing
 				this.retype=((Num)e).type;
@@ -779,8 +820,8 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			if (this.elements.size()==0)return;//done
 			if(this.elements.size()>1)throw new CompileError("eq mistaken for a does no ops eq.");
 			Token e=this.elements.get(0);
-			if(e instanceof Token.MemberName) {
-				Variable from=((Token.MemberName) e).var;
+			if(e instanceof MemberName) {
+				Variable from=((MemberName) e).var;
 				Variable.directSet(p,s, v, from, this.stack);
 			}else if(e instanceof Num) {
 				v.setMeToNumber(p, c, s, stack, ((Num)e).value);
@@ -807,8 +848,8 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			if (this.elements.size()==0)throw new CompileError("unexpected empty equation asked to set to reg");
 			if(this.elements.size()>1)throw new CompileError("eq mistaken for a does no ops eq.");
 			Token e=this.elements.get(0);
-			if(e instanceof Token.MemberName) {
-				Variable from=((Token.MemberName) e).var;
+			if(e instanceof MemberName) {
+				Variable from=((MemberName) e).var;
 				from.getMe(p,s, stack, this.homeReg);
 			}else if(e instanceof Num) {
 				stack.getRegister(this.homeReg).setValue(p,s, ((Num)e).value, ((Num)e).type);
@@ -832,7 +873,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			if (this.elements.size()==0)throw new CompileError("unexpected empty equation asked to set to reg");
 			if(this.elements.size()>1)throw new CompileError("eq mistaken for a does no ops eq.");
 			Token e=this.elements.get(0);
-			if(e instanceof Token.MemberName) {
+			if(e instanceof MemberName) {
 				//Variable from=((Token.MemberName) e).var;
 				//from.getMe(p,s, stack, this.homeReg);
 			}else if(e instanceof Num) {
@@ -897,5 +938,9 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			return this.getConstVarRef().type;
 		}
 		return null;
+	}
+	public void transferRegValue(PrintStream p,int home,Register to) throws CompileError {
+		to.operation(p, "=", this.stack.getRegister(home));
+		this.stack.cap(home-1);
 	}
 }

@@ -7,9 +7,7 @@ import java.util.regex.*;
 import net.mcppc.compiler.CompileJob;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Const;
-import net.mcppc.compiler.Scope;
 import net.mcppc.compiler.VarType;
-import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.INbtValueProvider;
 import net.mcppc.compiler.VarType.Builtin;
@@ -250,6 +248,19 @@ public abstract class Token {
 			return forward?"{":"}";
 		}
 	}
+	public static class IndexBrace extends AbstractBracket{
+		public static final  Factory factory = new Factory(Regexes.INDEXBRACE) {
+			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+				c.cursor=matcher.end();
+				return new IndexBrace(line,col,matcher.group(1)!=null);
+			}};
+		public IndexBrace(int line, int col,boolean forward) {
+			super(line, col,forward);
+		}
+		@Override public String asString() {
+			return forward?"[":"]";
+		}
+	}
 	public static class Assignlike extends Token{
 		Kind k;
 		public Assignlike(int line, int col,Kind k) {
@@ -360,71 +371,6 @@ public abstract class Token {
 		@Override
 		public VarType getType() {
 			return this.type;
-		}
-	}
-	public static class MemberName extends Token implements Identifiable{
-		//for a named thing that hasn't been identified yet
-		public static final Factory factory = new Factory(Regexes.NAME) {
-			//static final Factory[] look= {Factories.newline,Factories.comment,Factories.domment,Factories.space,
-			//		Token.BasicName.factory,Token.Member.factory,Token.WildChar.dontPassFactory};
-			
-			@Override
-			public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
-				final Factory[] lookdot=Factories.genericCheck(Token.Member.factory);
-				final Factory[] lookname=Factories.checkForBasicName;
-				c.cursor=matcher.end();
-				MemberName me= new MemberName(line,col,matcher.group());
-				//int pc=c.cursor;//wildchar will be smart
-				while(true) {
-					Token t=c.nextNonNullMatch(lookdot);
-					if(t instanceof Token.WildChar)break;
-					else if (t instanceof Token.Member) {
-						//move on
-					}else throw new CompileError.UnexpectedToken(t,"'.' or non-name");
-					Token t2=c.nextNonNullMatch(lookname);
-					if (!(t2 instanceof BasicName))throw new CompileError.UnexpectedToken(t,"name");
-					me.names.add(((BasicName)t2).name);
-				}
-				return me;
-			}
-		};
-		public final List<String> names=new ArrayList<String>();
-		public MemberName(int line, int col,String name) {
-			super(line, col);
-			this.names.add(name);
-		}
-		public MemberName(BasicName b) {
-			this(b.line, b.col,b.name);
-		}
-		public MemberName addName(String name) {
-			this.names.add(name);return this;
-		}
-		@Override public String asString() {
-			return String.join(".", names);
-		}
-		Variable var=null;
-		Number estimate=null;
-		@Override
-		public int identify(Compiler c,Scope s) throws CompileError {
-			this.var=c.myInterface.identifyVariable(this,s);
-			if(this.var!=null)this.estimate=s.getEstimate(var);
-			return 0;
-		}
-		public boolean identifySafe(Compiler c,Scope s) {
-			try {
-				this.var=c.myInterface.identifyVariable(this,s);
-				if(this.var!=null)this.estimate=s.getEstimate(var);
-				return true;
-			} catch (CompileError e) {
-				return false;
-			}
-		}
-		public int identifyWith(Variable v) {
-			this.var=v;
-			return 0;
-		}
-		public Variable getVar() {
-			return var;
 		}
 	}
 	public static List<CharSequence> asStrings(List<Token> ts) {

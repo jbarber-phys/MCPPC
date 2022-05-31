@@ -1,6 +1,7 @@
 package net.mcppc.compiler;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -36,12 +37,22 @@ public abstract class CodeGenerator {
 	
 
 	private static final List<CodeGenerator> CODE_GENERATORS = new ArrayList<CodeGenerator>();
-	
+	public static void register(CodeGenerator g) {
+		CODE_GENERATORS.add(g);
+	}
 	public static boolean generateAll(CompileJob job){
 		PrintStreamLineCounting p=null;
 		boolean success=true;
 		for(CodeGenerator gen:CODE_GENERATORS) try {
 			Path f=job.pathForMcf(gen.res);
+			f.toFile().getParentFile().mkdirs();
+			try {
+				f.toFile().createNewFile();
+			} catch (IOException e) {
+				System.err.printf("exception while generating mcf file %s\n",gen.res.toString());
+				e.printStackTrace();
+				continue;
+			}
 			p = new PrintStreamLineCounting(f.toFile());
 			Namespace ns= job.enshureNamespace(gen.res);
 			gen.build(p, job, ns);

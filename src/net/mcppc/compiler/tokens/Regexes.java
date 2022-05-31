@@ -74,6 +74,7 @@ public final class Regexes {
 	public static final Pattern NULL_KEYWORD=Pattern.compile(Strs.NULL);// null(?=[^\w])
 	public static final Pattern CODEBLOCKBRACE=Pattern.compile("(\\{)|(\\})");// (\{)|(\})
 	public static final Pattern CODEBLOCKBRACEDOUBLED=Pattern.compile("(\\{\\{)|(\\}\\})");// (\{\{)|(\}\})
+	public static final Pattern INDEXBRACE=Pattern.compile("(\\[)|(\\])");// (\[)|(\])
 	public static final Pattern COMMENT=Pattern.compile(Strs.COMMENT_LINE);
 	public static final Pattern DOMMENT=Pattern.compile(Strs.DOMMENT_LINE);
 	

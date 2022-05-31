@@ -51,6 +51,7 @@ public class NbtCollection extends Struct {
 				"add",EndPend.prepend,
 				"pop",Pop.pop,
 				size.name,size,
+				Clear.clear.name,Clear.clear,
 				hasNext.name,hasNext
 				);
 		queue.METHODS = Map.of(
@@ -58,6 +59,7 @@ public class NbtCollection extends Struct {
 				"add",EndPend.append,
 				"pop",Pop.pop,
 				size.name,size,
+				Clear.clear.name,Clear.clear,
 				hasNext.name,hasNext
 				);
 		staque.METHODS = Map.of(
@@ -65,18 +67,19 @@ public class NbtCollection extends Struct {
 				"push",EndPend.prepend,
 				"pop",Pop.pop,
 				size.name,size,
+				Clear.clear.name,Clear.clear,
 				hasNext.name,hasNext
 				);
 		Struct.register(stack);
 		Struct.register(queue);
 		Struct.register(staque);
-		//TODO test
+		NbtList.registerAll();
 	}
 	
 	public NbtCollection(String name) {
 		super(name);
 	}
-	private static VarType myMembType(VarType mytype) {
+	protected static VarType myMembType(VarType mytype) {
 		return ((MembType) mytype.structArgs).myType;
 	}
 
@@ -209,7 +212,7 @@ public class NbtCollection extends Struct {
 		return null;
 	}
 
-	private Map<String,BuiltinFunction> METHODS;
+	protected Map<String,BuiltinFunction> METHODS;
 	@Override
 	public boolean hasBuiltinMethod(Variable self, String name) {
 		return super.hasBuiltinMethodBasic(name, METHODS);
@@ -325,6 +328,48 @@ public class NbtCollection extends Struct {
 		public void postcall(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 			Variable start = token.getThisBound().indexMyNBTPath(0);
 			p.printf("data remove %s\n", start.dataPhrase());//remove first index tag
+		}
+		@Override
+		public Number getEstimate(BFCallToken token) {
+			return null;
+		}
+		
+	}
+	public static class Clear extends BuiltinFunction{
+		public static Clear clear = new Clear("clear");
+		public Clear(String name) {
+			super(name);
+		}
+		@Override public boolean isNonstaticMember() {return true;}
+		@Override
+		public VarType getRetType(BFCallToken token) {
+			return VarType.VOID;
+		}
+
+		@Override
+		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+			return BuiltinFunction.tokenizeArgsNone(c, matcher, line, col);
+		}
+
+		@Override
+		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
+			Variable self = token.getThisBound();
+			self.setMeToNbtValueBasic(p, c, s, stack, DEFAULT_LIST);
+		}
+
+		@Override
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+				throws CompileError {
+			
+		}
+
+		@Override
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
+				throws CompileError {
+			
+		}
+		@Override
+		public void dumpRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 		}
 		@Override
 		public Number getEstimate(BFCallToken token) {

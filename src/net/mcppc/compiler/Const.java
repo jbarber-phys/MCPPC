@@ -16,7 +16,6 @@ import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.Token.BasicName;
 import net.mcppc.compiler.tokens.Token.Factory;
-import net.mcppc.compiler.tokens.Token.MemberName;
 import net.mcppc.compiler.tokens.Type;
 
 /**

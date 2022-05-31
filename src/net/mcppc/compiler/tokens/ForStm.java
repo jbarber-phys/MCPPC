@@ -11,7 +11,7 @@ import net.mcppc.compiler.*;
 import net.mcppc.compiler.errors.CompileError;
 
 public class ForStm extends Statement implements Statement.CodeBlockOpener,Statement.Flow{
-	private static final Token.MemberName name=new Token.MemberName(-1, -1, "$for");
+	private static final MemberName name=new MemberName(-1, -1, "$for");
 	public static ForStm skipMe(Compiler c, Matcher matcher, int line, int col,Keyword w) throws CompileError {
 		//test for else if
 		c.cursor=matcher.end();
