@@ -475,17 +475,17 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		String refsrt = this.isReference?"ref ":"";
 		if(this.isParameter || this.isbasic ) {
 			//dont need to print mask if it is basic
-			return "%s%s %s".formatted(refsrt,this.type.asString(),this.name);//mask is inferable
+			return "%s%s %s".formatted(refsrt,this.type.headerString(),this.name);//mask is inferable
 		}
 		else switch(this.pointsTo) {
 		case BLOCK:
-			return "%s%s %s -> %s %s".formatted(refsrt,this.type.asString(),this.name,this.holder,this.address);//here go with the true address
+			return "%s%s %s -> %s %s".formatted(refsrt,this.type.headerString(),this.name,this.holder,this.address);//here go with the true address
 		case ENTITY:
-			return "%s%s %s -> %s.%s".formatted(refsrt,this.type.asString(),this.name,this.holderHeader,this.address);//here go with the true address
+			return "%s%s %s -> %s.%s".formatted(refsrt,this.type.headerString(),this.name,this.holderHeader,this.address);//here go with the true address
 		case SCORE:
-			return "%s%s %s -> %s::%s".formatted(refsrt,this.type.asString(),this.name,this.holderHeader,this.address);//here go with the true address
+			return "%s%s %s -> %s::%s".formatted(refsrt,this.type.headerString(),this.name,this.holderHeader,this.address);//here go with the true address
 		case STORAGE:
-			return "%s%s %s -> %s.%s".formatted(refsrt,this.type.asString(),this.name,this.holder,this.address);//here go with the true address
+			return "%s%s %s -> %s.%s".formatted(refsrt,this.type.headerString(),this.name,this.holder,this.address);//here go with the true address
 		default:
 			throw new CompileError("null mask");
 		

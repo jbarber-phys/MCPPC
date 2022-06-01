@@ -61,7 +61,10 @@ public class Entity extends Struct {
 		super(name);
 		this.many=many;
 	}
-
+	@Override 
+	public boolean canCompareTags(VarType type,VarType otherType) {
+		return false;
+	}
 	@Override
 	public String getNBTTagType(VarType varType) {
 		return null;//this should never be called

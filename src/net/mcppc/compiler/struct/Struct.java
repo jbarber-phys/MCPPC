@@ -72,6 +72,7 @@ public abstract class Struct {
 		Str.registerAll();
 		Entity.registerAll();
 		NbtCollection.registerAll();
+		NbtMap.registerAll();
 	}
 	public static boolean load() {
 		//a dumb method that exists soly to make sure this initializes before something else else
@@ -131,7 +132,7 @@ public abstract class Struct {
 	}
 
 	public String asString(VarType varType){//no throws
-		return this.name;
+		return this.headerTypeString(varType);
 	}
 	public String headerTypeString(VarType varType){//no throws
 		return this.name;
@@ -221,9 +222,27 @@ public abstract class Struct {
 	
 	//the inputs stay off stack but these funcs push a new register (return index) to the stack
 	//example: struct comparisons
-	public boolean canDoBiOpDirect(BiOperator op,VarType mytype,VarType other,boolean isFirst)throws CompileError {return false;};
-	public int doBiOpFirstDirect(BiOperator op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,INbtValueProvider me,INbtValueProvider other)
-			throws CompileError{throw new CompileError.UnsupportedOperation(mytype, op, other.getType());}
+	public boolean canCompareTags(VarType type,VarType otherType) {
+		return this.canCasteFrom(otherType, type);
+	}
+	
+	public boolean canDoBiOpDirect(BiOperator op, VarType mytype, VarType other, boolean isFirst) throws CompileError {
+		if (this.canCompareTags(mytype, other)) ;
+		else return false;
+		switch(op.op) {
+		case EQ:
+		case NEQ: return true;
+		default: return false;
+		}
+		
+	}
+
+	public int doBiOpFirstDirect(BiOperator op, VarType mytype, PrintStream p, Compiler c, Scope s, RStack stack,
+			INbtValueProvider me, INbtValueProvider other) throws CompileError {
+		if(op.op == OpType.EQ || op.op == OpType.NEQ)
+			return Struct.basicDirectEquals(p, c, s, stack, me, other, op.op == OpType.NEQ);
+		else throw new CompileError.UnsupportedOperation(mytype, op, other.getType());
+	}
 	public int doBiOpSecondDirect(BiOperator op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,INbtValueProvider other,INbtValueProvider me)
 			throws CompileError{throw new CompileError.UnsupportedOperation(other.getType(), op, mytype);}
 	protected static int basicDirectEquals(PrintStream p,Compiler c,Scope s, RStack stack,INbtValueProvider first,INbtValueProvider second

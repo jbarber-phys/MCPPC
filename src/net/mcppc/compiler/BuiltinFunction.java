@@ -298,6 +298,12 @@ public abstract class BuiltinFunction {
 		return args;
 		
 	}
+	public static final BasicArgs fromEquations(Equation... eqs) {
+		BasicArgs args = new BasicArgs();
+		for(Equation eq:eqs)args.targs.add(eq);
+		return args;
+		
+	}
 	public static final Args tokenizeArgsConsts(Compiler c, Matcher matcher, int line, int col,List<Const.ConstType> types,boolean endEarly)throws CompileError {
 		if(types.size()==0)return BuiltinFunction.tokenizeArgsNone(c, matcher, line, col);
 		BasicArgs args=new BasicArgs();

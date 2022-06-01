@@ -8,7 +8,9 @@ import java.util.Stack;
 import java.util.regex.Matcher;
 
 import net.mcppc.compiler.BuiltinFunction;
+import net.mcppc.compiler.BuiltinFunction.Args;
 import net.mcppc.compiler.BuiltinFunction.BFCallToken;
+import net.mcppc.compiler.BuiltinFunction.BasicArgs;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Const;
 import net.mcppc.compiler.Function;
@@ -24,6 +26,7 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.FunctionMask;
 import net.mcppc.compiler.functions.Size;
 import net.mcppc.compiler.functions.FunctionMask.MCFArgs;
+import net.mcppc.compiler.struct.Vector.Constructor;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.Type;
@@ -40,7 +43,6 @@ public class NbtCollection extends Struct {
 	public static final NbtCollection stack = new NbtCollection("Stack");
 	public static final NbtCollection queue = new NbtCollection("Queue");
 	public static final NbtCollection staque = new NbtCollection("Staque");//double stack and queue
-	//TODO List
 	
 	public static void registerAll() {
 		final Size size = new Size("size");
@@ -74,6 +76,7 @@ public class NbtCollection extends Struct {
 		Struct.register(queue);
 		Struct.register(staque);
 		NbtList.registerAll();
+		NbtSet.registerAll();
 	}
 	
 	public NbtCollection(String name) {
@@ -231,7 +234,20 @@ public class NbtCollection extends Struct {
 	public BuiltinFunction getStaticBuiltinMethod(String name, VarType type) throws CompileError {
 		return null;//TODO
 	}
+	private final Constructor init = new Constructor(this);
+	@Override
+	public BuiltinConstructor getConstructor(VarType myType) throws CompileError {
+		return this.init;
+	}
 	
+	public static void endpend(PrintStream p, Compiler c, Scope s, RStack stack,
+			Variable self,Equation ell,String pend) throws CompileError {
+		Variable temp = new Variable("\"$temp\"",NbtCollection.myMembType(self.type), null, Mask.STORAGE, "mcpp:nbtcollection", "\"$temp\"");
+		temp.allocateLoad(p, false);
+		ell.compileOps(p, c, s, temp.type);
+		ell.setVar(p, c, s, temp);
+		p.printf("data modify %s %s from %s\n", self.dataPhrase(),pend,temp.dataPhrase());
+	}
 	public static class EndPend extends BuiltinFunction {
 		public static final String APPEND = "append";
 		public static final String PREPEND = "prepend";
@@ -260,11 +276,7 @@ public class NbtCollection extends Struct {
 			// do nothing yet
 			Variable self = token.getThisBound();
 			Equation eq = ((MCFArgs) token.getArgs()).args.get(0);
-			Variable temp = new Variable("\"$temp\"",NbtCollection.myMembType(self.type), null, Mask.STORAGE, "mcpp:nbtcollection", "\"$temp\"");
-			temp.allocateLoad(p, false);
-			eq.compileOps(p, c, s, temp.type);
-			eq.setVar(p, c, s, temp);
-			p.printf("data modify %s %s from %s\n", self.dataPhrase(),this.pend,temp.dataPhrase());
+			NbtCollection.endpend(p, c, s, stack, self, eq, this.pend);
 		}
 		@Override
 		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
@@ -371,6 +383,65 @@ public class NbtCollection extends Struct {
 		@Override
 		public void dumpRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 		}
+		@Override
+		public Number getEstimate(BFCallToken token) {
+			return null;
+		}
+		
+	}
+	public static Variable componentOf(Variable self,int i)throws CompileError {
+		return ((NbtCollection)self.type.struct).getIndexRef(self, i);
+	}
+	public static class Constructor extends BuiltinConstructor{
+		public Constructor(String name) {
+			super(name);
+		}
+		public Constructor(NbtCollection clazz) {
+			this(clazz.name);
+		}
+
+		@Override
+		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col,RStack stack) throws CompileError {
+			BasicArgs a=new BuiltinFunction.BasicArgs().equations(c, line, col, matcher, stack);
+			//any number of args is OK
+			return a;
+		}
+
+		private static final String NEW= "\"$Set\".\"$new\"";
+		private Variable newobj(Compiler c,BFCallToken tk) {
+			Variable v=new Variable(NEW, tk.getStaticType(), null,c.resourcelocation);
+			return v;
+		}
+		@Override
+		public void call(PrintStream p, Compiler c, Scope s,  BFCallToken token, RStack stack) throws CompileError {
+			//default to storage
+			BasicArgs args = (BasicArgs)token.getArgs();
+			Variable obj=this.newobj(c,token);
+			obj.allocateLoad(p, false);//anon must think its loaded
+			int size = args.nargs();
+			for(int i=0;i<size;i++) {
+				//Variable arg=NbtCollection.componentOf(obj, i);
+				Equation eq=(Equation) ((BasicArgs)args).arg(i);
+				NbtCollection.endpend(p, c, s, stack, obj, eq, EndPend.APPEND);
+			}
+			
+		}
+
+		@Override
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+				throws CompileError {
+			//will throw
+			Variable obj=this.newobj(c,token);
+			obj.getMe(p,s, stack, stackstart);
+		}
+
+		@Override
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
+				throws CompileError {
+			Variable obj=this.newobj(c,token);
+			Variable.directSet(p,s, v, obj, stack);
+		}
+
 		@Override
 		public Number getEstimate(BFCallToken token) {
 			return null;

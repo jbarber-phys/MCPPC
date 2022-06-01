@@ -290,7 +290,6 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 				//typecast or constructor
 				//c.cursor=pc;//setback
 				//v=Type.tokenizeNextVarType(c, m,v.line , v.col);
-				this.doesAnyOps=true;
 				Token close=c.nextNonNullMatch(lookForOperation);
 				if(close instanceof Token.Member) {
 					//static methods
@@ -325,6 +324,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 						Struct struct=((Type)v).type.struct;
 						BuiltinConstructor cstr=struct.getConstructor(((Type)v).type);
 						BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col,this.stack, cstr);
+						sub.withStatic(((Type)v).type);
 						if(sub.canConvert()) {
 							v=sub.convert(c, c.currentScope, this.stack);
 							if(v instanceof FuncCallToken)
@@ -336,6 +336,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 						//throw new CompileError.UnexpectedToken(close,")","constructors not supported yet");
 					}else {
 						//typecast
+						this.doesAnyOps=true;
 						if(!this.wasOpenedWithParen)throw new CompileError("typecast must be of form (type(...)) but was missing open paren;");
 						if(this.elements.size()>0)throw new CompileError("typecast must be of form (type(...)) but was missing open paren;");
 						this.end=End.CLOSEPAREN;
@@ -627,6 +628,8 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			((Function.FuncCallToken) in).getRet(p, c, s, this.stack,regnum);
 			this.stack.estmiate(regnum, ((Function.FuncCallToken) in).getEstimate());
 		}else if (in instanceof BuiltinFunction.BFCallToken) {
+			//if(((BuiltinFunction.BFCallToken) in).getBF() instanceof BuiltinConstructor)this.printStatementTree(System.err, 0);
+			
 			regnum=stack.setNext(((BuiltinFunction.BFCallToken) in).getRetType());
 			((BuiltinFunction.BFCallToken) in).call(p, c, s, stack);
 			((BuiltinFunction.BFCallToken) in).getRet(p, c, s, stack,regnum);
@@ -830,9 +833,10 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			}else if(e instanceof Function.FuncCallToken) {
 				((Function.FuncCallToken)e).getRet(p, c, s, v, stack);
 			}else if(e instanceof Const.ConstExprToken) {
+				
 				if(v.canSetToExpr((Const.ConstExprToken)e)) {
 					v.setMeToExpr(p,this.stack,(Const.ConstExprToken)e);
-				}else throw new CompileError.UnsupportedCast((Const.ConstExprToken)e, retype);
+				}else throw new CompileError.UnsupportedCast((Const.ConstExprToken)e, v.type);
 			}
 			else if(e instanceof BuiltinFunction.BFCallToken) {
 				((BuiltinFunction.BFCallToken)e).getRet(p, c, s, v,stack);

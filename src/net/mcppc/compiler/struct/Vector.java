@@ -640,17 +640,16 @@ public class Vector extends Struct {
 		}
 		
 	}
+	private final Constructor init = new Constructor(this);
 	@Override public BuiltinConstructor getConstructor(VarType myType) throws CompileError {
-		return new Constructor(this.name,myType);
+		return this.init;
 	}
 	public static class Constructor extends BuiltinConstructor{
-		public Constructor(String name, VarType mytype) {
-			super(name, mytype);
+		public Constructor(String name) {
+			super(name);
 		}
-
-		@Override
-		public VarType getRetType(BFCallToken token) {
-			return mytype;
+		public Constructor(Vector clazz) {
+			this(clazz.name);
 		}
 
 		@Override
@@ -661,15 +660,15 @@ public class Vector extends Struct {
 		}
 
 		private static final String NEW= "\"$Vector\".\"$new\"";
-		private Variable newobj(Compiler c) {
-			Variable v=new Variable(NEW, mytype, null,c.resourcelocation);
+		private Variable newobj(Compiler c,BFCallToken tk) {
+			Variable v=new Variable(NEW, tk.getStaticType(), null,c.resourcelocation);
 			return v;
 		}
 		@Override
 		public void call(PrintStream p, Compiler c, Scope s,  BFCallToken token, RStack stack) throws CompileError {
 			//default to storage
 			BasicArgs args = (BasicArgs)token.getArgs();
-			Variable obj=this.newobj(c);
+			Variable obj=this.newobj(c,token);
 			obj.allocateLoad(p, false);//anon must think its loaded
 			for(int i=0;i<DIM;i++) {
 				Variable arg=Vector.componentOf(obj, i);
@@ -683,14 +682,14 @@ public class Vector extends Struct {
 		@Override
 		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
 				throws CompileError {
-			Variable obj=this.newobj(c);
+			Variable obj=this.newobj(c,token);
 			obj.getMe(p,s, stack, stackstart);
 		}
 
 		@Override
 		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
 				throws CompileError {
-			Variable obj=this.newobj(c);
+			Variable obj=this.newobj(c,token);
 			Variable.directSet(p,s, v, obj, stack);
 		}
 

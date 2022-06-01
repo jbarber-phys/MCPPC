@@ -31,6 +31,15 @@ public abstract class AbstractCallToken extends Token {
 	public Variable getThisBound() {
 		return thisBound;
 	}
+	VarType staticType=null;
+	public boolean hasStaticType() {return staticType!=null;
+	}
+	public VarType getStaticType() {
+		return staticType;
+	}
+	public void withStatic(VarType of) {
+		this.staticType=of;
+	}
 	public void withThis(Variable self) {
 		thisBound=self;
 	}

@@ -55,8 +55,8 @@ public class CompileJob {
 	public static final String PACK_MCMETA="pack.mcmeta";
 	
 	public static final PrintStream fileLog=OutputDump.out;
-	public static final PrintStream compileHdrLog=System.out;
-	public static final PrintStream compileMcfLog=System.out;
+	public static final PrintStream compileHdrLog=OutputDump.out;
+	public static final PrintStream compileMcfLog=OutputDump.out;
 
 	public static final PrintStream dommentLog=OutputDump.out;
 	

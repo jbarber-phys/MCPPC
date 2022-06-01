@@ -66,6 +66,23 @@ public class Type extends Const.ConstLiteralToken {
 		return new Type(line,col,vt);
 		
 	}
+	/**
+	 * returns true if there is a next arg
+	 * @param c
+	 * @return
+	 * @throws CompileError
+	 */
+	public static boolean findTypeArgsep(Compiler c) throws CompileError {
+		Token sep=c.nextNonNullMatch(Factories.argsepOrTypeBracket);
+		if(sep instanceof Token.TypeArgBracket) {
+			if(((Token.TypeArgBracket)sep).forward)throw new CompileError.UnexpectedToken(sep,"'>', ','");
+			return false;
+		}else if(sep instanceof Token.ArgEnd) {
+			return true;
+		}else {
+			throw new CompileError.UnexpectedToken(sep,"'>' or ','");
+		}
+	}
 	public static void closeTypeArgs(Compiler c, Matcher matcher, int line, int col) throws CompileError{
 		Token close=c.nextNonNullMatch(AbstractBracket.checkForTypeargBracket);
 		if ((!(AbstractBracket.isArgTypeArg(close))) || ((Token.AbstractBracket)close).forward) throw new CompileError.UnexpectedToken(close,"')'");

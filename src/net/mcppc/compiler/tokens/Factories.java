@@ -285,6 +285,7 @@ public final class Factories {
 	//should be complete for now
 	
 	public static final Token.Factory[] argsepOrParen = {newline,comment,domment,space,Token.ArgEnd.factory,Token.Paren.factory};
+	public static final Token.Factory[] argsepOrTypeBracket = {newline,comment,domment,space,Token.ArgEnd.factory,Token.TypeArgBracket.factory};
 
 	public static Token.Factory[] genericLook(Token.Factory f){
 		return new Token.Factory[]{newline,comment,domment,space,f};

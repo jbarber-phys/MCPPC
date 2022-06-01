@@ -245,7 +245,7 @@ public class NbtList extends NbtCollection{
 			VarType memb = NbtList.myMembType(self.type);
 			this.valuebuff = Loop.loop(this.isInsert).getValueBuff(memb);
 			//System.err.printf("index const %s[%s]\n",self.name,index.asString());
-			index.printStatementTree(System.err, 0);
+			//index.printStatementTree(System.err, 0);
 			if(index.isNumber()) {
 				int i = index.getNumber().intValue();
 				//System.err.printf("index const %s[%d]\n",self.name,i);
@@ -377,6 +377,6 @@ public class NbtList extends NbtCollection{
 					CodeGenerator.register(this);this.registered=true;
 				}
 			}
-		};
+		}
 	}
 }

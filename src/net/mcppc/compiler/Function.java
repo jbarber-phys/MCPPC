@@ -390,7 +390,7 @@ public class Function {
 	public String toHeader() throws CompileError {
 		String rcrs = this.canRecurr? Keyword.RECURSIVE.name+" ":"";
 		String tmp = this.hasTemplate()? this.getTemplateInH()+" ":"";
-		String thisdot = this.hasThis()? this.self.type.asString()+".":"";
+		String thisdot = this.hasThis()? this.self.type.headerString()+".":"";
 		boolean isFinal = this.hasThis()? !this.self.isReference() : false;
 		String fnl = isFinal? " %s ".formatted(Keyword.FINAL.name):"";
 		String[] argss=new String[this.args.size()];

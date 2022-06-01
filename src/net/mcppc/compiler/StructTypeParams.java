@@ -79,4 +79,29 @@ public interface StructTypeParams{
 			else return defaulttype.withTemplatePrecision(this.precisionTemplateName);
 		}
 	}
+	public static class MembTypePair implements StructTypeParams{
+		public final VarType first;
+		public final VarType second;
+		public MembTypePair(VarType t1,VarType t2) {
+			this.first=t1;
+			this.second=t2;
+		}
+		@Override public boolean equals(Object other) {
+			return other instanceof MembTypePair && this.first.equals(((MembTypePair)other).first)
+					&& this.second.equals(((MembTypePair)other).second);
+		}
+		
+		public static MembTypePair tokenizeTypeArgs(Compiler c,Scope s, Matcher matcher, int line, int col, List<Const> forbidden) throws CompileError {
+			Type t1=Type.tokenizeNextVarType(c,s, matcher, line, col,forbidden);
+			if(!Type.findTypeArgsep(c)) throw new CompileError("expected a second type argument;");
+			Type t2=Type.tokenizeNextVarType(c,s, matcher, line, col,forbidden);
+			Type.closeTypeArgs(c, matcher, line, col);
+			//System.err.printf("type Map<%s , %s>\n", t1.asString(),t2.asString());
+			return new MembTypePair(t1.type,t2.type);
+		}
+
+		@Override public boolean isReady() {
+			return this.first.isReady() && this.second.isReady();
+		}
+	}
 }
