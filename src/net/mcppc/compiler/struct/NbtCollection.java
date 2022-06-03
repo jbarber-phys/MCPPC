@@ -239,6 +239,9 @@ public class NbtCollection extends Struct {
 	public BuiltinConstructor getConstructor(VarType myType) throws CompileError {
 		return this.init;
 	}
+	public Variable getFirstElement(Variable self) throws CompileError {
+		return this.getIndexRef(self, 0);
+	}
 	
 	public static void endpend(PrintStream p, Compiler c, Scope s, RStack stack,
 			Variable self,Equation ell,String pend) throws CompileError {

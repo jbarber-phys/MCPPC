@@ -164,6 +164,9 @@ public class FileInterface {
 
 	public boolean hasVar(String name,Scope s) {
 		boolean isSelf= this.isSelf(s);
+		if(isSelf) {
+			if(s.hasLoopLocal(name)) return true;
+		}
 		if(isSelf && s!=null && s.isInFunctionDefine()) {
 			//function args
 			Function f=s.function;
@@ -235,6 +238,9 @@ public class FileInterface {
 	}
 	protected Variable getVar(String name,Scope s) {
 		boolean isSelf= this.isSelf(s);
+		if(isSelf) {
+			if(s.hasLoopLocal(name)) return s.getLoopLocal(name);
+		}
 		if(isSelf && s!=null && s.isInFunctionDefine()) {
 			//function args
 			Function f=s.function;

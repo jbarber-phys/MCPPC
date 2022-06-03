@@ -241,6 +241,17 @@ public class NbtMap extends Struct {
 	}
 	public static final String KEY = "key";
 	public static final String VALUE = "value";
+
+	public Variable getFirstKey(Variable self) throws CompileError {
+		return self.indexMyNBTPathBasic( 0,NbtMap.getNbtCompoundType()).fieldMyNBTPath(KEY, NbtMap.myKeyType(self.type));
+	}
+
+	public Variable getFirstValue(Variable self) throws CompileError {
+		return self.indexMyNBTPathBasic( 0,NbtMap.getNbtCompoundType()).fieldMyNBTPath(VALUE, NbtMap.myValueType(self.type));
+	}
+	public Variable getFirstEntry(Variable self) throws CompileError {
+		return self.indexMyNBTPathBasic( 0,NbtMap.getNbtCompoundType());
+	}
 	public static class Edit extends BuiltinFunction {
 		private static enum PutIf{
 			ALWAYS,IFABSENT,IFPRESENT,NEVER

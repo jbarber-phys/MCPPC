@@ -2,6 +2,10 @@ package net.mcppc.compiler.tokens;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+
+import net.mcppc.compiler.Compiler;
+import net.mcppc.compiler.errors.CompileError;
 
 /**
  * Keywords appear usually at the start of a statement and are not function-formatted usually
@@ -51,6 +55,14 @@ public enum Keyword {
     }
 	public static boolean isKeyWord(String text) {
 		return (fromString(text)!=null);
+	}
+	public static boolean checkFor(Compiler c, Matcher matcher,Keyword w) throws CompileError {
+		Token t=c.nextNonNullMatch(Factories.checkForKeyword);
+		if(t instanceof Token.BasicName) {
+			String name = ((Token.BasicName) t).name;
+			Keyword k = fromString(name);
+			return  k==w;
+		} else return false;
 	}
 	
 	

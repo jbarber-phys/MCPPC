@@ -49,6 +49,18 @@ public abstract class Token {
 		@Override public String asString() { return ";";
 		}
 	}
+	public static class ForInSep extends Token{
+		public static final Factory factory=new Factory(Regexes.COLON) {
+			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+				c.cursor=matcher.end();
+				return new ForInSep(line,col);
+			}};
+		public ForInSep(int line, int col) {
+			super(line, col);
+		}
+		@Override public String asString() { return ":";
+		}
+	}
 	//internal use only - marks an optional argument as having no default;
 	public static class NullArgDefault extends Token{
 		public static final NullArgDefault instance = new NullArgDefault(-1,-1);

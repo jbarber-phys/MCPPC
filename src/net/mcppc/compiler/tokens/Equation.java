@@ -104,6 +104,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		CLOSEPAREN,
 		BLOCKBRACE,
 		INDEXBRACE,
+		INOP,//colon
 		LATEROP//this one is excluded from token
 	}
 	public End end=null;
@@ -144,6 +145,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			Token.Member.factory,
 			Token.Paren.factory,//func call
 			Token.IndexBrace.factory, //index of list-struct
+			Token.ForInSep.factory,
 			BiOperator.factory,
 			Token.LineEnd.factory, Token.CodeBlockBrace.factory,Token.ArgEnd.factory //possible terminators
 			
@@ -551,6 +553,10 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 				this.elements.add(v);
 				this.end=End.STMTEND;
 				return this.collapse();
+			}else if(op instanceof Token.ForInSep) {
+				this.elements.add(v);
+				this.end=End.INOP;
+				return this.collapse();
 			}else if(op instanceof Token.CodeBlockBrace) {
 				if(!((CodeBlockBrace)op).forward) throw new CompileError.UnexpectedToken(op, "subequation end: '; , ) ] {'");
 				this.elements.add(v);
@@ -947,4 +953,5 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		to.operation(p, "=", this.stack.getRegister(home));
 		this.stack.cap(home-1);
 	}
+	public boolean isEmpty() {return this.elements.isEmpty();}
 }

@@ -43,6 +43,32 @@ public class Scope {
 	public PrintStream out=null;
 	boolean isOpen=false;
 	private boolean prohibitLongMult = false;
+	
+	private final Map<String,Variable> loopLocals = new HashMap<String,Variable>();
+	public boolean hasLoopLocal(String name) {
+		return loopLocals.containsKey(name);
+	}
+	public Variable getLoopLocal(String name) {
+		return loopLocals.get(name);
+	}
+	public Variable addLoopLocal(String name,VarType type,Compiler c) throws CompileError {
+		boolean add = true;//? do not call this in pass 1
+		Variable var=new Variable(name,type,null,this.getSubResNoTemplate());
+		if(this.isInFunctionDefine() && this.function.canRecurr) {
+			this.function.withLocalFlowVar(this.myBreakVar, c, add);
+		}
+		loopLocals.put(var.name,var);
+		return var;
+	}
+	public Variable addLoopLocalRef(Variable var,Compiler c) throws CompileError {
+		boolean add = true;//? do not call this in pass 1
+		if(this.isInFunctionDefine() && this.function.canRecurr) {
+			//this.function.withLocalFlowVar(this.myBreakVar, c, add);
+			//function doesn't need to know
+		}
+		loopLocals.put(var.name,var);
+		return var;
+	}
 	public boolean isOpen() {
 		
 		return this.out!=null && this.isOpen;
@@ -272,6 +298,7 @@ public class Scope {
 		//collect lo
 		return s;
 	}
+	
 	private Variable flowVarDone = null;
 	public Variable initializeIfelseDoneVarExMe(Compiler c,boolean add) throws CompileError {
 		if(this.flowVarDone==null) {
