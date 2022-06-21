@@ -108,7 +108,18 @@ public class CompileError extends Exception {
 		}
 		
 	}
-	public static class VarNotFound extends CompileError{
+	/**
+	 * errors of this kind are from something not existing (yet); becasue its possible they may not have been reached yet,
+	 * it is sometimes possible to catch and work around this type of error, so we give them this class for instanceof-ing;
+	 * @author jbarb_t8a3esk
+	 *
+	 */
+	public static abstract class AThingNotFoundYet extends CompileError{
+		public AThingNotFoundYet(String string) {
+			super(string);
+		}
+	}
+	public static class VarNotFound extends AThingNotFoundYet{
 		public VarNotFound(String var) {
 			super("Could not find Variable %s;".formatted(var));
 		}

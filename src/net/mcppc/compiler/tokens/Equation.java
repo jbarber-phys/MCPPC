@@ -36,6 +36,20 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		e=e.populate(c, m);
 		return e;
 	}
+	public static Equation toAssignGoto(int line,int col,Compiler c,Matcher m) throws CompileError {
+		Equation e=new Equation(line,col,c);
+		e.isTopLevel=true;
+		e.wasOpenedWithParen=false;
+		McThread thread = c.currentScope.getThread();
+		if(thread ==null)throw new CompileError("goto cannot be assigned outside a thread");
+		Integer i = thread.checkForBlockNumberName(c, c.currentScope, m);
+		if(i==null) throw new CompileError("invalid block name");
+		Num num = new Num(line,col,i,VarType.INT);
+		e.elements.add(num);
+		Statement.nextIsLineEnder(c, m, false);
+		e.end=End.STMTEND;
+		return e;
+	}
 
 	public static Equation toAssignHusk(RStack stack,Token... tokens) throws CompileError {
 		Equation e=new Equation(-1,-1,stack);
@@ -954,4 +968,6 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		this.stack.cap(home-1);
 	}
 	public boolean isEmpty() {return this.elements.isEmpty();}
+
+	
 }

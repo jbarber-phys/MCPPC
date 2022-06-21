@@ -40,7 +40,7 @@ public abstract class Statement extends Token implements TreePrintable{
 	public static interface MultiFlow extends Flow{
 		//implement this if its a flow statement that affects later flow statements: like if -> elif -> else
 		public boolean sendForward();//true for if,  elif
-		public boolean setPredicessor(MultiFlow pred) ;//tells this what the previous flow statement was; return success flag
+		public boolean setPredicessor(MultiFlow pred) throws CompileError ;//tells this what the previous flow statement was; return success flag
 		public boolean claim();//false; make true if this block becomes the new previous flow
 		public boolean recive();//true for elif, else
 		
@@ -53,6 +53,10 @@ public abstract class Statement extends Token implements TreePrintable{
 		public Scope getNewScope();
 		public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s)throws CompileError;
 		public void addToStartOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError;
+	}
+	public static interface IFunctionMaker{
+		public boolean willMakeBlocks() throws CompileError;
+		public void compileMyBlocks(Compiler c) throws CompileError;
 	}
 	public static abstract class Factory extends Token.Factory {
 		public abstract Statement createStatement(Compiler c, Matcher matcher, int line, int col) throws CompileError;
@@ -76,6 +80,30 @@ public abstract class Statement extends Token implements TreePrintable{
 		p.printf("%s<%s>;\n", s.toString(),this.getClass().getSimpleName());
 	}
 	public abstract void compileMe(PrintStream f,Compiler c,Scope s) throws CompileError ;
+	
+	
+	public static boolean nextIsLineEnder(Compiler c,Matcher m) throws CompileError {
+		Token term=c.nextNonNullMatch(Factories.nextIsLineEnd);
+		if(term instanceof Token.CodeBlockBrace) {
+			if((!((Token.CodeBlockBrace)term).forward)) throw new CompileError.UnexpectedToken(term,"{");
+			return true;
+		}else {
+			return false;
+		}
+
+	}
+	public static boolean nextIsLineEnder(Compiler c,Matcher m,boolean openBlock) throws CompileError {
+		Token term=c.nextNonNullMatch(Factories.nextIsLineEnd);
+		if(term instanceof Token.CodeBlockBrace) {
+			if(!openBlock)throw new CompileError.UnexpectedToken(term,";");
+			if((!((Token.CodeBlockBrace)term).forward)) throw new CompileError.UnexpectedToken(term,"{");
+			return true;
+		}else {
+			if(openBlock)throw new CompileError.UnexpectedToken(term,"{");
+			return false;
+		}
+
+	}
 	/**
 	 * comment that will show in both headers and mcfunctions
 	 * @author jbarb_t8a3esk

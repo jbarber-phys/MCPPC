@@ -217,6 +217,19 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		this.pointsTo=Mask.SCORE;
 		return this;
 	}
+	public Variable maskEntityScore(Selector s,String score)  throws CompileError {
+		if(this.type.isStruct()) {
+			if(!this.type.struct.canMask(this.type, Mask.SCORE))
+				throw new CompileError("cannot mask type %s to a %s;".formatted(this.type.asString(),Mask.SCORE));
+			//else good
+		}
+		this.isbasic=false;
+		this.holder=s.toCMD();
+		this.holderHeader=s.toHDR();
+		this.address=score;
+		this.pointsTo=Mask.SCORE;
+		return this;
+	}
 	public Variable maskStorage(ResourceLocation res,NbtPath path) throws CompileError  {
 		if(this.type.isStruct()) {
 			if(!this.type.struct.canMask(this.type, Mask.STORAGE))
@@ -417,15 +430,20 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	public String matchesPhrase(String matchtag) {
 		//TODO bug {"$printf"."$1": 0} -> {"$printf": {"$1": 0}}
 		//also TODO {array[1]: 123} ->? (not array[2]: val)
+		String[] names = this.getAddressToGetset().split(".");//TODO stop quote-dots from being problematic
+		String tag = matchtag;
+		for(int i=names.length-1;i>=0;i--) {
+			tag = "{%s: %s}".formatted(names[i],tag);
+		}
 		switch (this.pointsTo) {
 		case STORAGE:{
-			return "data storage %s {%s: %s}".formatted(this.holder,this.getAddressToGetset(),matchtag);
+			return "data storage %s %s".formatted(this.holder,tag);
 		}
 		case BLOCK:{
-			return "data block %s {%s: %s}".formatted(this.holder,this.getAddressToGetset(),matchtag);
+			return "data block %s %s".formatted(this.holder,tag);
 		}
 		case ENTITY:{
-			return "data entity %s {%s: %s}".formatted(this.holder,this.getAddressToGetset(),matchtag);
+			return "data entity %s %s".formatted(this.holder,tag);
 		}
 		case SCORE:{
 			return null;
@@ -498,7 +516,14 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 			this.type.struct.setVarToNumber(p, c, s, stack, value,this);
 		} else {
 			//enforce type
-			p.printf("data modify %s set value %s\n", this.dataPhrase(),this.type.numToString(value));
+			if(this.pointsTo == Mask.SCORE) {
+				int pcs = this.type.getPrecision(s);
+				int scoreValue = pcs!=0 ? (int) Math.round(value.doubleValue() * Math.pow(10, pcs))
+						: value.intValue();
+				p.printf("scoreboard players set %s %d\n", this.scorePhrase(),scoreValue);
+			}else {
+				p.printf("data modify %s set value %s\n", this.dataPhrase(),this.type.numToString(value));
+			}
 		}
 	}
 	public void setMeToBoolean(PrintStream p,Compiler c,Scope s, RStack stack,boolean value) throws CompileError {
@@ -507,7 +532,13 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		if(this.type.isStruct()) {
 			this.type.struct.setVarToBool(p, c, s, stack, value,this);
 		}else {
-			p.printf("data modify %s set value %s\n", this.dataPhrase(),this.type.boolToStringNumber(value));
+			if(this.pointsTo == Mask.SCORE) {
+				int pcs = this.type.getPrecision(s);
+				int scoreValue = value? 1 : 0;
+				p.printf("scoreboard players set %s %d\n", this.scorePhrase(),scoreValue);
+			}else {
+				p.printf("data modify %s set value %s\n", this.dataPhrase(),this.type.boolToStringNumber(value));
+			}
 		}
 	}
 	public void setMeToNbtValueBasic(PrintStream p,Compiler c,Scope s, RStack stack,String value) throws CompileError {

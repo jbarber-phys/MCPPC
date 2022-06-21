@@ -1,5 +1,9 @@
 package net.mcppc.compiler;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +20,10 @@ import net.mcppc.compiler.tokens.Token;
  *
  */
 public class ResourceLocation {
+	@FunctionalInterface
+	public static interface IPathGetter{
+		public Path get(ResourceLocation res);
+	}
 	public static class ResourceToken extends Token {
 		public static final Factory factory = new Factory(Regexes.RESOURCELOCATION) {
 			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
@@ -87,6 +95,12 @@ public class ResourceLocation {
 			out.add(r.stringLiteral());
 		}return out;
 	}
+	public static List<String> strings(List<ResourceLocation> in){
+		List<String>  out=new ArrayList<String>();
+		for(ResourceLocation r:in) {
+			out.add(r.toString());
+		}return out;
+	}
 	@Override public boolean equals(Object other) {
 		if (other instanceof ResourceLocation)return this.namespace.equals(((ResourceLocation) other).namespace)
 				&& this.path.equals(((ResourceLocation) other).path);
@@ -95,6 +109,10 @@ public class ResourceLocation {
 	@Override public int hashCode() {
 		//this is needed to be a key in a hashmap
 		return this.toString().hashCode();
+	}
+	
+	public void run(PrintStream p) {
+		p.printf("function %s\n",this.toString());
 	}
 	
 }

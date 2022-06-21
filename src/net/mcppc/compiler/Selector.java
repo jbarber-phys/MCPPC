@@ -151,11 +151,21 @@ public class Selector {
 		return Objects.hash(this.player,this.argsCMD);
 	}
 	public Selector playerify() {
-		if(this.player=="@e") return new Selector("@a",this.argsHDR);
+		if(this.player.equals("@e")) return new Selector("@a",this.argsHDR);
+		return this;
+	}
+	public Selector selfify() {
+		if(!this.player.equals("@e")) return new Selector("@s",this.argsHDR);
 		return this;
 	}
 	public void kill(PrintStream p) {
 		p.printf("kill %s\n", this.toCMD());
+	}
+	public void addTag(PrintStream p, String tag) {
+		p.printf("tag %s add %s\n", this.toCMD(),tag);
+	}
+	public void removeTag(PrintStream p, String tag) {
+		p.printf("tag %s remove %s\n", this.toCMD(),tag);
 	}
 	
 }

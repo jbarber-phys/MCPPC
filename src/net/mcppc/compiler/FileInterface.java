@@ -10,6 +10,7 @@ import java.util.Map.Entry;
 
 import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.struct.Struct;
 import net.mcppc.compiler.tokens.Declaration;
 import net.mcppc.compiler.tokens.Import;
@@ -56,6 +57,10 @@ public class FileInterface {
 	final Map<String,Const> constsPublic=new HashMap<String, Const>();
 	final Map<String,Const> constsPrivate=new HashMap<String, Const>();
 	
+	//threads
+
+		final Map<String,McThread> threadsPublic=new HashMap<String, McThread>();
+		final Map<String,McThread> threadsPrivate=new HashMap<String, McThread>();
 	//template: const value is their default
 	@Deprecated
 	private final List<Const> template=new ArrayList<Const>();//warning: unused, template is at function level
@@ -116,6 +121,18 @@ public class FileInterface {
 		if(imp.willRun())this.runs.putIfAbsent(imp.getAlias(), imp.getLib());
 		this.importsStrict.putIfAbsent(imp.getAlias(), imp.isStrict);
 		return this.imports.putIfAbsent(imp.getAlias(), imp.getLib())==null;
+	}
+	public boolean add(McThread th){
+		switch(th.access) {
+		case PUBLIC:
+			return this.threadsPublic.putIfAbsent(th.name, th)==null;
+		case PRIVATE:
+			return this.threadsPrivate.putIfAbsent(th.name, th)==null;
+		default:
+			Warnings.warningf("Warning: attempted to define thread %s with invalid access %s", th.name,th.access.name);
+			return false;
+		
+		}
 	}
 	public boolean attemptLoadLibs(CompileJob job) {
 		boolean success=true;
@@ -228,6 +245,13 @@ public class FileInterface {
 		//no extern constants
 		return ret;
 	}
+	public boolean hasThread(String name,Scope s) {
+		boolean isSelf= this.isSelf(s);
+		boolean ret=this.threadsPublic.containsKey(name);
+		if(isSelf)ret=ret || this.threadsPrivate.containsKey(name);
+		//no extern threads
+		return ret;
+	}
 	public boolean hasLib(String name,Scope s) {
 		if(this.isSelf(s))return this.libs.containsKey(name);
 		else return false;
@@ -282,6 +306,13 @@ public class FileInterface {
 		if(isSelf)for(Const cv:this.template)if(cv.name.equals(name))return cv;
 		if(this.constsPublic.containsKey(name)) return this.constsPublic.get(name);
 		if(isSelf && this.constsPrivate.containsKey(name)) return this.constsPrivate.get(name);
+		return null;
+	}
+	public McThread getThread(String name,Scope s) {
+		boolean isSelf= this.isSelf(s);
+		if(this.threadsPublic.containsKey(name)) return this.threadsPublic.get(name);
+		if(isSelf && this.threadsPrivate.containsKey(name)) return this.threadsPrivate.get(name);
+		//no extern threads
 		return null;
 	}
 	protected Variable identifyVariable(List<String> names,Scope s,int start) throws CompileError {
@@ -421,6 +452,40 @@ public class FileInterface {
 			}
 		}
 	}
+	public  McThread identifyThread(MemberName t,Scope s) throws CompileError {
+		return this.identifyThread(t.names,s);
+	}
+	public  McThread identifyThread(String name,Scope s) throws CompileError {
+		List<String> array=new ArrayList<String>();array.add(name);
+		return this.identifyThread(array,s);
+	}
+
+	public McThread identifyThread(List<String> names,Scope s) throws CompileError {
+		return this.identifyThread(names, s, 0);
+	}
+	public  McThread identifyThread(List<String> names,Scope s,int start) throws CompileError {
+		if(!this.hasReadLibs)new CompileError("must load libs before identifying threads");
+			
+		if(names.size()>2) {
+			//may be struct member
+			throw new CompileError("var had member of member; not yet supported");
+		}
+		String name=names.get(0+start);
+		boolean isLib=this.libs.containsKey(name);
+		boolean isThread=this.hasThread(name, s);
+		//boolean isVar=this.hasVar(name, s);
+		if(names.size()>=2+start && isLib) {
+			return this.libs.get(name).identifyThread(names, s, start+1);
+		}else if (isThread){
+			McThread th=this.getThread(name, s);
+			return th;
+		}else {
+			if (!isThread && names.size()>=2+start)throw new CompileError("library %s not found loaded in scope %s.".formatted(name,s.resBase));
+			else {
+				throw new CompileError("thread '%s' not found in scope %s".formatted(String.join(".", names),s.resBase));
+			}
+		}
+	}
 	@Deprecated
 	public String getNameOfConstIn(Const cv,Scope s) throws CompileError {
 		if( this.isSelf(s))
@@ -443,18 +508,20 @@ public class FileInterface {
 		StringBuffer s=new StringBuffer();while(s.length()<tabs)s.append('\t');
 		p.printf("%sinterface %s\n",s.toString(), this.path);
 		//p.printf("%s\t template: %s;\n",s.toString(), this.template.stream().map(f->f.name));
-		p.printf("%s\t public consts: %s;\n",s.toString(), this.constsPublic.keySet());
-		p.printf("%s\t private consts: %s\n",s.toString(), this.constsPrivate.keySet());
+		if(!this.constsPublic.isEmpty())p.printf("%s\t public consts: %s;\n",s.toString(), this.constsPublic.keySet());
+		if(!this.constsPrivate.isEmpty())p.printf("%s\t private consts: %s\n",s.toString(), this.constsPrivate.keySet());
 		
-		p.printf("%s\t public funcs: %s;\n",s.toString(), this.funcsPublic.entrySet().stream().map(f -> f.getKey()+(f.getValue().template==null?"":"<...>")).toList());
+		if(!this.funcsPublic.isEmpty())p.printf("%s\t public funcs: %s;\n",s.toString(), this.funcsPublic.entrySet().stream().map(f -> f.getKey()+(f.getValue().template==null?"":"<...>")).toList());
 		//p.printf("%s\t public funcs: %s;\n",s.toString(), this.funcsPublic.keySet());
-		p.printf("%s\t private funcs: %s;\n",s.toString(), this.funcsPrivate.entrySet().stream().map(f -> f.getKey()+(f.getValue().template==null?"":"<...>")).toList());
-		p.printf("%s\t extern funcs: %s;\n",s.toString(), this.funcsExtern.entrySet().stream().map(f -> f.getKey()+(f.getValue().template==null?"":"<...>")).toList());
+		if(!this.funcsPrivate.isEmpty())p.printf("%s\t private funcs: %s;\n",s.toString(), this.funcsPrivate.entrySet().stream().map(f -> f.getKey()+(f.getValue().template==null?"":"<...>")).toList());
+		if(!this.funcsExtern.isEmpty())p.printf("%s\t extern funcs: %s;\n",s.toString(), this.funcsExtern.entrySet().stream().map(f -> f.getKey()+(f.getValue().template==null?"":"<...>")).toList());
 
-		p.printf("%s\t public vars: %s;\n",s.toString(), this.varsPublic.keySet());
-		p.printf("%s\t private vars: %s\n",s.toString(), this.varsPrivate.keySet());
-		p.printf("%s\t extern vars: %s;\n",s.toString(), this.varsExtern.keySet());
+		if(!this.varsPublic.isEmpty())p.printf("%s\t public vars: %s;\n",s.toString(), this.varsPublic.keySet());
+		if(!this.varsPrivate.isEmpty())p.printf("%s\t private vars: %s\n",s.toString(), this.varsPrivate.keySet());
+		if(!this.varsExtern.isEmpty())p.printf("%s\t extern vars: %s;\n",s.toString(), this.varsExtern.keySet());
 
+		if(!this.threadsPublic.isEmpty())p.printf("%s\t public threads: %s;\n",s.toString(), this.threadsPublic.keySet());
+		if(!this.threadsPrivate.isEmpty())p.printf("%s\t private threads: %s\n",s.toString(), this.threadsPrivate.keySet());
 		if(depth<=0) {
 			p.printf("%s\t libs %s;\n", s.toString(),this.libs.keySet());
 			

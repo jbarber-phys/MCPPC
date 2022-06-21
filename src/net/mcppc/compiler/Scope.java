@@ -26,6 +26,8 @@ import net.mcppc.compiler.tokens.TemplateDefToken;
 public class Scope {
 	final ResourceLocation resBase;
 	Function function=null;
+	McThread thread = null;
+	String threadsuffix = null;
 	Scope parent=null;
 	final Map<Variable,Number> varEstimates=new HashMap<Variable,Number>();
 	
@@ -36,7 +38,7 @@ public class Scope {
 	//count flows for sub-blocks to use
 	private int flowCounter;
 	
-	private final boolean isBreakable;
+	private boolean isBreakable; public void setBreakable(boolean b) {this.isBreakable=b;}
 	private final boolean isDoneable;
 	//file IO for compiling mcfs only
 	final List<Scope> children = new ArrayList<Scope>();
@@ -46,10 +48,14 @@ public class Scope {
 	
 	private final Map<String,Variable> loopLocals = new HashMap<String,Variable>();
 	public boolean hasLoopLocal(String name) {
+		if(this.parent !=null && this.parent.hasLoopLocal(name)) return true;
 		return loopLocals.containsKey(name);
 	}
 	public Variable getLoopLocal(String name) {
-		return loopLocals.get(name);
+		Variable v= loopLocals.get(name);
+		if(v!=null) return v;
+		if(this.parent !=null && this.parent.hasLoopLocal(name)) return this.parent.getLoopLocal(name);
+		return v;
 	}
 	public Variable addLoopLocal(String name,VarType type,Compiler c) throws CompileError {
 		boolean add = true;//? do not call this in pass 1
@@ -60,7 +66,7 @@ public class Scope {
 		loopLocals.put(var.name,var);
 		return var;
 	}
-	public Variable addLoopLocalRef(Variable var,Compiler c) throws CompileError {
+	public Variable addLoopLocalRef(Variable var) throws CompileError {
 		boolean add = true;//? do not call this in pass 1
 		if(this.isInFunctionDefine() && this.function.canRecurr) {
 			//this.function.withLocalFlowVar(this.myBreakVar, c, add);
@@ -179,6 +185,9 @@ public class Scope {
 			
 			
 		}
+		if(thread!=null) {
+			this.thread.addToPath(path, this.threadsuffix);//TODO test this
+		}
 		int index=path.length();
 		boolean f=this.appendExSuff(path);
 		if(f && function!=null)path.insert(index, "___");
@@ -271,6 +280,8 @@ public class Scope {
 	private Scope(Scope s,Statement.Flow flow) {
 		this.parent=s;
 		this.function=s.function;
+		this.thread = s.thread;
+		this.threadsuffix = s.threadsuffix;
 		this.myFlowNumber=s.makeNextFlowNumber();
 		this.resBase=s.resBase;
 		this.flowType=flow.getFlowType();
@@ -281,6 +292,27 @@ public class Scope {
 			this.isDoneable = true;
 		}else this.isDoneable = false;
 		s.children.add(this);
+	}
+	public Scope(Scope s,McThread thread, int block,boolean canBreak) throws CompileError {
+		this(s,thread,McThread.BLOCKF.formatted(block),canBreak);
+		
+	}
+	public Scope(Scope s,McThread thread, String suffix,boolean canBreak) throws CompileError {
+		this.parent=s;
+		this.function=null;
+		this.template=null;
+		this.thread = thread;
+		this.threadsuffix = suffix;
+		this.resBase=s.resBase;
+		s.children.add(this);
+		this.isBreakable=canBreak;
+		this.myFlowNumber = 0;
+		this.isDoneable = false;
+		this.isFuncBase=false;
+		this.addLoopLocalRef(thread.myGoto());
+		this.addLoopLocalRef(thread.waitIn());
+		this.addLoopLocalRef(thread.exit());
+		
 	}
 	public Scope subscope(Function f) throws CompileError{
 		if(this.parent!=null) throw new CompileError("functions inside flow / functions not (yet) supproted");
@@ -416,4 +448,8 @@ public class Scope {
 	public void setDebugMode(boolean b) {
 		this.debugMode = b;
 	} public boolean isDebugMode() {return this.debugMode;}
+	public McThread getThread() {
+		return this.thread;
+		
+	}
 }

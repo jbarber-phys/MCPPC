@@ -73,7 +73,8 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		public abstract void finish(PrintStream p, Compiler c, Scope s, int index) throws CompileError;
 		public Anchor getNewAnchor(Compiler c, Scope s,Anchor previous, int index) throws CompileError {return previous;}
 		
-		
+		public abstract boolean isCompilated();
+		public Selector executeAs() {return null;}
 	}
 	@FunctionalInterface
 	public static interface Subgetter {
@@ -262,7 +263,10 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		@Override public String getPrefix(Compiler c, Scope s,Anchor previous, int index) throws CompileError {
 			return "align %s".formatted(this.axes);
 		}
-		
+		@Override
+		public boolean isCompilated() {
+			return false;
+		}
 	}
 	public static class Anchored extends Subexecute {
 		public static final String NAME = "anchored";
@@ -291,7 +295,11 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		public Anchor getNewAnchor(Compiler c, Scope s, Anchor previous, int index) throws CompileError {
 			return this.anchor;
 		}
-		
+
+		@Override
+		public boolean isCompilated() {
+			return false;
+		}
 	}
 	public static class In extends Subexecute {
 		public static final String NAME = "in";
@@ -321,7 +329,11 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		@Override public String getPrefix(Compiler c, Scope s,Anchor previous, int index) throws CompileError {
 			return "in %s".formatted(this.dim);
 		}
-		
+
+		@Override
+		public boolean isCompilated() {
+			return false;
+		}
 	}
 	public static class As extends Subexecute {
 		public static final String NAME = "as";
@@ -346,7 +358,15 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		@Override public String getPrefix(Compiler c, Scope s,Anchor previous, int index) throws CompileError {
 			return "as %s".formatted(this.entity.toCMD());
 		}
-		
+
+		@Override
+		public boolean isCompilated() {
+			return false;
+		}
+		@Override
+		public Selector executeAs() {
+			return this.entity;
+		}
 	}
 	public static class At extends Subexecute {
 		public static final String NAME = "at";
@@ -371,7 +391,11 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		@Override public String getPrefix(Compiler c, Scope s,Anchor previous, int index) throws CompileError {
 			return "at %s".formatted(this.entity.toCMD());
 		}
-		
+
+		@Override
+		public boolean isCompilated() {
+			return false;
+		}
 	}
 	public static class Asat extends Subexecute {
 		public static final String NAME = "asat";
@@ -396,7 +420,15 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		@Override public String getPrefix(Compiler c, Scope s,Anchor previous, int index) throws CompileError {
 			return "as %s at %s".formatted(this.entity.toCMD(),this.entity.toCMD());
 		}
-		
+
+		@Override
+		public boolean isCompilated() {
+			return false;
+		}
+		@Override
+		public Selector executeAs() {
+			return this.entity;
+		}
 	}
 	private static void positionEntity(PrintStream p, Compiler c, Scope s, int index, Selector e,Equation veq,boolean isRelative) throws CompileError {
 		//int prec=this.vec.type.getPrecision(s);
@@ -522,7 +554,11 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 				this.entity.kill(p);
 			}
 		}
-		
+
+		@Override
+		public boolean isCompilated() {
+			return this.veceq!=null;
+		}
 	}
 	public static class Facing extends Subexecute {
 		public static final String NAME = "facing";
@@ -618,7 +654,10 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 				this.entity.kill(p);
 			}
 		}
-		
+		@Override
+		public boolean isCompilated() {
+			return this.veceq!=null;
+		}
 	}
 	public static class Rotated extends Subexecute {
 		public static final String NAME = "rotated";
@@ -709,6 +748,9 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 				this.entity.kill(p);
 			}
 		}
-		
+		@Override
+		public boolean isCompilated() {
+			return this.eqa1!=null;
+		}
 	}
 }

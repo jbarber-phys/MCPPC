@@ -344,6 +344,15 @@ public abstract class BuiltinFunction {
 			throw new CompileError.UnexpectedToken(sep,"')' or ','");
 		}
 	}
+	public static boolean openIf(Compiler c) throws CompileError {
+		Token sep=c.nextNonNullMatch(Factories.checkForParen);
+		if(sep instanceof Token.Paren) {
+			if(!((Token.Paren)sep).forward)return false;
+			return true;
+		}else {
+			return false;
+		}
+	}
 	/**
 	 * passes over next closeparen or comma; return
 	 * @param c

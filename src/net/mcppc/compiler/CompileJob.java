@@ -24,6 +24,7 @@ import java.util.Stack;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import net.mcpp.vscode.JsonMaker;
 import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
@@ -93,8 +94,10 @@ public class CompileJob {
 		public final boolean isExternal;
 		//File dataDir;//depricated; is asociated with multiple locations; CompileJob has methods for this instead;
 		int maxNumRegisters;
-		ArrayList<Path> srcFilesRel=new ArrayList<Path>();
+		List<Path> srcFilesRel=new ArrayList<Path>();
 		final Map<String, Variable> objectives = new HashMap<String,Variable>();
+
+		final List<McThread> threads = new ArrayList<McThread>();
 		public Namespace(File data) {
 			this(data.getName(),false);
 			//this.dataDir=data;
@@ -107,6 +110,13 @@ public class CompileJob {
 		public ResourceLocation getLoadFunction() {
 			return new ResourceLocation(this,"mcpp__load");
 		}
+		public ResourceLocation getTickFunction() {
+			return new ResourceLocation(this,"mcpp__tick");
+		}
+
+		public ResourceLocation getEntityTickFunction() {
+			return new ResourceLocation(this,"mcpp__tick_entities");
+		}
 		public void fillMaxRegisters(int i) {
 			this.maxNumRegisters=Math.max(this.maxNumRegisters, i);
 		}
@@ -115,6 +125,14 @@ public class CompileJob {
 		}
 		public void addObjective(Variable v) {
 			if(v.pointsTo==Mask.SCORE && !v.isStruct()) this.objectives.putIfAbsent(v.getAddress(), v);
+		}
+		private boolean hasEntityTick = false;
+		public boolean hasTick = false;
+		public boolean isHasEntityTick() {
+			return hasEntityTick;
+		}
+		public void addEntityTick() {
+			this.hasEntityTick = true;
 		}
 	}
 	
@@ -266,6 +284,10 @@ public class CompileJob {
 	}
 	public Path pathForTagLoad() {
 		Path p=this.rootDatapack.resolve(CompileJob.DATA).resolve("minecraft/tags/functions").resolve("load"+"."+CompileJob.EXT_JSON);
+		return p;
+	}
+	public Path pathForTagTick() {
+		Path p=this.rootDatapack.resolve(CompileJob.DATA).resolve("minecraft/tags/functions").resolve("tick"+"."+CompileJob.EXT_JSON);
 		return p;
 	}
 	public Path pathForPackMcmeta() {
@@ -526,6 +548,7 @@ public class CompileJob {
 	}
 	private void genNamespaceLoadFunction(PrintStream p,Namespace ns) throws CompileError {
 		Register.createAll(p, ns.maxNumRegisters);
+		McThread.onLoad(p, this, ns);
 		for(Compiler c:this.compilers.values()) {
 			if (c.namespace==ns) {//do not include header only compilers
 				c.myInterface.allocateAll(p, ns);
@@ -536,7 +559,29 @@ public class CompileJob {
 		}
 		
 	}
+	private boolean willTick(Namespace ns) {
+		if(ns.isExternal)return true;
+		boolean hasThreads =! ns.threads.isEmpty();
+		return hasThreads;
+		
+	}
+	private boolean genNamespaceTickFunction(PrintStream p,Namespace ns) throws CompileError {
+		boolean hasThreads = McThread.onTick(p, this, ns);
+		return hasThreads;
+		
+	}
+	private void genNamespaceEntityTickFunction(PrintStream p,Namespace ns) throws CompileError {
+		McThread.onEntityTick(p, this, ns);
+	}
 	public void genNamespaceFunctionsAndTags() {
+		//TODO respond to TAG statements
+		
+		//load tag
+		for(Namespace ns: this.namespaces.values()) {
+			if(ns.isExternal) {
+				this.copyLinkedNamespaceToDatapack(ns);
+			}
+		}
 		List<ResourceLocation> loads=new ArrayList<ResourceLocation>();
 		for(Namespace ns: this.namespaces.values()) {
 			if((!ns.isExternal) && ns.srcFilesRel.size()==0)continue;//skip if no src found
@@ -545,8 +590,6 @@ public class CompileJob {
 			PrintStreamLineCounting p=null;
 			boolean success=true;
 			if(ns.isExternal) {
-				this.copyLinkedNamespaceToDatapack(ns);
-				System.out.printf("copied load function %s;\n", mcf);
 			}
 			else try {
 				File f=load.toFile();
@@ -579,15 +622,97 @@ public class CompileJob {
 		if(loads.size()==0) {
 			CompileJob.compileMcfLog.printf("didn't make any namespaces;\n");return;
 		}
-		PrintStream tagtick=null;
+		PrintStream tagload=null;
 		try {
 			File f=this.pathForTagLoad().toFile();
 			f.getParentFile().mkdirs();
 			f.createNewFile();
-			tagtick=new PrintStream(f);
-			List<String> values=ResourceLocation.literals(loads);
+			tagload=new PrintStream(f);
+			List<String> values=ResourceLocation.strings(loads);
+			
+			/*//old
 			String fill=String.join(",\n\t\t", values);
 			tagtick.printf("{\n\t\"values\": [\n\t\t%s\n\t]\n}", fill);
+			*/
+			Map<String,Object> json = Map.of("values",values);
+			JsonMaker.printAsJson(tagload, json, true, 0);
+			
+			CompileJob.compileMcfLog.printf("successfully made load tag;\n");
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}finally {
+			if(tagload!=null)tagload.close();
+		}
+		
+		//tick tag
+		List<ResourceLocation> ticks=new ArrayList<ResourceLocation>();
+		for(Namespace ns: this.namespaces.values()) if(this.willTick(ns)){
+			if((!ns.isExternal) && ns.srcFilesRel.size()==0)continue;//skip
+			ResourceLocation mcf=ns.getTickFunction();
+			Path load=this.pathForMcf(mcf);
+			PrintStreamLineCounting p=null;
+			boolean success=true;
+			boolean hasTick=false;
+			if(ns.isExternal) {
+			}
+			else try {
+				File f=load.toFile();
+				f.getParentFile().mkdirs();
+				f.createNewFile();
+				p=new PrintStreamLineCounting(f);
+				ns.hasTick = this.genNamespaceTickFunction(p, ns);
+				if(ns.hasTick && ns.isHasEntityTick()) {
+					p.close();
+					p.announceLines(mcf.toString());
+					mcf = ns.getEntityTickFunction();
+					load=this.pathForMcf(mcf);
+					f=load.toFile();
+					f.getParentFile().mkdirs();
+					f.createNewFile();
+					p=new PrintStreamLineCounting(f);
+					this.genNamespaceEntityTickFunction(p, ns);
+				}
+			} 
+			catch (IOException e) {
+				e.printStackTrace();
+				CompileJob.compileMcfLog.printf("failed to make namespace %s;\n", ns.name);
+				success=false;
+			} catch (CompileError e) {
+				e.printStackTrace();
+				success=false;
+			}finally {
+				if(p!=null) {
+					p.close();
+					p.announceLines(mcf.toString());
+				}
+			}
+			if(success) {
+				CompileJob.compileMcfLog.printf("made namespace %s;\n", ns.name);
+				if(ns.hasTick)ticks.add(mcf);
+				
+			}
+			
+		}
+		if(ticks.size()==0) {
+			CompileJob.compileMcfLog.printf("didn't make any namespaces;\n");return;
+		}
+		PrintStream tagtick=null;
+		try {
+			File f=this.pathForTagTick().toFile();
+			f.getParentFile().mkdirs();
+			f.createNewFile();
+			tagtick=new PrintStream(f);
+			List<String> values=ResourceLocation.strings(ticks);
+			
+			/*//old
+			String fill=String.join(",\n\t\t", values);
+			tagtick.printf("{\n\t\"values\": [\n\t\t%s\n\t]\n}", fill);
+			*/
+			Map<String,Object> json = Map.of("values",values);
+			JsonMaker.printAsJson(tagtick, json, true, 0);
+			
 			CompileJob.compileMcfLog.printf("successfully made load tag;\n");
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -596,8 +721,6 @@ public class CompileJob {
 		}finally {
 			if(tagtick!=null)tagtick.close();
 		}
-		
-		
 	}
 	public boolean checkForCircularRuns() {
 		List<ResourceLocation> cs=new ArrayList<ResourceLocation>();
@@ -724,15 +847,37 @@ public class CompileJob {
     	}
 	}
 	public void copyLinkedNamespaceToDatapack(Namespace ns) {
-		ResourceLocation res=ns.getLoadFunction();
-		Path from = this.findPathForLink(res);
-		Path to = this.pathForMcf(res);
-		if(from!=null)try {
-			to.toFile().getParentFile().mkdirs();
-			Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
-		} catch (IOException e) {
-			e.printStackTrace();
+		
+		{
+			ResourceLocation res=ns.getLoadFunction();
+			Path from = this.findPathForLink(res);
+			Path to = this.pathForMcf(res);
+			if(from!=null)try {
+				to.toFile().getParentFile().mkdirs();
+				Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
+				System.out.printf("copied load function %s;\n", res);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
+		//Tick
+		{
+			ResourceLocation res=ns.getTickFunction();
+			Path from = this.findPathForLink(res);
+			Path to = this.pathForMcf(res);
+			if(from!=null)try {
+				to.toFile().getParentFile().mkdirs();
+				Files.copy(from, to, StandardCopyOption.REPLACE_EXISTING);
+				ns.hasTick =true;
+				System.out.printf("copied tick function %s;\n", res);
+			} catch (IOException e) {
+				//e.printStackTrace();
+				
+				//this is OK, thread may not exist;
+				
+			}
+		}
+		
 	}
 	public boolean linkAll() {
 		

@@ -45,6 +45,9 @@ public final class Factories {
 				return While.skipMe(c, matcher, line, col, w);
 			case EXECUTE:
 				return Execute.skipMe(c, matcher, line, col, w);
+			case THREAD:
+			case NEXT:
+				return ThreadStm.skipMe(c, matcher, line, col, w);
 			default:{
 				//don't include in header
 			}
@@ -61,6 +64,7 @@ public final class Factories {
 		@Override
 		public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
 			Keyword w=Keyword.fromString(matcher.group());
+			boolean isGoto = false;
 			//CompileJob.compileMcfLog.printf("keyword: %s;\n", w);
 			if (w!=null )switch(w) {
 			//from declarations, only extract estimantes / assignments / code blocks
@@ -96,6 +100,15 @@ public final class Factories {
 
 			case CONST:
 				throw new CompileError("keyword %s not expected at start of statement".formatted(w.name));
+			case THREAD:
+			case NEXT:
+				return ThreadStm.makeMe(c, matcher, line, col, w);
+			case START: case STOP: case RESTART:{
+				return ThreadCall.make(c, matcher, line, col, w,false, true);
+			}
+			case GOTO:{
+				isGoto=true;//normal var under the hood
+			}break;
 			default:
 				break;
 
@@ -187,7 +200,8 @@ public final class Factories {
 				}
 				//? =
 				if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ASSIGNMENT) {
-					Equation eq=Equation.toAssign(line, col, c, matcher);
+					Equation eq=isGoto? Equation.toAssignGoto(line, col, c, matcher)
+							:Equation.toAssign(line, col, c, matcher);
 					//equation finds the semicolon;
 					if(eq.end !=End.STMTEND) throw new CompileError("assignment ended with a non-';'");
 					if(indexed) {

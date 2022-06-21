@@ -71,7 +71,7 @@ public class Entity extends Struct {
 		//if it is called, let the nullpointer crash the program as punishment
 	}
 	//private static final Pattern SLASH = Pattern.compile("\\/"); // \/
-	private static final Pattern NOTALLOWED = Pattern.compile("[^\\w.+-]"); // [^\w.+-]
+	public static final Pattern TAGCHAR_NOTALLOWED = Pattern.compile("[^\\w.+-]"); // [^\w.+-]
 
 	/**
 	 * a unique tag that this var uses as a tracker
@@ -82,7 +82,8 @@ public class Entity extends Struct {
 	 */
 	public String getScoreTag(Variable self) throws CompileError{
 		String s=self.getHolder()+"."+self.getAddressToGetset(); //ignore the index
-		return NOTALLOWED.matcher(s).replaceAll("+");
+		if(self.getHolder().length()==0) s=self.getAddressToGetset();
+		return TAGCHAR_NOTALLOWED.matcher(s).replaceAll("+");
 	}
 
 	@Override public boolean canMask(VarType mytype, Mask mask) { return false; }

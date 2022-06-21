@@ -49,7 +49,7 @@ public class ForIterate extends Statement implements Statement.CodeBlockOpener,S
 		} else {
 			String name = args.get(index).asString();
 			me.element1=new Variable(name,me.element1first.type,null,c).maskOtherVar(me.element1first);
-			me.mySubscope.addLoopLocalRef(me.element1, c);
+			me.mySubscope.addLoopLocalRef(me.element1);
 			me.newElement1=true;
 		}
 		if(args.size()==3) {
@@ -65,7 +65,7 @@ public class ForIterate extends Statement implements Statement.CodeBlockOpener,S
 			} else {
 				String name = args.get(index).asString();
 				me.element2=new Variable(name,me.element2first.type,null,c).maskOtherVar(me.element2first);
-				me.mySubscope.addLoopLocalRef(me.element2, c);
+				me.mySubscope.addLoopLocalRef(me.element2);
 				me.newElement2=true;
 			}
 		}else {

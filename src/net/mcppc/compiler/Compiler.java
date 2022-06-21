@@ -212,6 +212,7 @@ public class Compiler{
 		};
 		this.dommentCollector=dc;
 		boolean prevHeaderable = false;
+		MultiFlow flowPred=null;
 		comploop: while(cursor<this.content.length()) {
 			int startline=this.line;
 			//domments go before their statement
@@ -228,7 +229,10 @@ public class Compiler{
 						domments.clear();
 						this.dommentCollector=dc;
 						//continue;
-						throw new CompileError.UnexpectedToken(sm,"'}' or line;","found outside of scope");
+						//System.err.println(this.currentScope);
+						//System.err.println(this.currentScope.getSubRes().toString());
+						//System.err.println(this.currentScope.thread);
+						throw new CompileError.UnexpectedToken(sm,"'{' or line;","found outside of scope");
 						
 					}
 					CompileJob.compileHdrLog.println("header: block end: '%s', line %d col %d.".formatted(sm.asString(),this.line,this.cursor-this.lineStart));
@@ -246,9 +250,23 @@ public class Compiler{
 			domments.clear();
 			this.dommentCollector=dc;
 			if(sm instanceof Statement)headerlines.add((Statement) sm);
+			//NEW:
+			if(sm instanceof Statement.MultiFlow) {
+				//System.err.printf("multiflow %s\n", ((Statement.MultiFlow)sm).getFlowType());
+				if(flowPred!=null && ((Statement.MultiFlow)sm).recive())
+					if(!((MultiFlow) sm).setPredicessor(flowPred)) 
+						throw new CompileError("%s cannot be sent as predicessor to a %s statement;"
+								.formatted(flowPred.getFlowType(),((MultiFlow) sm).getFlowType()));
+				
+				if(flowPred==null && ((Statement.MultiFlow)sm).sendForward())flowPred=(MultiFlow) sm;
+				else if(flowPred!=null && ((Statement.MultiFlow)sm).sendForward()&& ((Statement.MultiFlow)sm).claim())flowPred=(MultiFlow) sm;
+				if(!((Statement.MultiFlow)sm).sendForward())flowPred=null;
+			}
 			if(sm instanceof Statement.CodeBlockOpener && ((Statement.CodeBlockOpener) sm).didOpenCodeBlock()) {
+				
+				
 				this.currentScope=((Statement.CodeBlockOpener) sm).getNewScope();
-				//thats it
+				//if(sm instanceof ThreadStm) System.err.println("opened thread");
 			}
 		}
 		this.areLocalsLoaded=true;
@@ -340,23 +358,25 @@ public class Compiler{
 			}
 			if(isInCodeBlock) block.addStatement((Statement) sm);
 			else compiledLines.add((Statement) sm);
+
+			if(sm instanceof Statement.MultiFlow) {
+				if(flowPred!=null && ((Statement.MultiFlow)sm).recive())
+					if(!((MultiFlow) sm).setPredicessor(flowPred)) 
+						throw new CompileError("%s cannot be sent as predicessor to a %s statement;"
+								.formatted(flowPred.getFlowType(),((MultiFlow) sm).getFlowType()));
+				
+				if(flowPred==null && ((Statement.MultiFlow)sm).sendForward())flowPred=(MultiFlow) sm;
+				else if(flowPred!=null && ((Statement.MultiFlow)sm).sendForward()&& ((Statement.MultiFlow)sm).claim())flowPred=(MultiFlow) sm;
+				if(!((Statement.MultiFlow)sm).sendForward())flowPred=null;
+			}
 			if(sm instanceof Statement.CodeBlockOpener && ((Statement.CodeBlockOpener) sm).didOpenCodeBlock()) {
+				
 				this.currentScope=((Statement.CodeBlockOpener) sm).getNewScope();
 				CodeBlock subblock=new CodeBlock(this.line,this.column(),this.currentScope,(CodeBlockOpener) sm);
 				this.BuildCodeBlock(subblock);
 				this.dommentCollector=dc;
 				if(isInCodeBlock)block.addStatement(subblock);
 				else compiledLines.add(subblock);
-				if(sm instanceof Statement.MultiFlow) {
-					if(flowPred!=null && ((Statement.MultiFlow)sm).recive())
-						if(!((MultiFlow) sm).setPredicessor(flowPred)) 
-							throw new CompileError("%s cannot be sent as predicessor to a %s statement;"
-									.formatted(flowPred.getFlowType(),((MultiFlow) sm).getFlowType()));
-					
-					if(flowPred==null && ((Statement.MultiFlow)sm).sendForward())flowPred=(MultiFlow) sm;
-					else if(flowPred!=null && ((Statement.MultiFlow)sm).sendForward()&& ((Statement.MultiFlow)sm).claim())flowPred=(MultiFlow) sm;
-					if(!((Statement.MultiFlow)sm).sendForward())flowPred=null;
-				}
 			}
 		}
 		return block;
@@ -420,9 +440,13 @@ public class Compiler{
 				}
 			}
 		}
-		for(Statement block:compiledLines) if (block instanceof CodeBlock){
-			//make sure this is after compiled code; this forces requests to work
-			((CodeBlock) block).compileMyBlock(this);
+		for(Statement block:compiledLines) {
+			if (block instanceof CodeBlock ){
+				//make sure this is after compiled code; this forces requests to work
+				((CodeBlock) block).compileMyBlock(this);
+			}else if (block instanceof Statement.IFunctionMaker && ((Statement.IFunctionMaker) block).willMakeBlocks()) {
+				((Statement.IFunctionMaker) block).compileMyBlocks(this);
+			}
 		}
 		this.currentScope=this.baseScope;
 		if(!this.checkForUnallowedRecursion()) {

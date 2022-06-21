@@ -29,11 +29,13 @@ public class MakeTmLanguage extends Regexes.Strs{
 	 * keyword.control : light purple
 	 * keyword: blue
 	 * string: orange
+	 * character.escape : gold
 	 * entity.name.type: aqua
 	 * entity.name.function: light yellow
 	 * comment : green
 	 * variable : light cyan
 	 * invalid.illegal : red
+	 * 
 	 * markup.underline : underlines text (can also apply a color)
 	 * markup.italic : italics text (can also apply a color)
 	 * markup.bold : blue AND bolded
@@ -51,18 +53,19 @@ public class MakeTmLanguage extends Regexes.Strs{
 	
 	public static final String SELECTOR_BASIC= "(@p|@r|@a|@e|@s)\\b"; // (@p|@r|@a|@e|@s)\b
 	
-	private static final String keyword = "keyword.control.mcpp";
-	private static final String basictype = "keyword.mcpp";
-	private static final String consttype = basictype;//apply the bold after
-	private static final String struct = "entity.name.type.mcpp";
-	private static final String string = "string.mcpp";
-	private static final String escapeChar = "constant.character.escape.mcpp";
-	private static final String function = "entity.name.function.mcpp";
-	private static final String comment = "comment.line.mcpp";
-	private static final String domment = "comment.block.documentation.mcpp";
-	private static final String variable = "variable.mcpp";
-	private static final String invalid = "invalid.illegal.mcpp";
-	private static final String number = "constant.numeric.mcpp"; // color is different than text just barely
+	
+	static final String keyword = "keyword.control.mcpp";
+	static final String basictype = "keyword.mcpp";
+	static final String consttype = basictype;//apply the bold after
+	static final String struct = "entity.name.type.mcpp";
+	static final String string = "string.mcpp";
+	static final String escapeChar = "constant.character.escape.mcpp";
+	static final String function = "entity.name.function.mcpp";
+	static final String comment = "comment.line.mcpp";
+	static final String domment = "comment.block.documentation.mcpp";
+	static final String variable = "variable.mcpp";
+	static final String invalid = "invalid.illegal.mcpp";
+	static final String number = "constant.numeric.mcpp"; // color is different than text just barely
 	
 	//no color:
 	public static final String operator = "operator.mcpp";
@@ -81,11 +84,24 @@ public class MakeTmLanguage extends Regexes.Strs{
 	private static final String color_ang2 = keyword; // a mix of blue and red;
 	
 
-	private static final String italic = "markup.italic.mcpp";
-	private static final String underlined = "markup.underline.mcpp";
-	private static final String bold_blue = "markup.bold.mcpp";
+	static final String italic = "markup.italic.mcpp";
+	static final String underlined = "markup.underline.mcpp";
+	static final String bold_blue = "markup.bold.mcpp";
 	
 	public static void make (String path) {
+		Map<String,Object> json = makeTmLang();
+		PrintStream file=null;
+		try{
+			file = getOutput(path);
+			JsonMaker.printAsJson(file, json, true, 0);
+			System.out.println("successfully made vscode extension");
+		}catch (Exception e) {
+			e.printStackTrace();
+		}finally {
+			if(file!=null)file.close();
+		}
+	}
+	public static Map<String,Object> makeTmLang () {
 		System.out.println("making vscode extension");
 		Map<String,Object> json = new HashMap<String,Object>();
 		String scopeName = "source.mcpp";
@@ -172,20 +188,15 @@ public class MakeTmLanguage extends Regexes.Strs{
 		json.put("name", name);
 		json.put("patterns", patterns);
 		json.put("repository", repository);
-		PrintStream file=null;
-		try{
-			file = getOutput(path);
-			JsonMaker.printAsJson(file, json, true, 0);
-			System.out.println("successfully made vscode extension");
-		}catch (Exception e) {
-			e.printStackTrace();
-		}finally {
-			if(file!=null)file.close();
-		}
+		
+		return json;
 	}
 	private static void addToRepo(String key,Object value) {
 		repository.put(key, value);
 		patterns.add(include(key));
+	}
+	static Map unnamedMatch(String regex) {
+		return Map.of("match",regex);
 	}
 	private static Map namedMatch(String name,String regex) {
 		return Map.of("name",name,"match",regex);
@@ -201,6 +212,13 @@ public class MakeTmLanguage extends Regexes.Strs{
 	}
 	private static Map include(String key) {
 		return Map.of("include","#" + key);
+	}
+	static Map uninclude(Map pattern,Map repository) {
+		if(pattern.containsKey("include")) {
+
+			String key = ((String) pattern.get("include")).substring(1);
+			return (Map) repository.get(key);
+		}else return pattern;
 	}
 	private static Map namedMatch(String name,String regex, Map<Integer,String> groupnames) {
 		return Map.of("name",name,"match",regex,
