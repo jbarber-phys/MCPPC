@@ -439,13 +439,16 @@ public class McThread {
 	public void tickManage(PrintStream p,Compiler c,Scope s,RStack stack) throws CompileError {
 		//tag me so subscopes know how to flow properly
 		boolean isGlobal = this.isGlobal();
-		String me = isGlobal? this.path.toString() : Selector.AT_S.toCMD();
+		//String me = isGlobal? this.path.toString() : Selector.AT_S.toCMD();
 		if(!isGlobal)p.printf("tag @s add %s\n", McThread.TAG_CURRENT);
 		//skip delay, it was already done
-		p.printf("#this.numBlocks = %d;\n", this.numBlocks);
+		//p.printf("#this.numBlocks = %d;\n", this.numBlocks);
+		Selector self = isGlobal? null : Selector.AT_S;
+		Variable gotov = this.myGoto(self);
+		Variable waitv = this.wait(self);
 		for(int i=1;i<=this.numBlocks;i++) {
-			p.printf("execute if score %s %s matches 0 if score %s %s matches %d run "
-					,me, McThread.OBJ_WAIT,me, McThread.OBJ_GOTO,i);
+			p.printf("execute if score %s matches 0 if score %s matches %d run "
+					,waitv.scorePhrase(),gotov.scorePhrase(),i);
 				this.pathBlock(i).run(p);
 		}
 		//TODO overflow guard

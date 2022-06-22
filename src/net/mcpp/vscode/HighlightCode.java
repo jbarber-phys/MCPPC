@@ -1,5 +1,6 @@
 package net.mcpp.vscode;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,20 +28,27 @@ public class HighlightCode {
 	private static Map<String,Object> repository = null;
 	private static int cursor;
 	
-	public static synchronized Object highlight(String line) {
+	/**
+	 * returns code as json formatted text with the VScode theme colors / fonts
+	 * TODO test
+	 * @param line
+	 * @return
+	 */
+	public static synchronized Map<String, Object> highlight(String line) {
 		 if(lang==null ) {
 			 lang= MakeTmLanguage.makeTmLang();
 			 repository = (Map<String, Object>) lang.get("repository");
 			 patterns = (List<Map>) lang.get("patterns");
 		 }
 		 Matcher m = Pattern.compile(".").matcher(line);
-		 highlight(line,m,null,patterns);
-		 return line;
+		 Map<String, Object> result = highlight(line,m,null,patterns);
+		 return result;
 		
 	}
 	private static synchronized Map<String, Object> highlight(String line,Matcher m,String end, List<Map> patterns) {
 		 cursor = 0;
 		 StringBuffer fstring = new StringBuffer();
+		 List<Map> with = new ArrayList<Map>();
 		 boolean hasSubs=false;
 		 while(m.regionStart() <line.length()) {
 			 Object o = null;
@@ -64,11 +72,21 @@ public class HighlightCode {
 			 }
 			 else if (o instanceof Map) {
 				 hasSubs=true;
+				 fstring.append("%s");
+				 with.add((Map) o);
 			 }else {
 				 System.err.println("invalid tmlang object");
 			 }
 		 }
-		 return null;
+		 String text = fstring.toString();
+		 Map<String,Object> map = new HashMap<String,Object>();
+		 if(hasSubs) {
+			 map.put("translate", text);
+			 map.put("with", with);
+		 }else {
+			 map.put("text", text);
+		 }
+		 return map;
 		
 	}
 	private static Object find(String s, Matcher m, Map pattern) {
@@ -105,7 +123,7 @@ public class HighlightCode {
 						jsonText = highlight(text,m,null,patterns);
 					}else {
 						jsonText = new HashMap<String, Object>();
-						((Map<String, Object>) jsonText).put("translate", m.group());
+						((Map<String, Object>) jsonText).put("text", m.group());
 					}
 					putFormat( jsonText,name);
 					m.region(m.end(), m.regionEnd());
