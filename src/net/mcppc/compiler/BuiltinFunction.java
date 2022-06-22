@@ -14,6 +14,7 @@ import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Function.FuncCallToken;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.AbstractCallToken;
+import net.mcppc.compiler.functions.PrintCode;
 import net.mcppc.compiler.functions.PrintF;
 import net.mcppc.compiler.functions.Tp;
 import net.mcppc.compiler.struct.Struct;
@@ -43,6 +44,7 @@ public abstract class BuiltinFunction {
 		registerAll();
 		PrintF.registerAll();
 		Tp.registerAll();
+		PrintCode.registerAll();
 	}
 	private static void registerAll() {
 		register(SetScopeFlag.stopLongMult);

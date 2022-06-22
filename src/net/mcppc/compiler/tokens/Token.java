@@ -431,4 +431,18 @@ public abstract class Token {
 		@Override public String asString() { return "~";
 		}
 	}
+	public static class CodeLine extends Token{
+		public static final Factory factory=new Factory(Regexes.CODELINE) {
+			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+				c.cursor=matcher.end();
+				return new CodeLine(line,col,matcher.group());
+			}};
+		public final String content;
+		public CodeLine(int line, int col,String content) {
+			super(line, col);
+			this.content=content;
+		}
+		@Override public String asString() { return this.content;
+		}
+	}
 }

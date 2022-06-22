@@ -7,11 +7,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.*;
 
+import net.mcppc.compiler.errors.CompileError;
+
 public class HighlightCode {
 	public static class ThemeColors {
 		public static final String BACKGROUND = "#1E1E1E";
 		public static final String PURPLE = "#C586C0";
-		public static final String BLUE = "	#569CD6";
+		public static final String BLUE = "#569CD6";
 		public static final String AQUA = "#4EC9B0";
 		public static final String CYAN = "#9CDCFE";
 		public static final String CREAM = "#DCDCAA";
@@ -33,25 +35,29 @@ public class HighlightCode {
 	 * TODO test
 	 * @param line
 	 * @return
+	 * @throws CompileError 
 	 */
-	public static synchronized Map<String, Object> highlight(String line) {
+	public static synchronized Map<String, Object> highlight(String line) throws CompileError {
 		 if(lang==null ) {
 			 lang= MakeTmLanguage.makeTmLang();
 			 repository = (Map<String, Object>) lang.get("repository");
 			 patterns = (List<Map>) lang.get("patterns");
 		 }
+		 done=false;
 		 Matcher m = Pattern.compile(".").matcher(line);
-		 Map<String, Object> result = highlight(line,m,null,patterns);
+		 Map<String, Object> result = highlight(line,m,null,null,patterns);
 		 return result;
 		
 	}
-	private static synchronized Map<String, Object> highlight(String line,Matcher m,String end, List<Map> patterns) {
+	private static synchronized Map<String, Object> highlight(String line,Matcher m,String begin, String end, List<Map> patterns) throws CompileError {
 		 cursor = 0;
 		 StringBuffer fstring = new StringBuffer();
+		 if(begin!=null)fstring.append(begin);
 		 List<Map> with = new ArrayList<Map>();
 		 boolean hasSubs=false;
 		 while(m.regionStart() <line.length()) {
 			 Object o = null;
+			 boolean ended = false;
 			 for(Map pattern : patterns) {
 				 o = find(line,m,pattern);
 				 if(o==null)continue;
@@ -59,10 +65,12 @@ public class HighlightCode {
 				 
 			 }if(o==null && end!=null) {
 				 o = find(line,m,MakeTmLanguage.unnamedMatch(end));
+				 if (o!=null)ended=true;
 			 }
 			 if(o==null) {
 				 //no match
-				 o = find(line,m,MakeTmLanguage.unnamedMatch("."));
+				 System.err.printf("wildcard\n");
+				 o = find(line,m,MakeTmLanguage.unnamedMatch(".|\\n"));
 			 }
 			 if(o instanceof String) {
 				 if(o.equals("%")) {
@@ -75,8 +83,10 @@ public class HighlightCode {
 				 fstring.append("%s");
 				 with.add((Map) o);
 			 }else {
-				 System.err.println("invalid tmlang object");
+				 System.err.printf("cursor %s / %s\n",m.regionStart(),m.regionEnd());
+				 System.err.printf("invalid tmlang object of class %s;\n",o.getClass().getCanonicalName());
 			 }
+			 if(done || ended)break;
 		 }
 		 String text = fstring.toString();
 		 Map<String,Object> map = new HashMap<String,Object>();
@@ -89,24 +99,37 @@ public class HighlightCode {
 		 return map;
 		
 	}
-	private static Object find(String s, Matcher m, Map pattern) {
+	private static boolean done;
+	private static boolean moveCursor(Matcher m) {
+		if(done)return true;
+		boolean ret = m.end() >= m.regionEnd();
+		if(ret) {
+			done=true;
+		}else m.region(m.end(), m.regionEnd());
+		return ret;
+	}
+	private static Object find(String s, Matcher m, Map pattern) throws CompileError {
 		pattern = MakeTmLanguage.uninclude(pattern, repository);
 		if(pattern.containsKey("begin")) {
 			m.usePattern(Pattern.compile((String) pattern.get("begin")));
 			if(m.lookingAt()) {
+				String begin = m.group();
 				String end = (String) pattern.get("end");
 				List<Map> patterns = null;
 				if(pattern.containsKey("patterns"))
 					patterns = (List<Map>) pattern.get("patterns");
-				m.region(m.end(), m.regionEnd());
-				Map<String, Object> jsonText = highlight(s,m, end, patterns);
+				if(moveCursor(m)){
+					throw new CompileError("unexpected begin char with no end");
+				}
+				Map<String, Object> jsonText = highlight(s,m,begin, end, patterns);
 				
 				if(pattern.containsKey("name")) {
 					String name = (String) pattern.get("name");
 					putFormat( jsonText,name);
 					
 				}
-				m.region(m.end(), m.regionEnd());
+				
+				//moveCursor(m); //was already done
 				return jsonText;
 			}else {
 				return null;
@@ -120,24 +143,53 @@ public class HighlightCode {
 					String text = m.group();
 					Map<String, Object> jsonText;
 					if(pattern.containsKey("patterns")) {
-						jsonText = highlight(text,m,null,patterns);
+						jsonText = highlight(text,m,null, null,patterns);
 					}else {
 						jsonText = new HashMap<String, Object>();
-						((Map<String, Object>) jsonText).put("text", m.group());
+						if(pattern.containsKey("captures")) {
+							StringBuffer intext = new StringBuffer();
+							Map<String,Map> captures = (Map<String, Map>) pattern.get("captures");
+							int cursor = m.start();
+							List<Map> with = new ArrayList<Map>();
+							for(Entry<String,Map> cap:captures.entrySet()) {
+								int group = Integer.parseInt(cap.getKey());
+								if(m.start(group)<0)continue;
+								String innerName = (String) cap.getValue().get("name");
+								intext.append(s.substring(cursor, m.start(group)));
+								cursor=m.start(group);
+								intext.append("%s");
+								cursor = m.end(group);
+								Map<String,Object> entry = new HashMap<String,Object>();
+								entry.put("text", m.group(group));
+								with.add(entry);
+								putFormat(entry, innerName);
+							}
+							intext.append(s.substring(cursor, m.end()));
+							
+							((Map<String, Object>) jsonText).put("translate", intext.toString());
+							((Map<String, Object>) jsonText).put("with", with);
+						}else {
+							((Map<String, Object>) jsonText).put("text", m.group());
+						}
+
+						
 					}
+					
 					putFormat( jsonText,name);
-					m.region(m.end(), m.regionEnd());
+					moveCursor(m);
 					return jsonText;
 				}
 				else {
 					String ret = m.group();
-					m.region(m.end(), m.regionEnd());
+					moveCursor(m);
 					return ret;
 				}
 			}else {
 				return null;
 			}
 		}
+
+		System.err.printf("no pattern\n");
 		return null;
 	}
 	private static Map<String,String> colors = Map.of(
@@ -160,13 +212,13 @@ public class HighlightCode {
 				break;
 			}
 		}if(name.contains("markup.underline")) {
-			jsontext.put("underlined", "true");
+			jsontext.put("underlined", true);
 		}
 		if(name.contains("markup.bold")) {
-			jsontext.put("bold", "true");
+			jsontext.put("bold", true);
 		}
 		if(name.contains("markup.italic")) {
-			jsontext.put("italic", "true");
+			jsontext.put("italic", true);
 		}
 		
 		

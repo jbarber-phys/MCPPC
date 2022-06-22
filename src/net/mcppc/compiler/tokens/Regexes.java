@@ -51,6 +51,8 @@ public final class Regexes {
 		public static final String RESOURCELOCATION=("(?<namespace>\\w+):(?<path>(\\w+\\/)*(?<end>\\w+))");// (?<namespace>\w+):(?<path>(\w+\/)*(?<end>\w+))
 		
 		public static final String ESTIMATE = "~~";
+		
+		public static final String CODELINE = ".*\\n|.+$"; //.*\n|.+$
 	}
 	public static final Pattern ANY_CHAR=Pattern.compile(".");// .
 
@@ -147,6 +149,7 @@ public final class Regexes {
 	 * below are for debug only:
 	 */
 	
+	public static final Pattern CODELINE = Pattern.compile(Strs.CODELINE);
 	public static final Pattern NEXT_10_CHAR=Pattern.compile(".{1,10}");// .{1,10}
 	public static final Pattern NEXT_20_CHAR=Pattern.compile(".{1,20}");// .{1,10}
 	
