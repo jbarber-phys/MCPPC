@@ -34,7 +34,8 @@ public final class Regexes {
 		public static final String SELECTOR_NOAT=("([\\w-]+)\\s*\\[()\\]");// ([\w-]+)\s*\[()\]
 
 		public static final String NUM_NEG=("(-?\\d+)(\\.\\d*)?([Ee]\\-?\\d+)?([fdilsbFDILSB])?");// (-?\d+)(\.\d*)?([Ee]\-?\d+)?([fdilsbFDILSB])?
-		public static final String BOOL=("\\b(true)|(false)\\b");// \b(true)|(false)\b
+		//public static final String BOOL=("\\b(true)|(false)\\b");// \b(true)|(false)\b (\btrue\b)|(\bfalse\b)
+		public static final String BOOL=("(\\btrue\\b)|(\\bfalse\\b)");// (\btrue\b)|(\bfalse\b)
 		public static final String NULL=("\\bnull\\b");// \bnull\b
 
 		private static final int tildehatnumsize=6;

@@ -651,6 +651,7 @@ public class CompileJob {
 		for(Namespace ns: this.namespaces.values()) if(this.willTick(ns)){
 			if((!ns.isExternal) && ns.srcFilesRel.size()==0)continue;//skip
 			ResourceLocation mcf=ns.getTickFunction();
+			String mcfname = mcf.toString();
 			Path load=this.pathForMcf(mcf);
 			PrintStreamLineCounting p=null;
 			boolean success=true;
@@ -666,8 +667,9 @@ public class CompileJob {
 				if(ns.hasTick && ns.isHasEntityTick()) {
 					p.close();
 					p.announceLines(mcf.toString());
-					mcf = ns.getEntityTickFunction();
-					load=this.pathForMcf(mcf);
+					ResourceLocation mcf2 = ns.getEntityTickFunction();
+					mcfname = mcf2.toString();
+					load=this.pathForMcf(mcf2);
 					f=load.toFile();
 					f.getParentFile().mkdirs();
 					f.createNewFile();
@@ -685,7 +687,7 @@ public class CompileJob {
 			}finally {
 				if(p!=null) {
 					p.close();
-					p.announceLines(mcf.toString());
+					p.announceLines(mcfname);
 				}
 			}
 			if(success) {

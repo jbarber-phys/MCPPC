@@ -13,7 +13,14 @@ import net.mcppc.compiler.Selector;
 import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Entity;
-
+/**
+ * call to start, restart or stop a thread
+ * 
+ * usgage:
+ * start <thread name> ([starting point],[entity var to store to]);
+ * @author jbarb_t8a3esk
+ *
+ */
 public class ThreadCall extends Statement {
 	public Boolean checkForExecutor(Compiler c, Matcher matcher) throws CompileError {
 		//nullable
@@ -23,11 +30,17 @@ public class ThreadCall extends Statement {
 		
 		return BuiltinFunction.findArgsep(c);
 	}
+	private String linebuff = null;
 	public Boolean checkForBlock(Compiler c, Matcher matcher) throws CompileError {
 		//nullable
-		Integer b = this.thread.checkForBlockNumberName(c, c.currentScope, matcher);
-		this.block = b;
-		if(b==null) return null;
+		if(this.thread!=null) {
+			Integer b = this.thread.checkForBlockNumberName(c, c.currentScope, matcher);
+			this.block = b;
+			if(b==null) return null;
+		}else {
+			this.linebuff = McThread.checkForBlockName(c, c.currentScope, matcher);
+			if(this.linebuff==null) return null;
+		}
 
 		return BuiltinFunction.findArgsep(c);
 	}
@@ -55,6 +68,7 @@ public class ThreadCall extends Statement {
 
 	public static final ThreadCall make(Compiler c, Matcher matcher, int line, int col,Keyword w,boolean isPass1,boolean lineEnd,ThreadStm define) throws CompileError {
 		//pass 2 only
+		c.cursor=matcher.end();
 		ThreadCall me = new ThreadCall(line,col,w);
 		if(isPass1) {
 			Token term=Factories.carefullSkipStm(c, matcher, line, col);
@@ -96,6 +110,9 @@ public class ThreadCall extends Statement {
 				
 				if(!me.thread.isGlobal()) {
 					flag = me.checkForExecutor(c, matcher);
+					if(flag!=null)hasNext=flag;
+				} if (w==Keyword.RESTART && hasNext)  {
+					flag=me.checkForBlock(c, matcher);
 					if(flag!=null)hasNext=flag;
 				}
 				if(hasNext) hasNext = BuiltinFunction.findArgsep(c);
@@ -146,6 +163,10 @@ public class ThreadCall extends Statement {
 	public void compileMe(PrintStream f, Compiler c, Scope s) throws CompileError {
 		if(this.define!=null) {
 			this.thread = this.define.myThread;
+			if(this.linebuff!=null) {
+				this.block = this.thread.getBlockNumber(linebuff, s.getThread() == this.thread);
+				if(this.block==null)throw new CompileError("thread %s has no accessible block named '%s';".formatted(this.thread.getName(),this.linebuff));
+			}
 			defaultArgs();
 		}
 		switch(this.init) {

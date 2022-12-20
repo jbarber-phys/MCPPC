@@ -431,10 +431,14 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		//TODO bug {"$printf"."$1": 0} -> {"$printf": {"$1": 0}}
 		//also TODO {array[1]: 123} ->? (not array[2]: val)
 		String[] names = this.getAddressToGetset().split(".");//TODO stop quote-dots from being problematic
+		if(names.length ==0) names = new String[] {this.getAddressToGetset()};
 		String tag = matchtag;
 		for(int i=names.length-1;i>=0;i--) {
 			tag = "{%s: %s}".formatted(names[i],tag);
 		}
+		//System.err.printf("names(%s) length %s\n",this.getAddressToGetset(), names.length);
+		//System.err.printf("names length %s\n", names.length);
+		//System.err.printf("tag= %s\n", tag);
 		switch (this.pointsTo) {
 		case STORAGE:{
 			return "data storage %s %s".formatted(this.holder,tag);

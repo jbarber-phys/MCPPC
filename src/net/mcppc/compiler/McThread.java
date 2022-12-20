@@ -35,6 +35,8 @@ import net.mcppc.compiler.tokens.Token;
 public class McThread {
 	public static final String TAG_CURRENT = "mcpp+thread+current_executor";
 	public static final Selector SELF = new Selector("@e", "limit=1,tag=%s".formatted(TAG_CURRENT));
+	public static final String TEMPTAG = "mcpp+threadstart";
+	public static final Selector SELFTEMP = new Selector("@e", "limit=1,tag=%s".formatted(TEMPTAG));
 	public McThread() {}//construction is done post-init
 	Keyword access = null;
 	ResourceLocation path = null;
@@ -96,6 +98,22 @@ public class McThread {
 			c.cursor=start;
 		}
 		return b;
+	}
+	public static String checkForBlockName(Compiler c,Scope s,Matcher m) throws CompileError {
+		boolean inside = false;
+		int start = c.cursor;
+		Token t= c.nextNonNullMatch(Factories.checkForMembName);
+		if(!(t instanceof MemberName)) {
+			return null;
+			//c.cursor=start;
+		}
+		if (((MemberName) t).names.size()!=1) {
+			//a var name
+			c.cursor=start;
+			return null;
+		}
+		String name = ((MemberName) t).names.get(0);
+		return name;
 	}
 	private String makeName() {
 		return this.name==null?
@@ -210,7 +228,9 @@ public class McThread {
 	public Selector getSelf() {
 		if(this.isSynchronized && this.executeAs==null) {
 			return null;
-		}else return SELF;
+		}else {
+			return this.isCompilingStart ? SELFTEMP:SELF;
+		}
 	}
 	public Selector getAllExecutors() {
 		if(this.isSynchronized && this.executeAs==null) {
@@ -259,8 +279,8 @@ public class McThread {
 		}
 		List<String> lines = this.namedBlocksPublic.entrySet().stream().map(e -> "%s %s".formatted(e.getKey(),e.getValue())).toList();
 		String[] lns = new String[lines.size()]; lines.toArray(lns);
-		String g = lns.length==0? "": "lines %s %s".formatted(this.numBlocks,String.join(" ", lns));
-		p.printf("thread public %s %s %s;", this.name,as,g);
+		String g = "lines %s %s".formatted(this.numBlocks,String.join(" ", lns));
+		p.printf("thread public %s %s %s;\n", this.name,as,g);
 	}
 	public void truestart(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor,int gotob) throws CompileError {
 		this.truestart(p, c, s, stack, executor, ((Object) gotob),true);
@@ -271,7 +291,8 @@ public class McThread {
 		
 	private void truestart(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor,Object gotoCache, boolean start) throws CompileError {
 		//must be pass 2-version
-		if(!this.isSynchronized && start)p.printf("tag %s add %s\n", executor,this.getTag());
+		boolean tagme = !this.isSynchronized || this.executeAs!=null;
+		if(tagme && start)p.printf("tag %s add %s\n", executor,this.getTag());
 		if(gotoCache==null) {
 			this.myGoto(executor).setMeToNumber(p, c, s, stack, 1);
 		}else if (gotoCache instanceof Integer){
@@ -282,28 +303,38 @@ public class McThread {
 			throw new CompileError("MCPP::invalidargument McThread::truestart()");
 		}
 		this.wait(executor).setMeToNumber(p, c, s, stack, (Integer)0);
+		isCompilingStart = true;
 		if(gotoCache==null)for(ThreadBlock block: this.firstControl.blockControls) {
 			block.addToEndOfBeforeBlock(p, c, s, this.firstControl);
 		}
+		isCompilingStart = false;
+		
 	}
+	boolean isCompilingStart = false;
 	public Selector truestartSelf() throws CompileError {
 		//must be pass 2-version
 		if(this.isSynchronized && this.executeAs==null) return null;
 		return this.executeAs==null?
-				 new Selector("@e","limit=1,tag=%s".formatted(TEMPTAG))
+				 SELFTEMP
 				:this.executeAs;
 		
 	}
-	public static final String TEMPTAG = "mcpp+threadstart";
-
 	public void start(PrintStream p,Compiler c,Scope s,RStack stack, Integer block,Variable getMe) throws CompileError {
 		if(this.executeAs==null && this.isUnresolvedComp1)
 			throw new CompileError("could not resolve thread %s;".formatted(this.name));
-		if( !this.isSynchronized) {
+		if( !this.isSynchronized || this.executeAs !=null) {
 			if(this.executeAs==null) {
 				p.printf("summon minecraft:marker 0 0 0 {Tags: [\"%s\"]}\n", TEMPTAG);
 			}else {
-				p.printf("tag %s add %s\n", this.executeAs,TEMPTAG);
+				Selector me = this.executeAs;
+				if(this.isSynchronized) {
+					//remove all current executors
+					Selector old = this.getAllExecutors();
+					this.myGoto(old).setMeToNumber(p, c, s, stack, 0);
+					this.wait(old).setMeToNumber(p, c, s, stack, (Integer)0);
+					p.printf("tag %s remove %s\n", old.toCMD(),this.myTag);
+				}
+				p.printf("tag %s add %s\n", me,TEMPTAG);
 			}
 			this.pathStart(block).run(p);
 			if(getMe!=null) {
@@ -369,7 +400,8 @@ public class McThread {
 		return this.subpath(TICK);
 	}
 	public void createSubsBlocks(Compiler c) throws CompileError {
-		Scope start = new Scope(c.currentScope,this,START,false);
+		//TODO bug c.currentScope is not what it should be; switch to using Scope thread
+		Scope start = new Scope(this.firstControl.getOuterScope(),this,START,false);
 		Selector self = this.truestartSelf();
 		try {
 			PrintStream p = start.open(c.job);
@@ -382,7 +414,7 @@ public class McThread {
 		}
 		start.closeFiles();
 		
-		Scope stop = new Scope(c.currentScope,this,START,false);
+		Scope stop = new Scope(this.firstControl.getOuterScope(),this,STOP,false);
 		try {
 			PrintStream p = stop.open(c.job);
 			RStack stack = stop.getStackFor();
@@ -394,7 +426,7 @@ public class McThread {
 		}
 		stop.closeFiles();
 		
-		Scope restart = new Scope(c.currentScope,this,START,false);
+		Scope restart = new Scope(this.firstControl.getOuterScope(),this,RESTART,false);
 		try {
 			PrintStream p = restart.open(c.job);
 			RStack stack = restart.getStackFor();
@@ -405,7 +437,7 @@ public class McThread {
 			throw new CompileError("File not found for %s".formatted(restart.getSubRes().toString()));
 		}
 		restart.closeFiles();
-		Scope tick = new Scope(c.currentScope,this,TICK,false);
+		Scope tick = new Scope(this.firstControl.getOuterScope(),this,TICK,false);
 		try {
 			PrintStream p = tick.open(c.job);
 			RStack stack = tick.getStackFor();
@@ -426,7 +458,7 @@ public class McThread {
 	public static void decrementDelay(PrintStream p) throws CompileError {
 		Variable wait = McThread.waitStatic(Selector.AT_S);
 		String score = wait.scorePhrase();
-		p.printf("execute if score %s matches 1.. run score players remove %s 1\n",score,score);
+		p.printf("execute if score %s matches 1.. run scoreboard players remove %s 1\n",score,score);
 	}
 	public void executeTick(PrintStream p,CompileJob job,Namespace ns) {
 		//clock is handled before this
@@ -487,5 +519,8 @@ public class McThread {
 		for(McThread self : ns.threads) if(!(self.isSynchronized && self.executeAs == null)) {
 			self.executeTick(p, job, ns);
 		}
+	}
+	public String getName() {
+		return name;
 	}
 }

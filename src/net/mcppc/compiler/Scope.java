@@ -365,6 +365,10 @@ public class Scope {
 	public Variable getBreakVarInMe(Compiler c) throws CompileError {
 		return getBreakVarInMe(c, 0);
 	}
+	public Variable makeAndgetBreakVarInMe(Compiler c) throws CompileError {
+		if(this.isBreakable && this.myBreakVar==null) this.initializeBreakVarInMe(c, false);
+		return getBreakVarInMe(c, 0);
+	}
 	private Variable myBreakVar = null;
 	public Variable initializeBreakVarInMe(Compiler c,boolean add) throws CompileError {
 		if(this.isBreakable) {

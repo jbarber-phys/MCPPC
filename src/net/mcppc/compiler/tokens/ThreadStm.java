@@ -55,9 +55,11 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		}
 	public static abstract class ThreadBlock extends Token {
 		public final String name;
-		public ThreadBlock(int line, int col,String name) {//
+		public final int index;
+		public ThreadBlock(int line, int col,int index,String name) {//
 			super(line, col);
 			this.name=name;
+			this.index=index;
 		}
 		@Override
 		public String asString() {
@@ -80,7 +82,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 	@FunctionalInterface
 	public static interface BlockControlGetter {
 		//start after the name of this
-		public ThreadBlock make(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,boolean isPass1) throws CompileError;
+		public ThreadBlock make(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,int index, boolean isPass1) throws CompileError;
 	}
 	
 	public static ThreadStm skipMe(Compiler c, Matcher matcher, int line, int col,Keyword w) throws CompileError {
@@ -165,7 +167,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 				c.cursor=cs;
 				break;
 			}
-			ThreadBlock sub=g.make(c, matcher, line, col,this,isPass1);
+			ThreadBlock sub=g.make(c, matcher, line, col,this,this.blockControls.size(),isPass1);
 			this.blockControls.add(sub);
 			if(sub.isEnd())break;
 		}
@@ -246,9 +248,12 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		return "thread";
 	}
 	private boolean loop=false;
-	private void setLoop(boolean loop) {
+	private int loopindex=-1;
+	private void setLoop(boolean loop,int index) {
 		this.loop=loop;
-		this.mySubscope.setBreakable(loop);
+		this.loopindex=index;
+		//TODO subscope may be null right now
+		if(this.mySubscope!=null)this.mySubscope.setBreakable(loop);
 	}
 	@Override
 	public boolean canBreak() {
@@ -295,8 +300,8 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		return !this.isFirst;
 	}
 	public static class Lines extends ThreadBlock {
-		public static Lines make(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,boolean isPass1) throws CompileError{
-			Lines me = new Lines(line,col,name);
+		public static Lines make(Compiler c, Matcher matcher, int line, int col,ThreadStm stm, int index,boolean isPass1) throws CompileError{
+			Lines me = new Lines(line,col,index,name);
 			Num size =(Num) Num.tokenizeNextNumNonNull(c, c.currentScope, matcher, line, col);
 			stm.myThread.ensureSize(stm, size.value.intValue());
 			while(true) {
@@ -313,14 +318,14 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		//for mch
 		public static final String name = "lines";
 		public final Map<String,Integer> data = new HashMap<String, Integer>();
-		public Lines(int line, int col, String name) {
-			super(line, col, name);
+		public Lines(int line, int col,int index, String name) {
+			super(line, col,index, name);
 		}
 		
 	}
 	public static class Delay extends ThreadBlock {
-		public static Delay make(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,boolean isPass1) throws CompileError{
-			Delay me = new Delay(line,col,name);
+		public static Delay make(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,int index,boolean isPass1) throws CompileError{
+			Delay me = new Delay(line,col,index,name);
 			//System.err.printf("Delay::make(...)\n");
 			BuiltinFunction.open(c);
 			BasicArgs args=BuiltinFunction.tokenizeArgsEquations(c, matcher, line, col, stm.mystack);
@@ -332,12 +337,12 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		//for mch
 		public static final String name = "wait";
 		private Equation delay;
-		public Delay(int line, int col, String name) {
-			super(line, col, name);
+		public Delay(int line, int col,int index, String name) {
+			super(line, col,index, name);
 		}
 		@Override
 		public void addToEndOfBeforeBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
-			if(stm.loopIf==null) this.add(p, c, s, stm);
+			if(!stm.loop || stm.loopindex > this.index) this.add(p, c, s, stm);
 		}
 		
 		public void add(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
@@ -351,25 +356,25 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		}
 		@Override
 		public void addToEndOfAfterBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
-			if(stm.loopIf!=null) this.add(p, c, s, stm);
+			if(stm.loop && stm.loopindex < this.index) this.add(p, c, s, stm);
 		}
 		
 	}
 	public static class Loop extends ThreadBlock {
-		public static Loop makeWhile(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,boolean isPass1) throws CompileError{
-			return Loop.make(c, matcher, line, col, stm, loopwhile,false, isPass1);
+		public static Loop makeWhile(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,int index,boolean isPass1) throws CompileError{
+			return Loop.make(c, matcher, line, col, stm,index, loopwhile,false, isPass1);
 		}
-		public static Loop makeUntil(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,boolean isPass1) throws CompileError{
-			return Loop.make(c, matcher, line, col, stm, loopuntil,true, isPass1);
+		public static Loop makeUntil(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,int index,boolean isPass1) throws CompileError{
+			return Loop.make(c, matcher, line, col, stm, index, loopuntil,true, isPass1);
 		}
-		private static Loop make(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,String name,boolean inverted,boolean isPass1) throws CompileError{
-			Loop me = new Loop(line,col,name,inverted);
+		private static Loop make(Compiler c, Matcher matcher, int line, int col,ThreadStm stm, int index,String name,boolean inverted,boolean isPass1) throws CompileError{
+			Loop me = new Loop(line,col,index,name,inverted,stm);
 			BuiltinFunction.open(c);
 			BasicArgs args=BuiltinFunction.tokenizeArgsEquations(c, matcher, line, col, stm.mystack);
 			if(args.nargs()!=1) throw new CompileError("wrong number of args in wait(...) statement; expected 1 but got %d;"
 					.formatted(args.nargs()));
 			me.test=(Equation) args.arg(0);
-			stm.setLoop(true);
+			stm.setLoop(true,index);
 			return me;
 		}
 		//for mch
@@ -377,40 +382,57 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		public static final String loopuntil = "until";
 		private Equation test;
 		private final boolean inverted;
-		public Loop(int line, int col, String name,boolean inverted) {
-			super(line, col, name);
+		private final ThreadStm loopBlock;
+		public Loop(int line, int col,int index, String name,boolean inverted,ThreadStm loopStm) {
+			super(line, col, index,name);
 			this.inverted=inverted;
+			this.loopBlock = loopStm;
 		}
 		@Override
 		public void addToEndOfBeforeBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
-			this.add(p, c, s, stm);
+			stm.mySubscope.setBreakable(true);
+			Variable breakv = stm.mySubscope.makeAndgetBreakVarInMe(c);
+			breakv.setMeToBoolean(p, c, s, this.test.stack, false);
+			this.add(p, c, s, stm,true);
 		}
-		public void add(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
+		@Override
+		public void addToStartOfAfterBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
+			Variable breakv = stm.mySubscope.makeAndgetBreakVarInMe(c);
+			breakv.setMeToBoolean(p, c, s, this.test.stack, false);
+		}
+		@Override
+		public void addToEndOfAfterBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
+			this.add(p, c, s, stm,false);
+		}
+		public void add(PrintStream p, Compiler c, Scope s, ThreadStm stm,boolean isBefore) throws CompileError {
 			Variable block = stm.myThread.myGoto();
-			Variable breakv = stm.mySubscope.getBreakVarInMe(c);
+			Variable breakv = stm.mySubscope.makeAndgetBreakVarInMe(c);
+			int myblock = this.loopBlock.blockNumber;
+			if(isBefore)block.setMeToNumber(p, c, s, this.test.stack, myblock+1);//halt
 			this.test.compileOps(p, c, s, VarType.INT);
 			int home = this.test.setReg(p, c, s, VarType.INT);
-			String ifu= this.inverted? "if" : "unless";
+			String ifu= !this.inverted? "if" : "unless";
 			Register flag = this.test.stack.getRegister(home);
-			String condition = String.format("execute %s %s unless data %s matches 1.. run ", ifu,flag.testMeInCMD(),breakv.isTrue());
+			String condition = String.format("execute %s %s unless %s run ", ifu,flag.testMeInCMD(),breakv.isTrue());
 			p.printf(condition);
 			stm.loopIf = condition;
-			block.setMeToNumber(p, c, s, this.test.stack, stm.blockNumber);//halt
+			block.setMeToNumber(p, c, s, this.test.stack, myblock);//halt
 			
 			//share stack
+			//TODO Fix loop and wait
 			
 		}
 		
 	}
 	public static class End extends ThreadBlock {
-		public static End makeStop(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,boolean isPass1) throws CompileError{
-			return End.make(c, matcher, line, col, stm, endstop,false, isPass1);
+		public static End makeStop(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,int index,boolean isPass1) throws CompileError{
+			return End.make(c, matcher, line, col, stm, index, endstop,false, isPass1);
 		}
-		public static End makeRestart(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,boolean isPass1) throws CompileError{
-			return End.make(c, matcher, line, col, stm, endrestart,true, isPass1);
+		public static End makeRestart(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,int index,boolean isPass1) throws CompileError{
+			return End.make(c, matcher, line, col, stm, index, endrestart,true, isPass1);
 		}
-		private static End make(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,String name,boolean restart,boolean isPass1) throws CompileError{
-			End me = new End(line,col,name,restart);
+		private static End make(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,int index,String name,boolean restart,boolean isPass1) throws CompileError{
+			End me = new End(line,col,index,name,restart);
 			stm.hasBlock = false;
 			stm.isLast = true;
 			stm.hasAnonamousBlock  = true;
@@ -427,8 +449,8 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		private Equation test;
 		private final boolean restart;
 		private ThreadCall call = null;
-		public End(int line, int col, String name,boolean restart) {
-			super(line, col, name);
+		public End(int line, int col,int index, String name,boolean restart) {
+			super(line, col,index, name);
 			this.restart=restart;
 		}
 		@Override
@@ -460,7 +482,8 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 	@Override
 	public boolean willMakeBlocks() throws CompileError {
 		return this.isFirst ||
-				(this.hasAnonamousBlock);
+				(this.hasAnonamousBlock)
+				|| this.blockAccess ==Keyword.PUBLIC;
 	}
 	@Override
 	public void compileMyBlocks(Compiler c) throws CompileError {
@@ -499,5 +522,8 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 
 			s.closeFiles();
 		}
+	}
+	public Scope getOuterScope() {
+		return outerScope;
 	}
 }

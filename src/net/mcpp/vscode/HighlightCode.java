@@ -69,7 +69,7 @@ public class HighlightCode {
 			 }
 			 if(o==null) {
 				 //no match
-				 System.err.printf("wildcard\n");
+				 //System.err.printf("wildcard\n");
 				 o = find(line,m,MakeTmLanguage.unnamedMatch(".|\\n"));
 			 }
 			 if(o instanceof String) {
