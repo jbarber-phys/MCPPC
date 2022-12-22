@@ -293,6 +293,8 @@ public class Scope {
 		}else this.isDoneable = false;
 		s.children.add(this);
 	}
+	private boolean isDirectThreadblock = false;
+	
 	public Scope(Scope s,McThread thread, int block,boolean canBreak) throws CompileError {
 		this(s,thread,McThread.BLOCKF.formatted(block),canBreak);
 		
@@ -309,9 +311,13 @@ public class Scope {
 		this.myFlowNumber = 0;
 		this.isDoneable = false;
 		this.isFuncBase=false;
+		this.isDirectThreadblock = true;
 		this.addLoopLocalRef(thread.myGoto());
 		this.addLoopLocalRef(thread.waitIn());
 		this.addLoopLocalRef(thread.exit());
+		if(canBreak) {
+			//do it later
+		}
 		
 	}
 	public Scope subscope(Function f) throws CompileError{
@@ -371,8 +377,13 @@ public class Scope {
 	}
 	private Variable myBreakVar = null;
 	public Variable initializeBreakVarInMe(Compiler c,boolean add) throws CompileError {
+		//add = isPass1: (is hdr)
 		if(this.isBreakable) {
-			if(this.myBreakVar==null) {
+			if(this.myBreakVar!=null) return this.myBreakVar;
+			if (this.isDirectThreadblock) {
+				this.myBreakVar = this.thread.myBreak();
+			}
+			else  {
 				this.myBreakVar=new Variable("\"$break\"",VarType.BOOL,null,this.getSubResNoTemplate());
 				if(this.isInFunctionDefine() && this.function.canRecurr) {
 					this.function.withLocalFlowVar(this.myBreakVar, c, add);
@@ -387,8 +398,11 @@ public class Scope {
 		if(this.isBreakable) {
 			//internal scope to the loop
 			if(depth==0) {
+				if(this.isBreakable && this.myBreakVar==null) this.initializeBreakVarInMe(c, false);
 				if(this.myBreakVar==null) {
-					throw new CompileError("flowvar break initialized too late");
+					//TODO exception here
+					throw new CompileError("flowvar break initialized too late at line (%d) scope %s"
+					.formatted(c.line(),this.getSubResNoTemplate().toString()));
 				}
 				
 				return this.myBreakVar;

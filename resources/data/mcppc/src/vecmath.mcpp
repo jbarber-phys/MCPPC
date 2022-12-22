@@ -3,7 +3,7 @@
 //private const selector Sto = @e[tag=mcppc__to, limit=1];
 	//private Vec3d posfrom -> Sfrom.Pos;
 	//private Vec3d posto -> Sto.Pos;
-private const coords forward = ^ ^ ^1 ;
+public const coords forward = ^ ^ ^1 ;
 private const coords resetpos = ^ ^ ^ ;
 private const coords zeropos = 0.0 0.0 0.0 ;
 

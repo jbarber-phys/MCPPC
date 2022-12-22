@@ -114,7 +114,9 @@ public final class Regexes {
 	public static final Pattern RESOURCELOCATION=Pattern.compile(Strs.RESOURCELOCATION);
 	//below only use if you know nbt is terminated by =~;\n
 	public static final Pattern NBTPATH=Pattern.compile("((%s)|[^~;=\\n])+".formatted(Strs.STRLITSTRING));// ((%s)|[^~;=\n])+
-	public static final Pattern STM_SKIP_MSCCHAR=Pattern.compile("[^\\\";{}@\\w/]+");// [^\";{}@\w/]+
+	//public static final Pattern STM_SKIP_MSCCHAR=Pattern.compile("[^\\\";{}@\\w/]+");// [^\";{}@\w/]+
+	public static final Pattern STM_SKIP_MSCCHAR=Pattern.compile("[^\\\";{}@\\w/$]+");// [^\";{}@\w/$]+
+	
 	public static final Pattern FSLASH=Pattern.compile("/");// /
 	//more carefull nbt tag parsers
 	public static final Pattern NBT_OPEN=Pattern.compile("(?<segment>((%s)|[^~;=\\{\\}\\n])+)(\\{)".formatted(Strs.STRLITSTRING));// (?<segment>((%s)|[^~;=\{\}\n])+)(\{)

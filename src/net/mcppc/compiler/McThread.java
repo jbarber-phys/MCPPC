@@ -222,9 +222,11 @@ public class McThread {
 	public static final String GOTO= "goto";
 	public static final String WAIT= "wait";
 	public static final String EXIT= "exit";
+	public static final String BREAK= "wait";
 	public static final String OBJ_GOTO= "mcpp.goto";
 	public static final String OBJ_WAIT= "mcpp.wait";
 	public static final String OBJ_EXIT= "mcpp.exit";
+	public static final String OBJ_BREAK= "mcpp.break";
 	public Selector getSelf() {
 		if(this.isSynchronized && this.executeAs==null) {
 			return null;
@@ -243,6 +245,9 @@ public class McThread {
 	public Variable waitIn() throws CompileError {
 		return this.wait(this.getSelf());
 	}
+	public Variable myBreak() throws CompileError {
+		return this.myBreak(this.getSelf());
+	}
 	public Variable exit() throws CompileError {
 		return this.exit(this.getSelf());
 	}
@@ -257,6 +262,12 @@ public class McThread {
 			return new Variable(WAIT,VarType.INT,null,Mask.SCORE,this.path + "/" + this.name,OBJ_WAIT);
 		}
 		return new Variable(WAIT,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_WAIT);
+	}
+	public Variable myBreak(Selector e) throws CompileError {
+		if(e==null) {
+			return new Variable(BREAK,VarType.BOOL,null,Mask.SCORE,this.path + "/" + this.name,OBJ_BREAK);
+		}
+		return new Variable(BREAK,VarType.BOOL,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_BREAK);
 	}
 	public static Variable waitStatic(Selector e) throws CompileError {
 		return new Variable(WAIT,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_WAIT);
@@ -385,6 +396,11 @@ public class McThread {
 	}
 	public ResourceLocation pathRestart() {
 		Integer block = null; //not supported yet
+		return block ==null? this.subpath(RESTART)
+				: this.subpath(ENTRYF.formatted(block));
+		//startwith takes selector & entry point arg
+	}
+	public ResourceLocation pathRestart(Integer block) {
 		return block ==null? this.subpath(RESTART)
 				: this.subpath(ENTRYF.formatted(block));
 		//startwith takes selector & entry point arg

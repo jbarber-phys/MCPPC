@@ -265,6 +265,7 @@ public final class Factories {
 	public static final Token.Factory newline = new LazyNewLine(Regexes.SPACE_NEWLINE);
 	public static final Token.Factory skipDoubleBlockBrace = new LazyNewLine(Regexes.CODEBLOCKBRACEDOUBLED);
 	public static final Token.Factory skipMscChar = new LazyNewLine(Regexes.STM_SKIP_MSCCHAR);
+	public static final Token.Factory skipFslash = new LazySkip(Regexes.FSLASH,"<..skip line>");
 	//public static final Token.Factory skipFslash = new LazyNewLine(Regexes.FSLASH);
 	
 	public static final Token.Factory[] headerLnStart = {headerName,space,newline,comment,domment,Statement.Domment.factory,Token.CodeBlockBrace.unscopeFactory,skiplineEnd,skiplineMid};
@@ -339,6 +340,7 @@ public final class Factories {
 		,Token.BasicName.factory
 		,Num.factory
 		,Factories.skipMscChar
+		,Factories.skipFslash
 	};
 	/**
 	 * carefully skips over a statement returning the end term (';' or '{').

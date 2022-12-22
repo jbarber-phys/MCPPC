@@ -170,7 +170,7 @@ public class ThreadCall extends Statement {
 			defaultArgs();
 		}
 		switch(this.init) {
-		case START:{
+		case START: {
 			RStack stack = s.getStackFor();
 			this.thread.start(f, c, s, stack, block, toset);
 			stack.clear();stack.finish(c.job);
@@ -182,7 +182,9 @@ public class ThreadCall extends Statement {
 		}break;
 		case RESTART:{
 			RStack stack = s.getStackFor();
-			ThreadCall.tagAndCall(f, c, s, this.me, this.thread.pathRestart());
+			//if(this.block==null)
+			ThreadCall.tagAndCall(f, c, s, this.me, this.thread.pathRestart(this.block));
+			//TODO this is new
 			stack.clear();stack.finish(c.job);
 		}break;
 		}

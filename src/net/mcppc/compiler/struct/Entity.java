@@ -222,6 +222,7 @@ public class Entity extends Struct {
 			,Kill.instance.name,Kill.instance
 			,Count.exists.name,Count.exists
 			,Count.count.name,Count.count
+			,Clear.instance.name,Clear.instance
 			);
 	@Override 
 	public boolean hasBuiltinMethod(Variable self, String name) {
@@ -483,6 +484,50 @@ public class Entity extends Struct {
 			p.printf("execute store %s score %s if entity %s\n",this.cmdRetType, h.inCMD(),slc.toCMD());
 			stack.setVarType(home, this.getRetType(token));
 			v.setMe(p, s, stack, home);
+		}
+
+		@Override
+		public Number getEstimate(BFCallToken token) {
+			return null;
+		}
+		
+	}
+	public static class Clear extends BuiltinFunction{
+		public static Clear instance = new Clear("clear");
+		public Clear(String name) {
+			super(name);
+		}
+		public boolean isNonstaticMember() {
+			return true;
+		}
+		@Override
+		public VarType getRetType(BFCallToken token) {
+			return VarType.VOID;
+		}
+
+		@Override
+		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+			return BuiltinFunction.tokenizeArgsNone(c, matcher, line, col);
+		}
+
+		@Override
+		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
+			Variable v=token.getThisBound();
+			if(v==null)throw new CompileError("function %s must be called as a nonstaic member".formatted(this.name));
+			if(!(v.isStruct() && v.type.struct instanceof Entity))throw new CompileError("function %s must be called from an entity object".formatted(this.name));
+			Entity clazz = (Entity) v.type.struct;
+			Selector slc = clazz.getSelectorFor(v);
+			clazz.clear(p, v);
+		}
+
+		@Override
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+				throws CompileError {
+		}
+
+		@Override
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
+				throws CompileError {
 		}
 
 		@Override

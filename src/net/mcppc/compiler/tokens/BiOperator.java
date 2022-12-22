@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 
+import net.mcppc.compiler.CMath;
 import net.mcppc.compiler.CompileJob;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.OperationOrder;
@@ -320,7 +321,7 @@ public class BiOperator extends Token{
 		Register regOut=stack.getRegister(dest);
 		stack.setVarType(dest,otype);
 		//regIn.multByFloatUsingRam(p, stack, mult);//this is redundant
-		p.printf("execute store result storage %s double %s run scoreboard players get %s\n", stack.getTempRamInCmd(),mult,regIn.inCMD());
+		p.printf("execute store result storage %s double %s run scoreboard players get %s\n", stack.getTempRamInCmd(),CMath.getMultiplierFor(mult),regIn.inCMD());
 		p.printf("execute store result score %s run data get storage %s %s\n", regOut.inCMD(),stack.getTempRamInCmd(),timespow);
 		if(stack.getEstimate(in)!=null)stack.estmiate(in, stack.getEstimate(in).doubleValue()*mult);
 	}

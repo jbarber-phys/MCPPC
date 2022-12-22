@@ -1,5 +1,14 @@
 package net.mcpp.vscode;
-
+//whenever eclipse goes bad do the following
+/*
+ * https://dev-answers.blogspot.com/2009/06/eclipse-build-errors-javalangobject.html
+ * goto project > Properties
+ * View the "Libraries" tab in the "Build Path" section
+ * remove JRE system library
+ * add library: JRE system library
+ * apply and close
+ * this should fix it
+ */
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;

@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Scanner;
 import java.util.Set;
+import java.util.Stack;
 import java.util.regex.*;
 import java.util.stream.Collectors;
 
@@ -213,6 +214,8 @@ public class Compiler{
 		this.dommentCollector=dc;
 		boolean prevHeaderable = false;
 		MultiFlow flowPred=null;
+		//Stack<MultiFlow> flowPreds = new Stack<Statement.MultiFlow>();flowPreds.push(null);//this should be ok
+		//flowPreds.peek();
 		comploop: while(cursor<this.content.length()) {
 			int startline=this.line;
 			//domments go before their statement
@@ -232,12 +235,16 @@ public class Compiler{
 						//System.err.println(this.currentScope);
 						//System.err.println(this.currentScope.getSubRes().toString());
 						//System.err.println(this.currentScope.thread);
+						//System.err.printf("at: %s\n",getNextChars());
+						//cursor-=6;
+						//System.err.printf("at: %s\n",getNextChars());
 						throw new CompileError.UnexpectedToken(sm,"'{' or line;","found outside of scope");
 						
 					}
 					CompileJob.compileHdrLog.println("header: block end: '%s', line %d col %d.".formatted(sm.asString(),this.line,this.cursor-this.lineStart));
 						
 					this.currentScope=this.currentScope.superscope();
+					//flowPreds.pop();
 					continue comploop;
 				}
 			}
@@ -252,20 +259,39 @@ public class Compiler{
 			if(sm instanceof Statement)headerlines.add((Statement) sm);
 			//NEW:
 			if(sm instanceof Statement.MultiFlow) {
+				//System.err.printf("flowPreds = %s\n",flowPreds);
 				//System.err.printf("multiflow %s\n", ((Statement.MultiFlow)sm).getFlowType());
+				//MultiFlow flowPred = flowPreds.peek();
 				if(flowPred!=null && ((Statement.MultiFlow)sm).recive())
-					if(!((MultiFlow) sm).setPredicessor(flowPred)) 
+					if(!((MultiFlow) sm).setPredicessor(flowPred)) {
+						System.err.printf("before %s\n", this.currentScope.getSubRes().toString());
+						if(sm instanceof IfElse) {
+							Scope ss=((IfElse)sm).getNewScope();
+							System.err.printf("ifelse %s\n", ss.getSubRes().toString());
+						}
 						throw new CompileError("%s cannot be sent as predicessor to a %s statement;"
 								.formatted(flowPred.getFlowType(),((MultiFlow) sm).getFlowType()));
+					}
 				
-				if(flowPred==null && ((Statement.MultiFlow)sm).sendForward())flowPred=(MultiFlow) sm;
-				else if(flowPred!=null && ((Statement.MultiFlow)sm).sendForward()&& ((Statement.MultiFlow)sm).claim())flowPred=(MultiFlow) sm;
-				if(!((Statement.MultiFlow)sm).sendForward())flowPred=null;
+				if(flowPred==null && ((Statement.MultiFlow)sm).sendForward()) {
+					flowPred=(MultiFlow) sm;
+					//flowPreds.pop();flowPreds.push((MultiFlow) sm);
+				}
+				else if(flowPred!=null && ((Statement.MultiFlow)sm).sendForward()&& ((Statement.MultiFlow)sm).claim()) {
+					flowPred=(MultiFlow) sm;
+					//flowPreds.pop();flowPreds.push((MultiFlow) sm);
+				}
+				if(!((Statement.MultiFlow)sm).sendForward()) {
+					flowPred=null;
+					//flowPreds.pop();flowPreds.push(null);
+					
+				}
 			}
 			if(sm instanceof Statement.CodeBlockOpener && ((Statement.CodeBlockOpener) sm).didOpenCodeBlock()) {
 				
 				
 				this.currentScope=((Statement.CodeBlockOpener) sm).getNewScope();
+				//flowPreds.push(null);
 				//if(sm instanceof ThreadStm) System.err.println("opened thread");
 			}
 		}
@@ -509,5 +535,10 @@ public class Compiler{
 				
 		}return true;
 		
+	}
+	public String getNextChars() {
+		String s=(this.content.length()-10>this.cursor)?this.content.substring(this.cursor, this.cursor+10)
+				: this.content.substring(this.cursor)+"<EOF>";
+		return s;
 	}
 }

@@ -362,7 +362,7 @@ public class FloatpN extends Struct {
 			stack.getRegister(pout).operation(p, "=", stack.getRegister(pin));
 			pin=pout;
 		}
-		p.printf("execute store result storage %s double %s run scoreboard players get %s\n", stack.getTempRamInCmd(),factor,regIn.inCMD());
+		p.printf("execute store result storage %s double %s run scoreboard players get %s\n", stack.getTempRamInCmd(),CMath.getMultiplierFor(factor),regIn.inCMD());
 		p.printf("execute store result score %s run data get storage %s %s\n", regOut.inCMD(),stack.getTempRamInCmd(),1);
 		if(pin!=pout) {
 			stack.getRegister(pout).operation(p, "=", stack.getRegister(pin));

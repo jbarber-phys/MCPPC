@@ -215,9 +215,11 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 	}
 	@Override
 	public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
+		//System.err.println("adding to block end from after statements " + s.getSubRes().toString());
 		for(ThreadBlock block: this.afterMe.blockControls) {
 			block.addToEndOfBeforeBlock(p, c, s, this);
 		}
+		//System.err.println("adding to block end from before statements " + s.getSubRes().toString());
 		for(ThreadBlock block: this.blockControls) {
 			block.addToEndOfAfterBlock(p, c, s, this);
 		}
@@ -332,31 +334,43 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 			if(args.nargs()!=1) throw new CompileError("wrong number of args in wait(...) statement; expected 1 but got %d;"
 					.formatted(args.nargs()));
 			me.delay=(Equation) args.arg(0);
+			me.isAfterLoop = stm.loop;
 			return me;
 		}
 		//for mch
 		public static final String name = "wait";
 		private Equation delay;
+		private boolean isAfterLoop = false;
 		public Delay(int line, int col,int index, String name) {
 			super(line, col,index, name);
 		}
 		@Override
 		public void addToEndOfBeforeBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
-			if(!stm.loop || stm.loopindex > this.index) this.add(p, c, s, stm);
+			if(!stm.loop || stm.loopindex > this.index) this.add(p, c, s, stm,true);
 		}
 		
-		public void add(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
+		public void add(PrintStream p, Compiler c, Scope s, ThreadStm stm, boolean before) throws CompileError {
+			//System.err.println("wait compiling before = " + before + ", loop = " + this.isAfterLoop);
 			Variable time = stm.myThread.waitIn();
 			//p.printf("#enter Delay::add ; time = %s :: %s\n",time.getHolder(),time.getAddress());
 			this.delay.compileOps(p, c, s, VarType.INT);
-			if(stm.loopIf!=null)
-				p.printf(stm.loopIf);
-			this.delay.setVar(p, c, s, time);
+			//dont set the wait if we are AFTER a loop control but editing the block BEFORE
+			if (!before) {
+				if(stm.loopIf!=null)
+					p.printf(stm.loopIf);
+				this.delay.setVar(p, c, s, time);
+			}else if (!isAfterLoop){
+				if(stm.loopIf!=null)
+					p.printf(stm.loopIf);//unreachable
+				this.delay.setVar(p, c, s, time);
+			}else {
+				System.err.println("skipped delay");
+			}
 			//p.printf("#exit Delay::add ;\n");
 		}
 		@Override
 		public void addToEndOfAfterBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
-			if(stm.loop && stm.loopindex < this.index) this.add(p, c, s, stm);
+			if(stm.loop && stm.loopindex < this.index) this.add(p, c, s, stm,false);
 		}
 		
 	}
@@ -405,17 +419,33 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 			this.add(p, c, s, stm,false);
 		}
 		public void add(PrintStream p, Compiler c, Scope s, ThreadStm stm,boolean isBefore) throws CompileError {
+			//System.err.println("loop compiling " );
 			Variable block = stm.myThread.myGoto();
 			Variable breakv = stm.mySubscope.makeAndgetBreakVarInMe(c);
 			int myblock = this.loopBlock.blockNumber;
-			if(isBefore)block.setMeToNumber(p, c, s, this.test.stack, myblock+1);//halt
+			int afterblock = this.loopBlock.blockNumber + 1;
+			if(isBefore) {
+				//skip looping if there was a goto
+				String condition = String.format("execute if score %s matches %d run ",block.scorePhrase(),myblock);
+				p.printf(condition);
+			}
+			if(isBefore)block.setMeToNumber(p, c, s, this.test.stack, afterblock);//halt
 			this.test.compileOps(p, c, s, VarType.INT);
 			int home = this.test.setReg(p, c, s, VarType.INT);
 			String ifu= !this.inverted? "if" : "unless";
 			Register flag = this.test.stack.getRegister(home);
-			String condition = String.format("execute %s %s unless %s run ", ifu,flag.testMeInCMD(),breakv.isTrue());
+			String precondition = "";
+			String precondition2 = "";
+			if(isBefore) {
+				//skip looping if there was a goto
+				precondition = String.format("if score %s matches %s ",block.scorePhrase(),afterblock);
+				precondition2 = String.format("if score %s matches %s ",block.scorePhrase(),myblock);
+			}
+			String condition = String.format("execute %s%s %s unless %s run ",precondition, ifu,flag.testMeInCMD(),breakv.isTrue());
+			String condition2 = String.format("execute %s%s %s unless %s run ",precondition2, ifu,flag.testMeInCMD(),breakv.isTrue());
+
 			p.printf(condition);
-			stm.loopIf = condition;
+			stm.loopIf = condition2;
 			block.setMeToNumber(p, c, s, this.test.stack, myblock);//halt
 			
 			//share stack
