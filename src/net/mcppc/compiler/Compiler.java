@@ -213,9 +213,10 @@ public class Compiler{
 		};
 		this.dommentCollector=dc;
 		boolean prevHeaderable = false;
-		MultiFlow flowPred=null;
-		//Stack<MultiFlow> flowPreds = new Stack<Statement.MultiFlow>();flowPreds.push(null);//this should be ok
+		//MultiFlow flowPred=null;
+		Stack<MultiFlow> flowPreds = new Stack<Statement.MultiFlow>();flowPreds.push(null);//this should be ok
 		//flowPreds.peek();
+		//System.err.printf("file %s\n", this.resourcelocation.toString());
 		comploop: while(cursor<this.content.length()) {
 			int startline=this.line;
 			//domments go before their statement
@@ -244,7 +245,8 @@ public class Compiler{
 					CompileJob.compileHdrLog.println("header: block end: '%s', line %d col %d.".formatted(sm.asString(),this.line,this.cursor-this.lineStart));
 						
 					this.currentScope=this.currentScope.superscope();
-					//flowPreds.pop();
+					MultiFlow mf = flowPreds.pop();
+					//System.err.printf("scoped out of something, multiflow inside is %s\n", mf);
 					continue comploop;
 				}
 			}
@@ -261,37 +263,42 @@ public class Compiler{
 			if(sm instanceof Statement.MultiFlow) {
 				//System.err.printf("flowPreds = %s\n",flowPreds);
 				//System.err.printf("multiflow %s\n", ((Statement.MultiFlow)sm).getFlowType());
-				//MultiFlow flowPred = flowPreds.peek();
+				MultiFlow flowPred = flowPreds.peek();
 				if(flowPred!=null && ((Statement.MultiFlow)sm).recive())
 					if(!((MultiFlow) sm).setPredicessor(flowPred)) {
-						System.err.printf("before %s\n", this.currentScope.getSubRes().toString());
-						if(sm instanceof IfElse) {
-							Scope ss=((IfElse)sm).getNewScope();
-							System.err.printf("ifelse %s\n", ss.getSubRes().toString());
-						}
+						//System.err.printf("before %s\n", this.currentScope.getSubRes().toString());
 						throw new CompileError("%s cannot be sent as predicessor to a %s statement;"
 								.formatted(flowPred.getFlowType(),((MultiFlow) sm).getFlowType()));
+						//TODO bug predicessor is not adaquitely done recursively
+						
+						//TODO the stack solution breaks; probably function's fault (stak empty exception)
 					}
 				
 				if(flowPred==null && ((Statement.MultiFlow)sm).sendForward()) {
-					flowPred=(MultiFlow) sm;
-					//flowPreds.pop();flowPreds.push((MultiFlow) sm);
+					//flowPred=(MultiFlow) sm;
+					flowPreds.pop();flowPreds.push((MultiFlow) sm);
 				}
 				else if(flowPred!=null && ((Statement.MultiFlow)sm).sendForward()&& ((Statement.MultiFlow)sm).claim()) {
-					flowPred=(MultiFlow) sm;
-					//flowPreds.pop();flowPreds.push((MultiFlow) sm);
+					//flowPred=(MultiFlow) sm;
+					flowPreds.pop();flowPreds.push((MultiFlow) sm);
 				}
 				if(!((Statement.MultiFlow)sm).sendForward()) {
-					flowPred=null;
-					//flowPreds.pop();flowPreds.push(null);
+					//flowPred=null;
+					flowPreds.pop();flowPreds.push(null);
 					
 				}
+			}else {
+				//dis-allow statements in between multi-flow blocks
+				//this is suprisingly new
+				//flowPred=null;
+				flowPreds.pop();flowPreds.push(null);
 			}
 			if(sm instanceof Statement.CodeBlockOpener && ((Statement.CodeBlockOpener) sm).didOpenCodeBlock()) {
 				
 				
 				this.currentScope=((Statement.CodeBlockOpener) sm).getNewScope();
-				//flowPreds.push(null);
+				flowPreds.push(null);
+				//System.err.printf("scoped into a %s\n",sm);
 				//if(sm instanceof ThreadStm) System.err.println("opened thread");
 			}
 		}
@@ -394,6 +401,10 @@ public class Compiler{
 				if(flowPred==null && ((Statement.MultiFlow)sm).sendForward())flowPred=(MultiFlow) sm;
 				else if(flowPred!=null && ((Statement.MultiFlow)sm).sendForward()&& ((Statement.MultiFlow)sm).claim())flowPred=(MultiFlow) sm;
 				if(!((Statement.MultiFlow)sm).sendForward())flowPred=null;
+			}else {
+				//dis-allow statements in between multi-flow blocks
+				//this is suprisingly new
+				flowPred=null;
 			}
 			if(sm instanceof Statement.CodeBlockOpener && ((Statement.CodeBlockOpener) sm).didOpenCodeBlock()) {
 				

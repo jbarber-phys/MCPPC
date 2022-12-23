@@ -222,11 +222,13 @@ public class McThread {
 	public static final String GOTO= "goto";
 	public static final String WAIT= "wait";
 	public static final String EXIT= "exit";
-	public static final String BREAK= "wait";
+	public static final String BREAK_F= "thread.break_%d";
 	public static final String OBJ_GOTO= "mcpp.goto";
 	public static final String OBJ_WAIT= "mcpp.wait";
 	public static final String OBJ_EXIT= "mcpp.exit";
-	public static final String OBJ_BREAK= "mcpp.break";
+	public static final String OBJ_BREAK_F= "mcpp.thread.break_%d";
+	public static String getObjBreak(int block) {return OBJ_BREAK_F.formatted(block);};
+	public static String getBreak(int block) {return BREAK_F.formatted(block);};
 	public Selector getSelf() {
 		if(this.isSynchronized && this.executeAs==null) {
 			return null;
@@ -245,8 +247,8 @@ public class McThread {
 	public Variable waitIn() throws CompileError {
 		return this.wait(this.getSelf());
 	}
-	public Variable myBreak() throws CompileError {
-		return this.myBreak(this.getSelf());
+	public Variable myBreakVar(int block) throws CompileError {
+		return this.myBreakVar(this.getSelf(),block);
 	}
 	public Variable exit() throws CompileError {
 		return this.exit(this.getSelf());
@@ -263,11 +265,11 @@ public class McThread {
 		}
 		return new Variable(WAIT,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_WAIT);
 	}
-	public Variable myBreak(Selector e) throws CompileError {
+	public Variable myBreakVar(Selector e, int block) throws CompileError {
 		if(e==null) {
-			return new Variable(BREAK,VarType.BOOL,null,Mask.SCORE,this.path + "/" + this.name,OBJ_BREAK);
+			return new Variable(getBreak(block),VarType.BOOL,null,Mask.SCORE,this.path + "/" + this.name,getObjBreak(block));
 		}
-		return new Variable(BREAK,VarType.BOOL,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_BREAK);
+		return new Variable(getBreak(block),VarType.BOOL,null,Mask.SCORE,"","").maskEntityScore(e, getObjBreak(block));
 	}
 	public static Variable waitStatic(Selector e) throws CompileError {
 		return new Variable(WAIT,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_WAIT);
@@ -417,7 +419,9 @@ public class McThread {
 	}
 	public void createSubsBlocks(Compiler c) throws CompileError {
 		//TODO bug c.currentScope is not what it should be; switch to using Scope thread
-		Scope start = new Scope(this.firstControl.getOuterScope(),this,START,false);
+		
+		//TODO get block number for key blocks
+		Scope start = new Scope(this.firstControl.getOuterScope(),this,START,false,this.firstControl.getBlockNumber());
 		Selector self = this.truestartSelf();
 		try {
 			PrintStream p = start.open(c.job);
@@ -430,7 +434,7 @@ public class McThread {
 		}
 		start.closeFiles();
 		
-		Scope stop = new Scope(this.firstControl.getOuterScope(),this,STOP,false);
+		Scope stop = new Scope(this.firstControl.getOuterScope(),this,STOP,false,this.firstControl.getBlockNumber());
 		try {
 			PrintStream p = stop.open(c.job);
 			RStack stack = stop.getStackFor();
@@ -442,7 +446,7 @@ public class McThread {
 		}
 		stop.closeFiles();
 		
-		Scope restart = new Scope(this.firstControl.getOuterScope(),this,RESTART,false);
+		Scope restart = new Scope(this.firstControl.getOuterScope(),this,RESTART,false,this.firstControl.getBlockNumber());
 		try {
 			PrintStream p = restart.open(c.job);
 			RStack stack = restart.getStackFor();
@@ -453,7 +457,7 @@ public class McThread {
 			throw new CompileError("File not found for %s".formatted(restart.getSubRes().toString()));
 		}
 		restart.closeFiles();
-		Scope tick = new Scope(this.firstControl.getOuterScope(),this,TICK,false);
+		Scope tick = new Scope(this.firstControl.getOuterScope(),this,TICK,false,this.firstControl.getBlockNumber());
 		try {
 			PrintStream p = tick.open(c.job);
 			RStack stack = tick.getStackFor();
@@ -506,6 +510,9 @@ public class McThread {
 		p.printf("scoreboard objectives add %s dummy\n", OBJ_GOTO);
 		p.printf("scoreboard objectives add %s dummy\n", OBJ_EXIT);
 		p.printf("scoreboard objectives add %s dummy\n", OBJ_WAIT);
+		for(int i=1;i<=ns.maxThreadBreaks;i++) {
+			p.printf("scoreboard objectives add %s dummy\n", getObjBreak(i));
+		}
 	}
 	public static boolean onTick(PrintStream p, CompileJob job,Namespace ns) throws CompileError {
 		//System.out.printf("making %d threads in namespace %s;\n", ns.threads.size(),ns.name);

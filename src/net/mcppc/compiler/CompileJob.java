@@ -94,6 +94,7 @@ public class CompileJob {
 		public final boolean isExternal;
 		//File dataDir;//depricated; is asociated with multiple locations; CompileJob has methods for this instead;
 		int maxNumRegisters;
+		int maxThreadBreaks;
 		List<Path> srcFilesRel=new ArrayList<Path>();
 		final Map<String, Variable> objectives = new HashMap<String,Variable>();
 
@@ -119,6 +120,9 @@ public class CompileJob {
 		}
 		public void fillMaxRegisters(int i) {
 			this.maxNumRegisters=Math.max(this.maxNumRegisters, i);
+		}
+		public void fillMaxThreadBreaks(int i) {
+			this.maxThreadBreaks=Math.max(this.maxThreadBreaks, i);
 		}
 		public boolean isMC() {
 			return this.name.equals(MINECRAFT);

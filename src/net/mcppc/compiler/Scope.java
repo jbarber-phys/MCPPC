@@ -294,12 +294,12 @@ public class Scope {
 		s.children.add(this);
 	}
 	private boolean isDirectThreadblock = false;
-	
+	private int threadBlockNumber=-1;
 	public Scope(Scope s,McThread thread, int block,boolean canBreak) throws CompileError {
-		this(s,thread,McThread.BLOCKF.formatted(block),canBreak);
+		this(s,thread,McThread.BLOCKF.formatted(block),canBreak,block);
 		
 	}
-	public Scope(Scope s,McThread thread, String suffix,boolean canBreak) throws CompileError {
+	public Scope(Scope s,McThread thread, String suffix,boolean canBreak, int block) throws CompileError {
 		this.parent=s;
 		this.function=null;
 		this.template=null;
@@ -309,6 +309,7 @@ public class Scope {
 		s.children.add(this);
 		this.isBreakable=canBreak;
 		this.myFlowNumber = 0;
+		this.threadBlockNumber=block;
 		this.isDoneable = false;
 		this.isFuncBase=false;
 		this.isDirectThreadblock = true;
@@ -381,7 +382,10 @@ public class Scope {
 		if(this.isBreakable) {
 			if(this.myBreakVar!=null) return this.myBreakVar;
 			if (this.isDirectThreadblock) {
-				this.myBreakVar = this.thread.myBreak();
+				//this.myBreakVar = this.thread.myBreak();//this link breaks the break statements in threads
+				this.myBreakVar = this.thread.myBreakVar(this.threadBlockNumber);//TODO test this
+				//but this line will break if synchronized
+				//this.myBreakVar=new Variable("\"$break\"",VarType.BOOL,null,this.getSubResNoTemplate());
 			}
 			else  {
 				this.myBreakVar=new Variable("\"$break\"",VarType.BOOL,null,this.getSubResNoTemplate());

@@ -181,6 +181,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 	McThread myThread;
 	
 	int blockNumber = 1;//starts at 1
+	public int getBlockNumber() {return this.blockNumber;}
 	String blockName;
 	Keyword blockAccess;
 	
@@ -216,6 +217,11 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 	@Override
 	public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
 		//System.err.println("adding to block end from after statements " + s.getSubRes().toString());
+		if(this.afterMe==null) {
+			//you forgot to end the thread statement
+			throw new CompileError("thread %s.%s ended without a 'next start / restart;' statement"
+					.formatted(c.resourcelocation,this.myThread.getName()));
+		}
 		for(ThreadBlock block: this.afterMe.blockControls) {
 			block.addToEndOfBeforeBlock(p, c, s, this);
 		}
@@ -233,6 +239,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 	@Override
 	public void compileMe(PrintStream p, Compiler c, Scope s) throws CompileError {
 		//System.err.printf("thread %s\n", this.myThread);
+		c.namespace.fillMaxThreadBreaks(this.blockNumber);
 		if(this.isLast) {
 			for(ThreadBlock block: this.blockControls) {
 				block.addToDeclaration(p, c, s, this);
@@ -534,7 +541,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		}
 		if(this.blockAccess ==Keyword.PUBLIC) {
 			// start at or restart at
-			Scope s = new Scope(c.currentScope,this.myThread,McThread.ENTRYF.formatted(this.blockNumber),this.canBreak());
+			Scope s = new Scope(c.currentScope,this.myThread,McThread.ENTRYF.formatted(this.blockNumber),this.canBreak(),this.blockNumber);
 			try {
 				PrintStream p = s.open(c.job);
 				this.myThread.truestart(p, c, s, mystack, this.myThread.truestartSelf(), blockNumber);

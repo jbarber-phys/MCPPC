@@ -323,7 +323,11 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 				if((!(term instanceof Token.CodeBlockBrace)) || (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{");
 				//{...}
 				//let Compiler.... handle it
-				c.currentScope=c.currentScope.subscope(d.function);
+				
+				//c.currentScope=c.currentScope.subscope(d.function);
+				d.defineScope=c.currentScope.subscope(d.function);
+				//this is a recent change; it will add scopes to childeren on both pass 1 and 2, but the scope
+				// from pass 1 is tossed (and flow-blocks do this) so it should have no affect
 			}
 			return d;
 		}else {
