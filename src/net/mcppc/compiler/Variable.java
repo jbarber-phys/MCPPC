@@ -311,10 +311,12 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		}break;
 		case SCORE:{
 			mult=Math.pow(10, -regType.getPrecision(s)+this.type.getPrecision(s));
+			//TODO
+			String iholder = "mcppc:scoreholder__/dumps___";
 			f.println("execute store result storage %s \"$dumps\".%s %s %s run scoreboard players get %s"
-					.formatted(this.holder,this.name,tagtype,CMath.getMultiplierFor(mult),reg.inCMD()));
+					.formatted(iholder,this.name,tagtype,CMath.getMultiplierFor(mult),reg.inCMD()));
 			f.println("execute store result score %s %s run data get storage %s \"$dumps\".%s"
-					.formatted(this.holder,this.getAddressToGetset(),this.holder,this.name));
+					.formatted(this.holder,this.getAddressToGetset(),iholder,this.name));
 			
 		}break;
 		}
@@ -350,10 +352,11 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		}break;
 		case SCORE:{
 			mult=Math.pow(10, -cmdType.getPrecision(s)+this.type.getPrecision(s));
+			String iholder = "mcppc:scoreholder__/dumps___";
 			f.println("execute store %s storage %s \"$dumps\".%s %s %s run %s\n"
-					.formatted(resultsuccess,this.holder,this.name,tagtype,CMath.getMultiplierFor(mult),cmd));
+					.formatted(resultsuccess,iholder,this.name,tagtype,CMath.getMultiplierFor(mult),cmd));
 			f.println("execute store result score %s %s run data get storage %s \"$dumps\".%s\n"
-					.formatted(this.holder,this.getAddressToGetset(),this.holder,this.name));
+					.formatted(this.holder,this.getAddressToGetset(),iholder,this.name));
 			
 		}break;
 		}
