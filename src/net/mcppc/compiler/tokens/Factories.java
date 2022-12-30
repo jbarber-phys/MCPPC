@@ -48,6 +48,8 @@ public final class Factories {
 			case THREAD:
 			case NEXT:
 				return ThreadStm.skipMe(c, matcher, line, col, w);
+			case TAG,TICK,LOAD:
+				return TagStatement.skipMe(c, matcher, line, col, w);
 			default:{
 				//don't include in header
 			}
@@ -109,6 +111,9 @@ public final class Factories {
 			case GOTO:{
 				isGoto=true;//normal var under the hood
 			}break;
+
+			case TAG,TICK,LOAD:
+				return TagStatement.makeMe(c, matcher, line, col, w);
 			default:
 				break;
 

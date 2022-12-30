@@ -41,6 +41,10 @@ public enum Keyword {
 	STOP("stop"), //call to stop a thread;
 	GOTO("goto"),
 	WAIT("wait"),
+	TAG("tag"),
+	TICK("tick"),
+	LOAD("load"),
+	
 	;
 	
 	public static final Map<String,Keyword> VALUES = new HashMap<String, Keyword>();

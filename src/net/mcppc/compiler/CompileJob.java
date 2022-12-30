@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.Stack;
@@ -294,6 +295,14 @@ public class CompileJob {
 		Path p=this.rootDatapack.resolve(CompileJob.DATA).resolve("minecraft/tags/functions").resolve("tick"+"."+CompileJob.EXT_JSON);
 		return p;
 	}
+	public Path pathForTag(ResourceLocation tag) {
+		String pack = tag.namespace;
+		String sub = tag.path;
+		Path p=this.rootDatapack.resolve(CompileJob.DATA).resolve(pack).resolve("tags/functions").resolve(sub+"."+CompileJob.EXT_JSON);
+		return p;
+	}
+	public static final ResourceLocation TAG_TICK = new ResourceLocation(MINECRAFT,"tick");
+	public static final ResourceLocation TAG_LOAD = new ResourceLocation(MINECRAFT,"load");
 	public Path pathForPackMcmeta() {
 		Path p=this.rootDatapack.resolve(CompileJob.PACK_MCMETA);
 		return p;
@@ -577,8 +586,15 @@ public class CompileJob {
 	private void genNamespaceEntityTickFunction(PrintStream p,Namespace ns) throws CompileError {
 		McThread.onEntityTick(p, this, ns);
 	}
+	private Map<ResourceLocation,List<ResourceLocation>> taggedFunctions = new HashMap<ResourceLocation,List<ResourceLocation>>();
+	public void addTaggedFunction(ResourceLocation tag, ResourceLocation function) {
+		if(!this.taggedFunctions.containsKey(tag)) {
+			this.taggedFunctions.put(tag, new ArrayList<ResourceLocation>());
+		}
+		this.taggedFunctions.get(tag).add(function);
+	}
+	
 	public void genNamespaceFunctionsAndTags() {
-		//TODO respond to TAG statements
 		
 		//load tag
 		for(Namespace ns: this.namespaces.values()) {
@@ -622,6 +638,9 @@ public class CompileJob {
 				
 			}
 			
+		}
+		if(this.taggedFunctions.containsKey(TAG_LOAD)) {
+			loads.addAll(this.taggedFunctions.get(TAG_LOAD));
 		}
 		if(loads.size()==0) {
 			CompileJob.compileMcfLog.printf("didn't make any namespaces;\n");return;
@@ -701,6 +720,10 @@ public class CompileJob {
 			}
 			
 		}
+
+		if(this.taggedFunctions.containsKey(TAG_TICK)) {
+			ticks.addAll(this.taggedFunctions.get(TAG_TICK));
+		}
 		if(ticks.size()==0) {
 			CompileJob.compileMcfLog.printf("didn't make any namespaces;\n");return;
 		}
@@ -726,6 +749,38 @@ public class CompileJob {
 			e.printStackTrace();
 		}finally {
 			if(tagtick!=null)tagtick.close();
+		}
+		for(Entry<ResourceLocation, List<ResourceLocation>> en: this.taggedFunctions.entrySet()) {
+			ResourceLocation tag = en.getKey();
+			if(tag.equals(TAG_TICK)) continue;//already done
+			if(tag.equals(TAG_LOAD)) continue;//already done
+			List<ResourceLocation> functions = en.getValue();
+			if(functions.size()==0) {
+				continue;
+			}
+			PrintStream tagtag=null;
+			try {
+				File f=this.pathForTag(tag).toFile();
+				f.getParentFile().mkdirs();
+				f.createNewFile();
+				tagtag=new PrintStream(f);
+				List<String> values=ResourceLocation.strings(functions);
+				
+				/*//old
+				String fill=String.join(",\n\t\t", values);
+				tagtick.printf("{\n\t\"values\": [\n\t\t%s\n\t]\n}", fill);
+				*/
+				Map<String,Object> json = Map.of("values",values);
+				JsonMaker.printAsJson(tagtag, json, true, 0);
+				
+				CompileJob.compileMcfLog.printf("successfully made tag: %s;\n",tag);
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}finally {
+				if(tagtag!=null)tagtag.close();
+			}
 		}
 	}
 	public boolean checkForCircularRuns() {

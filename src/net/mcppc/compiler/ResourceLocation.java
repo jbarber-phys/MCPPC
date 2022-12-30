@@ -11,6 +11,7 @@ import java.util.regex.Matcher;
 
 import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
 /**
@@ -23,6 +24,9 @@ public class ResourceLocation {
 	@FunctionalInterface
 	public static interface IPathGetter{
 		public Path get(ResourceLocation res);
+	}
+	public static ResourceToken getNext(Compiler c) throws CompileError {
+		return (ResourceToken)c.nextNonNullMatch(Factories.genericLook(ResourceToken.factory));
 	}
 	public static class ResourceToken extends Token {
 		public static final Factory factory = new Factory(Regexes.RESOURCELOCATION) {
