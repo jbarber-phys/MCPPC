@@ -33,6 +33,15 @@ public abstract class CMath {
 		if(n instanceof Short)return true;
 		return false;
 	}
+	/**
+	 * makes a number OK for being a multiplier by removing scientific notation
+	 * it appears that sci notation in mcfunctions is allowed ONLY in data tags (including in set value statements)
+	 * multipliers and /tp raw number args cannot have sci notation
+	 * 
+	 * if sci notation is used, the f must go after the exp, like: -1.0e-1f
+	 * @param num
+	 * @return
+	 */
 	public static String getMultiplierFor(double num) {
 		//TODO there is a bug in MC: SCI NOT works in tag values but not in multipliers for /data get ... # ;  and /execute store ... # ;
 		return removeSciNot(num);

@@ -157,7 +157,28 @@ public abstract class Struct {
 	public boolean canCasteFrom(VarType from,VarType mytype) { 
 		//do nothing if they are equal
 		return from.equals(mytype);
-		}
+	}
+	/**
+	 * determines if a variable of this type is equivalent to a const value
+	 * this is very uncommmon and is basically only for the Entity types (which can cast to a const selector)
+	 * @param type
+	 * @return
+	 */
+	public boolean isConstEquivalent(VarType type) {
+		return false;
+	}
+	/**
+	 * returns the const equivalent of this variable (such as the selector of an entity); return null if invalid
+	 * @param v
+	 * @param row
+	 * @param col
+	 * @return
+	 * @throws CompileError 
+	 */
+	public ConstExprToken getConstEquivalent(Variable v,int row,int col) throws CompileError {
+		//this should never be called
+		throw new CompileError("cannot convert %s of type %s to a const expression".formatted(v.name,v.getType().asString()));
+	}
 	public void castRegistersFrom(PrintStream p, Scope s,RStack stack,int start,VarType old, VarType mytype) throws CompileError{
 		//do nothing
 	}

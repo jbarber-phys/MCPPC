@@ -18,11 +18,11 @@ import net.mcppc.compiler.functions.PrintCode;
 import net.mcppc.compiler.functions.PrintF;
 import net.mcppc.compiler.functions.Tp;
 import net.mcppc.compiler.struct.Struct;
+import net.mcppc.compiler.tokens.Bool;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.TemplateArgsToken;
 import net.mcppc.compiler.tokens.Token;
-import net.mcppc.compiler.tokens.Token.Bool;
 
 /**
  * represents an object that is called like a function but it is able to interact directly with the compiler

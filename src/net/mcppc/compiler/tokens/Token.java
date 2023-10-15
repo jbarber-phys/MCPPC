@@ -1,7 +1,6 @@
 package net.mcppc.compiler.tokens;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.regex.*;
 
 import net.mcppc.compiler.CompileJob;
@@ -197,47 +196,6 @@ public abstract class Token {
 		}
 		@Override public String asString() {
 			return forward?"<":">";
-		}
-	}
-	public static class Bool extends Const.ConstLiteralToken implements INbtValueProvider{
-		public static final Factory factory = new Factory(Regexes.BOOL) {
-			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
-				c.cursor=matcher.end();
-				return new Bool(line,col,matcher.group(1)!=null);
-			}};
-		public final boolean val;
-		public final VarType type=VarType.BOOL;
-		public Bool(int line, int col,boolean val) {
-			super(line, col,ConstType.BOOLIT);
-			this.val=val;
-		}
-		@Override public String asString() {
-			return val?"true":"false";
-		}
-		@Override
-		public String textInHdr(){
-			return this.asString();
-		}
-		@Override
-		public int valueHash() {
-			return Objects.hash(val);
-		}
-		@Override
-		public String resSuffix() {
-			return "bool_%s".formatted(this.asString());
-		}
-
-		@Override
-		public boolean hasData() {
-			return true;
-		}
-		@Override
-		public String fromCMDStatement() {
-			return INbtValueProvider.VALUE.formatted(this.type.boolToStringNumber(this.val));
-		}
-		@Override
-		public VarType getType() {
-			return this.type;
 		}
 	}
 	public static class CodeBlockBrace extends AbstractBracket{

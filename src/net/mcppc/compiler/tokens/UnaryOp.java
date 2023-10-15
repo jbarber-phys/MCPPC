@@ -80,6 +80,9 @@ public class UnaryOp extends Token {
 	public boolean isUminus() {
 		return this.op==UOType.UMINUS;
 	}
+	public UOType getOpType() {
+		return this.op;
+	}
 	public static void unaryNegatize(PrintStream p,Compiler c,Scope s, RStack stack,Integer home) {
 		VarType type=stack.getVarType(home);
 		if(!type.isNumeric())Warnings.warning("tried to negatize non-numeric type");

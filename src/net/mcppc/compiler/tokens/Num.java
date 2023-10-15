@@ -178,6 +178,42 @@ public class Num extends Const.ConstLiteralToken implements INbtValueProvider{
 		}
 		return new Num(this.line,this.col,result,ntype);
 	}
+	public Num toPow(Number e) {
+		return this.type.isFloatP()? 
+				new Num(line,col,Math.pow(this.value.doubleValue(), e.doubleValue()),this.type) :
+				new Num(line,col,(long)Math.pow(this.value.doubleValue(), e.doubleValue()),this.type) ;//TODO
+	}
+	public static Num addsub (Num a,Num b,boolean add) {
+		double n1=a.value.doubleValue();double n2=b.value.doubleValue();
+		double result=add?n1+n2 : n1-n2;
+		VarType ntype=a.type;
+		if(!a.type.isFloatP()) {
+			ntype=b.type;
+		}else {
+			if(b.type.isFloatP()) {
+				//2 floats
+				//use sig fig rules
+				int newPrecision;
+				try {
+					newPrecision = (int) Math.min(a.type.getPrecision(null), b.type.getPrecision(null));
+				} catch (CompileError e) {
+					e.printStackTrace();
+					//unreachable
+					newPrecision=0;
+				}
+				ntype=VarType.doubleWith(newPrecision);
+			}
+		}
+		if(ntype.isFloatP())return new Num(a.line,a.col,result,ntype);
+		else return new Num(a.line,a.col,(long)result,ntype);
+	}
+	public static Num minus (Num in) {
+		double n1=-in.value.doubleValue();
+		long n2 = -in.value.longValue();
+		VarType ntype=in.type;
+		if(ntype.isFloatP())return new Num(in.line,in.col,n1,ntype);
+		else return new Num(in.line,in.col,(long)n2,ntype);
+	}
 	@Override
 	public String textInHdr() {
 		if(this.value==null)return "null";
@@ -229,5 +265,14 @@ public class Num extends Const.ConstLiteralToken implements INbtValueProvider{
 			return getNumber(ce,requireType);
 		}
 		return null;
+	}
+	public static void registerOps() {
+		Const.ConstType num = ConstType.NUM;
+		Const.registerBiOp(num, BiOperator.OpType.MULT, num, (a,b) ->{ return ((Num)a).times((Num) b);});
+		Const.registerBiOp(num, BiOperator.OpType.DIV, num, (a,b) ->{ return ((Num)a).divby((Num) b);});
+		Const.registerBiOp(num, BiOperator.OpType.SUB, num, (a,b) ->{ return addsub((Num)a,(Num)b,false);});
+		Const.registerBiOp(num, BiOperator.OpType.ADD, num, (a,b) ->{ return addsub((Num)a,(Num)b,true);});
+		
+		Const.registerUniOp(UnaryOp.UOType.UMINUS, num, (a)->{return minus((Num) a);});
 	}
 }

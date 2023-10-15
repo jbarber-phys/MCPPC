@@ -336,7 +336,7 @@ public final class Factories {
 		return looks;
 	}
 	private static final Token.Factory[] carefullSkip = {newline,comment,domment,space
-		,Statement.CommandToken.factorySafe
+		,CommandToken.factorySafe
 		,Token.StringToken.factory
 		,Selector.SelectorToken.factory
 		,Token.LineEnd.factory

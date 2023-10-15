@@ -85,6 +85,7 @@ public class Entity extends Struct {
 		if(self.getHolder().length()==0) s=self.getAddressToGetset();
 		return TAGCHAR_NOTALLOWED.matcher(s).replaceAll("+");
 	}
+	
 
 	@Override public boolean canMask(VarType mytype, Mask mask) { return false; }
 
@@ -189,6 +190,15 @@ public class Entity extends Struct {
 		String args = tag;
 		if (!this.many) args+= " , "+"limit=1";
 		return new Selector("@e", args);
+	}
+
+	@Override
+	public boolean isConstEquivalent(VarType type) {
+		return true;
+	}
+	@Override
+	public ConstExprToken getConstEquivalent(Variable v, int row, int col) throws CompileError {
+		return new Selector.SelectorToken(row, col, this.getSelectorFor(v));
 	}
 
 	@Override public boolean canBeRecursive(VarType type) {

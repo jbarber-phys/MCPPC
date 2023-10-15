@@ -1,14 +1,18 @@
 package net.mcppc.compiler;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Entity;
 import net.mcppc.compiler.struct.Struct;
+import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
 
@@ -66,7 +70,7 @@ public class Selector {
 			val=s;
 		}
 		@Override public String asString() {
-			return val.argsHDR;
+			return val.toString();
 		}
 		@Override
 		public String textInHdr() {
@@ -168,4 +172,41 @@ public class Selector {
 		p.printf("tag %s remove %s\n", this.toCMD(),tag);
 	}
 	
+	public static Selector softIntersection (Selector s1,Selector s2) throws CompileError{
+		boolean nearest = s1.player.equals(AT_P.player) || s2.player.equals(AT_P.player) ;
+		boolean random = s1.player.equals(AT_R.player) || s2.player.equals(AT_R.player);
+		boolean isPlayer = s1.player.equals(AT_A.player) || s2.player.equals(AT_A.player) || nearest || random ;
+		boolean self = s2.player.equals(AT_S.player) || s2.player.equals(AT_S.player) ;
+		if (nearest && random) throw new CompileError("cannot combine %s and %s selectors".formatted(s1.player,s2.player));
+		List<String> argsHDR = new ArrayList<String>();
+		String plr;
+		if(!s1.argsHDR.isBlank()) argsHDR.add(s1.argsHDR);
+		if(!s2.argsHDR.isBlank()) argsHDR.add(s2.argsHDR);
+		if(self ) {
+			plr="@s";
+			if(isPlayer)argsHDR.add("type=minecraft:player");
+		}
+		else if(nearest) {
+			//sort statements should have no effect
+			plr="@p";
+		}else if(random) {
+			//sort statements should have no effect
+			plr="@r";
+		}else if (isPlayer) {
+			plr="@a";
+		}else {
+			plr="@e";
+		}
+		String[] args = new String[argsHDR.size()]; argsHDR.toArray(args);
+		return new Selector(plr,String.join(",", args));
+		//throw new CompileError("intersecting selectors not yet supported. must anylize and merge args");
+	}
+	public static SelectorToken intersect(ConstExprToken a, ConstExprToken b) throws CompileError {
+		return new SelectorToken(a.line,a.col,softIntersection(((SelectorToken)a).val,((SelectorToken)b).val));
+	}
+	public static void registerOps() {
+		Const.ConstType sl = Const.ConstType.SELECTOR;
+		Const.registerBiOp(sl, BiOperator.OpType.AND, sl, Selector::intersect);
+		
+	}
 }

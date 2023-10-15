@@ -13,6 +13,7 @@ import net.mcppc.compiler.functions.PrintF;
 import net.mcppc.compiler.struct.Entity;
 import net.mcppc.compiler.struct.Struct;
 import net.mcppc.compiler.tokens.BiOperator;
+import net.mcppc.compiler.tokens.Bool;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Keyword;
@@ -689,8 +690,8 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	public void setMeToExpr(PrintStream p, RStack stack, ConstExprToken e) throws CompileError {
 		if(this.type.isStruct()) {
 			this.type.struct.setMeToExpr(p, stack, this, e);
-		}else if (e instanceof Token.Bool) {
-			this.setMeToBoolean(p, null, null, stack, ((Token.Bool)e).val);
+		}else if (e instanceof Bool) {
+			this.setMeToBoolean(p, null, null, stack, ((Bool)e).val);
 		}else if (e instanceof Num) {
 			this.setMeToNumber(p, null, null, stack, ((Num)e).value);
 		}

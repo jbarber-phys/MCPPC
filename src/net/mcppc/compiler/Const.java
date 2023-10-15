@@ -2,13 +2,18 @@ package net.mcppc.compiler;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.CompileError.UnexpectedToken;
+import net.mcppc.compiler.struct.Struct;
+import net.mcppc.compiler.tokens.BiOperator;
+import net.mcppc.compiler.tokens.Bool;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Keyword;
 import net.mcppc.compiler.tokens.Num;
@@ -17,6 +22,7 @@ import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.Token.BasicName;
 import net.mcppc.compiler.tokens.Token.Factory;
 import net.mcppc.compiler.tokens.Type;
+import net.mcppc.compiler.tokens.UnaryOp;
 
 /**
  * a Const is a const-expression that can be evaluated at compile time; its not just a var that cannot be changed,
@@ -37,6 +43,51 @@ import net.mcppc.compiler.tokens.Type;
  *
  */
 public class Const {
+	/**
+	 * if true, disables all un-nececary compile time arithmatic
+	 * this means all arithmatic on const bools and nums
+	 * math on all other const types are considered neccecary (example: selector)
+	 */
+	public static final boolean DISABLE_NON_NECECARY_CONST_MATH = false;
+	@FunctionalInterface
+	public interface ConstBiOp { ConstExprToken op(ConstExprToken left,ConstExprToken right) throws CompileError; }
+	public record ConstBiOpType(ConstType a,BiOperator.OpType op,ConstType b) {}
+	@FunctionalInterface
+	public interface ConstUniOp { ConstExprToken op(ConstExprToken in) throws CompileError; }
+	public record ConstUniOpType(UnaryOp.UOType op,ConstType in) {}
+	
+	private static final Map<ConstBiOpType,ConstBiOp> CONST_BI_OPS = new HashMap<ConstBiOpType,ConstBiOp>();
+	private static final Map<ConstUniOpType,ConstUniOp> CONST_UNI_OPS = new HashMap<ConstUniOpType,ConstUniOp>();
+	public static void RegisterAllConstOps() {
+		Selector.registerOps();//selector math is considered nececcary
+		
+		if(!DISABLE_NON_NECECARY_CONST_MATH) {
+			//all of the arithmetic types
+			Num.registerOps();
+			Bool.registerOps();
+		}
+	}
+	static {
+		RegisterAllConstOps();
+	}
+	public static boolean registerBiOp(ConstType a,BiOperator.OpType op,ConstType b,ConstBiOp func) {
+		return CONST_BI_OPS.put(new ConstBiOpType(a,op,b), func) !=null;
+	}
+	public static boolean registerUniOp(UnaryOp.UOType op,ConstType in,ConstUniOp func) {
+		return CONST_UNI_OPS.put(new ConstUniOpType(op,in), func) !=null;
+	}
+	public static boolean hasUniOp(UnaryOp.UOType op,ConstType in) {
+		return CONST_UNI_OPS.containsKey(new ConstUniOpType(op,in));
+	}
+	public static ConstExprToken doUniOp(UnaryOp.UOType op,ConstExprToken in) throws CompileError {
+		return CONST_UNI_OPS.get(new ConstUniOpType(op,in.constType())).op(in);
+	}
+	public static boolean hasBiOp(ConstType a,BiOperator.OpType op,ConstType b) {
+		return CONST_BI_OPS.containsKey(new ConstBiOpType(a,op,b));
+	}
+	public static ConstExprToken doBiOp(ConstExprToken a,BiOperator.OpType op,ConstExprToken b) throws CompileError {
+		return CONST_BI_OPS.get(new ConstBiOpType(a.constType(),op,b.constType())).op(a,b);
+	}
 	//const names can match actual tag literals: normally literals are prioritized but this flag turns it around for NBT addresses;
 	public static boolean CHECK_FOR_CONSTS_ON_TAGS = true;
 	public static Const.ConstExprToken checkForExpressionSafe(Compiler c,Scope s, Matcher matcher, int line, int col,ConstType... types){
@@ -164,6 +215,7 @@ public class Const {
 	 *
 	 */
 	public static abstract class ConstLiteralToken extends ConstExprToken{
+		
 		private final ConstType constType__;
 		@Override public ConstType constType() {
 			return this.constType__;
@@ -245,7 +297,7 @@ public class Const {
 		//values are in order that prevents conflict
 		COORDS("coords",Coordinates.CoordToken.factory),
 		NUM("num",Num.factoryneg,true),
-		BOOLIT("flag",Token.Bool.factory,true),
+		BOOLIT("flag",Bool.factory,true),
 		STRLIT("text",Token.StringToken.factory),
 		TYPE("type",null),
 		SELECTOR("selector",Selector.SelectorToken.factory),
