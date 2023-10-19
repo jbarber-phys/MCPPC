@@ -236,7 +236,7 @@ public final class Factories {
 		}
 		
 	};
-	static class LazySkip extends Token.Factory{
+	public static class LazySkip extends Token.Factory{
 		boolean endLn=false;
 		String s;
 		public LazySkip(Pattern pattern,String look,boolean endStatement) {
@@ -270,6 +270,7 @@ public final class Factories {
 	public static final Token.Factory newline = new LazyNewLine(Regexes.SPACE_NEWLINE);
 	public static final Token.Factory skipDoubleBlockBrace = new LazyNewLine(Regexes.CODEBLOCKBRACEDOUBLED);
 	public static final Token.Factory skipMscChar = new LazyNewLine(Regexes.STM_SKIP_MSCCHAR);
+	public static final Token.Factory skipWildchar = new LazySkip(Regexes.ANY_CHAR,"[.]");
 	public static final Token.Factory skipFslash = new LazySkip(Regexes.FSLASH,"<..skip line>");
 	//public static final Token.Factory skipFslash = new LazyNewLine(Regexes.FSLASH);
 	
@@ -336,7 +337,7 @@ public final class Factories {
 		return looks;
 	}
 	private static final Token.Factory[] carefullSkip = {newline,comment,domment,space
-		,CommandToken.factorySafe
+		,CommandToken.factorySafeSkip
 		,Token.StringToken.factory
 		,Selector.SelectorToken.factory
 		,Token.LineEnd.factory

@@ -28,10 +28,17 @@ import net.mcppc.compiler.tokens.UnaryOp;
  * a Const is a const-expression that can be evaluated at compile time; its not just a var that cannot be changed,
  * note: consts set to other consts will not work if the other one is from a different file
  * 
- * TODO templates
- * consider creating function templates for precision
- * consider creating consts system for template args and other consts
- * const types: num, type, selector, string, (const) bool, (const) ref
+ * consts live in their own type system (seperate from the VarType system). The types are:
+ *     num : a number
+ *     flag: a const bool
+ *     text: a const string
+ *     selector: a target selector
+ *     nbt: a nbt tag or path
+ *     coords: cordinates, which may be in caret or tilde notation
+ *     rot: similar to coords but for rotations
+ * 
+ * 
+ * const params can appear in templates
  * 
  * some templates may need to make multiple files namespace__/template_...,
  * but precision N can be put into tags valued N, 1eN, 1e-N and 1 file is maintained
@@ -208,6 +215,13 @@ public class Const {
 			super(line, col);
 		}
 		
+		/**
+		 * what to print in a mcfunction if inlined
+		 * @return
+		 * @throws CompileError 
+		 */
+		public abstract String textInMcf() throws CompileError;
+		
 	}
 	/**
 	 * token type enclosing literal expressions that Consts can evaluate to
@@ -291,6 +305,9 @@ public class Const {
 		@Override public String resSuffix() {
 			if(this.constv.value!=null)return this.constv.value.resSuffix();
 			else return "null";
+		}
+		@Override public String textInMcf() throws CompileError {
+			return this.constv.getValue().textInMcf();
 		}
 	}
 	public enum ConstType{

@@ -181,6 +181,12 @@ public class Type extends Const.ConstLiteralToken {
 	}
 
 	@Override
+	public String textInMcf() throws CompileError {
+		//must be identified to work
+		return this.type.getNBTTagType();
+	}
+
+	@Override
 	public int valueHash() {
 		return this.type.asString().hashCode();
 	}

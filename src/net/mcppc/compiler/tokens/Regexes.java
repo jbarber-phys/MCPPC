@@ -28,10 +28,28 @@ public final class Regexes {
 		public static final int cmd_group = 1;
 		public static final String CMD_SAFE=("\\$/%s(?=;|\\n|$)".formatted(CMDGROUP));// \$/%s(?=;|\n|$)
 
+		public static final String CMD_FORMATTED_START = "\\$\\(";//\$\(
+		public static final String CMD_FORMATTED_END = "\\)";//\)
+		
+		
 		public static final int player_group = 1;
 		public static final String SELECTOR=("(@?[\\w-]+)\\s*\\[(((%s)|[^\\\"\\[\\]\\n]|\\[\\[|\\]\\])*)\\]".formatted(Strs.STRLITSTRING));// (@?[\w-]+)\s*\[(((%s)|[^\"\[\]\n]|\[\[|\]\])*)\]
 		public static final String SELECTOR_ATONLY=("(@[\\w-]+)\\s*\\[(((%s)|[^\\\"\\[\\]\\n]|\\[\\[|\\]\\])*)\\]".formatted(Strs.STRLITSTRING));// (@[\w-]+)\s*\[(((%s)|[^\"\[\]\n]|\[\[|\]\])*)\]
 		public static final String SELECTOR_NOAT=("([\\w-]+)\\s*\\[()\\]");// ([\w-]+)\s*\[()\]
+		
+		//confused with arrays
+		//public static final String SELECTOR_START = "(@?[\\w-]+)\\s*\\[" ;//(@?[\w-]+)\s*\[
+		public static final String SELECTOR_ATONLY_START = "(@[\\w-]+)\\s*\\[" ;//(@[\w-]+)\s*\[
+		public static final String SELECTOR_ATONLY_ARGOPEN = "\\s*\\[" ;//\s*\[
+		public static final String SELECTOR_ATONLY_NOARG = "(@[\\w-]+)" ;//(@[\w-]+)
+		public static final String SELECTOR_END = "\\]" ;//\]
+		
+		public static final int selector_key_group = 1;
+		public static final String SELECTOR_KEY = "\\s*([\\w/:\\.\\-+]+)\\s*=\\s*" ;//\s*([\w/:\.\-+]+)\s*=\s*
+		
+		public static final String SELECTOR_VAL_BASIC = "[!\\w\\.+\\-:/]*" ;//[!\w\.+\-:/]*
+		public static final String SELECTOR_SEP = "\\s*,\\s*" ;//\s*,\s*
+
 
 		public static final String NUM_NEG=("(-?\\d+)(\\.\\d*)?([Ee]\\-?\\d+)?([fdilsbFDILSB])?");// (-?\d+)(\.\d*)?([Ee]\-?\d+)?([fdilsbFDILSB])?
 		//public static final String BOOL=("\\b(true)|(false)\\b");// \b(true)|(false)\b (\btrue\b)|(\bfalse\b)
@@ -90,11 +108,26 @@ public final class Regexes {
 	public static final Pattern CMD=Pattern.compile("((?<=^|[^/])|\\$)/%s(?=;|\\n|$)".formatted(Strs.CMDGROUP));// ((?<=^|[^/])|\$)/%s(?=;|\n|$)
 
 	public static final Pattern CMD_SAFE=Pattern.compile(Strs.CMD_SAFE);
+	
+	//a lookahead, priority below string literal
+	public static final Pattern CMD_TERMINATOR = Pattern.compile("(?=;|\\n|$)");//(?=;|\n|$)
+	public static final Pattern CMD_FORMATTED_START = Pattern.compile(Strs.CMD_FORMATTED_START);//\$\(
 
 	
-	
+	@Deprecated
 	public static final Pattern SELECTOR=Pattern.compile(Strs.SELECTOR);
 	//public static final Pattern COORDS_OLD=Pattern.compile("([\\^~]?[+-]?\\d+)\\s+([\\^~]?[+-]?\\d*)\\s+([\\^~]?[+-]?\\d*)");// ([\^~]?[+-]?\d+)\s+([\^~]?[+-]?\d*)\s+([\^~]?[+-]?\d*)
+	
+	public static final Pattern SELECTOR_NAME=Pattern.compile(Strs.SELECTOR_ATONLY_NOARG);
+	public static final Pattern SELECTOR_ARGOPEN=Pattern.compile(Strs.SELECTOR_ATONLY_ARGOPEN);
+	public static final Pattern SELECTOR_KEY=Pattern.compile(Strs.SELECTOR_KEY);
+	public static final Pattern SELECTOR_VAL_BASIC=Pattern.compile(Strs.SELECTOR_VAL_BASIC);
+	public static final Pattern SELECTOR_SEP=Pattern.compile(Strs.SELECTOR_SEP);
+	//also nbt and strlit
+	public static final Pattern SELECTOR_END=Pattern.compile(Strs.SELECTOR_END);
+
+	public static final Pattern SELECTOR_SCORE_START=Pattern.compile("\\s*\\{\\s*");//\s*\{\s*
+	public static final Pattern SELECTOR_SCORE_END=Pattern.compile("\\s*\\}\\s*");//\s*\}\s*
 	
 	//ungrouped: use (?<x>%s)
 	public static final String TILDE_HAT_NUM = "(-?(\\d+(\\.\\d*|)|\\.\\d+))|[\\^~](-?(\\d+(\\.\\d*|)|\\.\\d+))|[\\^~]";

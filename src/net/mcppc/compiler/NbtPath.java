@@ -46,6 +46,11 @@ public class NbtPath {
 			return this.path().path;
 		}
 		@Override
+		public String textInMcf() {
+			//no need for escaping, escapes were already removed
+			return this.path().path;
+		}
+		@Override
 		public String resSuffix() {
 			return "nbt_%x".formatted(this.valueHash());
 		}

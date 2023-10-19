@@ -93,7 +93,7 @@ public class MakeTmLanguage extends Regexes.Strs{
 
 	static final String italic = "markup.italic.mcpp";
 	static final String underlined = "markup.underline.mcpp";
-	static final String bold_blue = "markup.bold.mcpp";
+	static final String bold_blue = "markup.bold.mcpp";//Vscode always blues the bold
 	
 	public static void make (String path) {
 		Map<String,Object> json = makeTmLang();
@@ -108,6 +108,8 @@ public class MakeTmLanguage extends Regexes.Strs{
 			if(file!=null)file.close();
 		}
 	}
+	private static final String INCLUDABLE_MAIN = "global_patterns";
+	@SuppressWarnings("unused")
 	public static Map<String,Object> makeTmLang () {
 		System.out.println("making vscode extension");
 		Map<String,Object> json = new HashMap<String,Object>();
@@ -115,6 +117,15 @@ public class MakeTmLanguage extends Regexes.Strs{
 		String name = "Mcpp";
 		patterns = new ArrayList<Map>();
 		repository = new HashMap<String,Object>();
+		//the name of the gobal pattern; if null then inline into patterns instead (the old way)
+		
+		//names of other included patterns in global
+		final String stringLits = "strings";	
+		final String resourcelocations="resourcelocations";
+		final String targetSelectors = "targetselectors";
+		
+		//sub repo names
+		final String selectorArgs = "selector_args";
 		//add to repo;
 		//comments + domments
 		addToRepo("domments",namedMatch(domment,DOMMENT_LINE,italic));
@@ -134,43 +145,42 @@ public class MakeTmLanguage extends Regexes.Strs{
 		addToRepo("numbers",namedMatch(number,NUM_NEG));
 		//strings
 		//TODO prohibit newlines
-		Map strings_double = Map.of("name", "string.quoted.double.mcpp",
-				"begin", "\"",
-				"end", "\"",
-				"patterns", List.of(namedMatch("constant.character.escape.mcpp","\\\\."))
-				);
-		Map strings_single = Map.of("name", "string.quoted.single.mcpp",
-				"begin", "'",
-				"end", "'",
-				"patterns", List.of(namedMatch("constant.character.escape.mcpp","\\\\."))
-				);
-		addToRepo("strings",strings_double);
-		addToRepo("strings2",strings_single);
+		Map strings_double = enclosed("string.quoted.double.mcpp", "\"", "\"", List.of(namedMatch("constant.character.escape.mcpp","\\\\.")));
+		Map strings_single = enclosed("string.quoted.single.mcpp",  "'",  "'", List.of(namedMatch("constant.character.escape.mcpp","\\\\.")));
+			
+		addToRepo(stringLits,patterns(List.of(strings_double,strings_single)));
 		//bools
 		addToRepo("bools",namedMatch(bool,BOOL));
 		//selector
 		//TODO split into @ and non-@ cases
 		//addToRepo("targetselectors",namedMatch(selector,SELECTOR,italic));
-		addToRepo("targetselectors_at",namedMatch(selector,SELECTOR_ATONLY,italic));
+		//addToRepo("targetselectors_at",namedMatch(selector,SELECTOR_ATONLY,italic)); //was replaced by new thing
 		addToRepo("targetselectors_noat",namedMatch(selector,SELECTOR_NOAT,italic));
+		
+		addSubRepo(selectorArgs, patterns(List.of(include(stringLits),
+				enclosed(selector,"\\[","\\]",List.of(include(selectorArgs))))
+				));//include strings and selectorArgPatterns
+		Map selectorNewAt = enclosed(selector,SELECTOR_ATONLY_START,SELECTOR_END,List.of(include(selectorArgs)));
+		addToRepo(targetSelectors,patterns(List.of(selectorNewAt,namedMatch(selector,SELECTOR_ATONLY_NOARG))));
+		
+		
 		//mcfunction calls
 		//addToRepo("mcfs_simple",namedMatch(escapeChar,CMD_SAFE));
-		Map mcfs = Map.of("name", escapeChar,
-				"begin", CMD_START,
-				"end", CMD_END,
-				"patterns", 
-				List.of(strings_double,strings_single,
-						include("resourcelocations"),
-						include("targetselectors"),
+		Map mcf_escapes = enclosed(variable,CMD_FORMATTED_START,CMD_FORMATTED_END,List.of(include(INCLUDABLE_MAIN)));
+		Map mcfs =enclosed( escapeChar, CMD_START, CMD_END,
+				List.of(include(stringLits),
+						include(resourcelocations),
+						include(targetSelectors),//may be deprecated
 						namedMatch(selector,SELECTOR_BASIC,italic),
 						namedMatch(keyword,regexMCFkeyword()),
-						namedMatch(basictype,regexMCFsubkeyword())
-						
+						namedMatch(basictype,regexMCFsubkeyword()),
+						//TODO test escape expressions
+						mcf_escapes
 						) //good enough
 				);
 		addToRepo("mcfs",mcfs);
 		//resourcelocations
-		addToRepo("resourcelocations",namedMatch(function,RESOURCELOCATION,underlined));
+		addToRepo(resourcelocations,namedMatch(function,RESOURCELOCATION,underlined));
 		//keywords
 		
 		addToRepo("keywords",namedMatch(keyword,regexBasicKeywords()));
@@ -193,14 +203,33 @@ public class MakeTmLanguage extends Regexes.Strs{
 		//finish
 		json.put("scopeName", scopeName);
 		json.put("name", name);
-		json.put("patterns", patterns);
+		if(INCLUDABLE_MAIN !=null) {
+			addSubRepo(INCLUDABLE_MAIN,patterns(patterns));
+			json.put("patterns", List.of(include(INCLUDABLE_MAIN)));
+		}else {
+			//the old way
+			json.put("patterns", patterns);
+		}
 		json.put("repository", repository);
 		
 		return json;
 	}
+	/**
+	 * adds a pattern to the repo and refs it in patterns
+	 * @param key
+	 * @param value
+	 */
 	private static void addToRepo(String key,Object value) {
 		repository.put(key, value);
 		patterns.add(include(key));
+	}
+	/**
+	 * adds a pattern to the repo but doesn't register it as an outer scope pattern
+	 * @param key
+	 * @param value
+	 */
+	private static void addSubRepo(String key,Object value) {
+		repository.put(key, value);
 	}
 	static Map unnamedMatch(String regex) {
 		return Map.of("match",regex);
@@ -224,8 +253,12 @@ public class MakeTmLanguage extends Regexes.Strs{
 		if(pattern.containsKey("include")) {
 
 			String key = ((String) pattern.get("include")).substring(1);
+			//System.err.println(repository.get(key).toString());
 			return (Map) repository.get(key);
 		}else return pattern;
+	}
+	private static Map patterns(List patterns) {
+		return Map.of("patterns",patterns);
 	}
 	private static Map namedMatch(String name,String regex, Map<Integer,String> groupnames) {
 		return Map.of("name",name,"match",regex,
@@ -236,6 +269,21 @@ public class MakeTmLanguage extends Regexes.Strs{
 							)
 						)
 				);
+	}
+	private static Map enclosed(String name, Object begin, Object end, List patterns) {
+		return Map.of("name",name,
+				"begin",begin,
+				"end",end,
+				"patterns",patterns);
+	}
+	private static Map enclosed(String name, Object begin, Object end, List patterns, String bracketname) {
+		//TODO does not work yet
+		return Map.of("name",name,
+				"begin",begin,
+				"end",end,
+				"beginCaptures",(Object)Map.of( Integer.toString(0), Map.of("name",bracketname) ),
+				"endCaptures",(Object)Map.of( Integer.toString(0), Map.of("name",bracketname) ),
+				"patterns",patterns);
 	}
 	private static String regexBasicKeywords() {
 		String[] kws = new String[Keyword.values().length];

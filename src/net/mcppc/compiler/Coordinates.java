@@ -51,6 +51,9 @@ public class Coordinates {
 		public String textInHdr() {
 			return this.pos.inHDR();
 		}
+		@Override public String textInMcf() {
+			return this.pos.inCMD();
+		}
 		private static final Pattern TILDE=Pattern.compile("~");// ~
 		private static final Pattern CARET=Pattern.compile("\\^");// \^
 		private static final Pattern NONWORD=Pattern.compile("[^\\w]");// [^\w]

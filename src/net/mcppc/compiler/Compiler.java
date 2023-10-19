@@ -535,7 +535,7 @@ public class Compiler{
 		}
 		int[] loop = CMath.findCycle(connections, N, exempt);
 		if(loop!=null) {
-			System.err.println("Error: found an unalowed recursion loop between functions:");
+			CompileJob.postCompileError.println("Error: found an unalowed recursion loop between functions:");
 			for(int i=0;i<loop.length;i++) {
 				String name = nms.get(loop[i]);
 				String recursive = this.funcsRecursive.get(name)? " (recursive)":"";

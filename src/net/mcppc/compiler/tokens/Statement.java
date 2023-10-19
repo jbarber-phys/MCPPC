@@ -153,8 +153,7 @@ public abstract class Statement extends Token implements TreePrintable{
 	public static class CommandStatement extends Statement{
 		public static final Statement.Factory factory=new Statement.Factory(Regexes.CMD) {
 			@Override public Statement createStatement(Compiler c, Matcher matcher, int line, int col) throws CompileError {
-				c.cursor=matcher.end();
-				CommandToken t=new CommandToken(line,col,matcher.group("cmd"));
+				CommandToken t=CommandToken.formatted(c, matcher, line, col, true);
 				if(c.nextNonNullMatch(Factories.nextIsLineEnd) instanceof Token.LineEnd)
 					c.cursor=matcher.end();
 				else throw new CompileError.UnexpectedToken(t, ";");
@@ -166,14 +165,14 @@ public abstract class Statement extends Token implements TreePrintable{
 			super(line, col);
 			this.command=command;
 		}
-		@Override public void compileMe(PrintStream f,Compiler c,Scope s) {
+		@Override public void compileMe(PrintStream f,Compiler c,Scope s) throws CompileError {
 			//show the slash to show this one is verbatim from src with no pre-conditions added
 			//but actually dont do this, it causes a problem;
 			//java.util.concurrent.CompletionException: java.lang.IllegalArgumentException:
 			//Unknown or invalid command '/say "hello from line 8"' on line 1 
 			//(did you mean 'say'? Do not use a preceding forwards slash.)
 			//f.println("/%s".formatted(this.command.inCMD()));
-			f.println("%s".formatted(this.command.inCMD()));
+			this.command.printToCMD(f, c, s);
 		}
 		@Override
 		public String asString() {

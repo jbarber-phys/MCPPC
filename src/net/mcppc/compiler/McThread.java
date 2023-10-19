@@ -34,9 +34,9 @@ import net.mcppc.compiler.tokens.Token;
  */
 public class McThread {
 	public static final String TAG_CURRENT = "mcpp+thread+current_executor";
-	public static final Selector SELF = new Selector("@e", "limit=1,tag=%s".formatted(TAG_CURRENT));
+	public static final Selector SELF = new Selector("@e", TAG_CURRENT,1);
 	public static final String TEMPTAG = "mcpp+threadstart";
-	public static final Selector SELFTEMP = new Selector("@e", "limit=1,tag=%s".formatted(TEMPTAG));
+	public static final Selector SELFTEMP = new Selector("@e",TEMPTAG,1);
 	public McThread() {}//construction is done post-init
 	Keyword access = null;
 	ResourceLocation path = null;
@@ -239,7 +239,7 @@ public class McThread {
 	public Selector getAllExecutors() {
 		if(this.isSynchronized && this.executeAs==null) {
 			return null;
-		}else return new Selector("@e","tag=%s".formatted(this.getTag()));
+		}else return new Selector("@e",this.getTag(),null);
 	}
 	public Variable myGoto() throws CompileError {
 		return this.myGoto(this.getSelf());

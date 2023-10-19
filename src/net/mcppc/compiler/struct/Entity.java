@@ -46,7 +46,7 @@ public class Entity extends Struct {
 		entities = new Entity("Entities",true);
 	}
 	public static void registerAll() {
-		//TODO java.lang.NullPointerException: Cannot read field "name" because "net.mcppc.compiler.struct.Entity.entity" is null
+		//java.lang.NullPointerException: Cannot read field "name" because "net.mcppc.compiler.struct.Entity.entity" is null
 		//System.err.println(entity.name);
 		Struct.register(entity);
 		Struct.register(entities);
@@ -186,10 +186,10 @@ public class Entity extends Struct {
 		p.printf("tag * remove %s\n", TEMP2);
 	}
 	public Selector getSelectorFor(Variable self) throws CompileError {
-		String tag="tag=%s".formatted(this.getScoreTag(self));
-		String args = tag;
-		if (!this.many) args+= " , "+"limit=1";
-		return new Selector("@e", args);
+		String mytag = this.getScoreTag(self);
+		Integer limit=null;
+		if (!this.many) limit=1;
+		return new Selector("@e", mytag,limit);
 	}
 
 	@Override
@@ -301,7 +301,7 @@ public class Entity extends Struct {
 		//final String type = "marker";//https://minecraft.fandom.com/wiki/Marker
 		String args = "type=%s,tag=%s,limit=1".formatted(ENTITY_TYPE_MARKER,tag);
 		p.printf("summon %s ~ ~ ~ {Tags: [\"%s\"]}\n", ENTITY_TYPE_MARKER,tag);
-		Selector e= new Selector("@e",args);
+		Selector e= new Selector("@e",tag,1,ENTITY_TYPE_MARKER.toString());
 		return e;
 	}
 	public static class Summon extends BuiltinFunction {

@@ -219,6 +219,15 @@ public class Num extends Const.ConstLiteralToken implements INbtValueProvider{
 		if(this.value==null)return "null";
 		return this.type.numToString(this.value);
 	}
+	/**
+	 * this implememtation may have scientific notation
+	 * it is not fit for use as a multiplier in a /scoreboard statement
+	 */
+	@Override
+	public String textInMcf() {
+		if(this.value==null)return "null";
+		return this.type.numToString(this.value);
+	}
 	@Override
 	public int valueHash() {
 		return this.value.hashCode();

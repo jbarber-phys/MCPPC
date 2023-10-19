@@ -107,6 +107,8 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	public boolean isAnArg=false;
 	//true if there are any unneeded parens or if any ops are done; can be used for scoreboard avoidance if equation is trival (eg, a=b but not a=(b))
 	boolean doesAnyOps=false;
+	//if true, will not allow any stack operations for this equation as it is required to dissolve into a const
+	boolean forceConst = false;
 	//true if this is an arg AND found a 
 	//boolean wasLastArg=true;//dont; this is encapsulated with end
 	//no expected type yet; must aggregate first
@@ -299,9 +301,6 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	
 	public Equation populate(Compiler c,Matcher m) throws CompileError {
 
-		if(c.resourcelocation.toString().equals( "mcpptest:entity/selector_equation")) {// && (this.isTopLevel||this.isAnArg)
-			System.err.printf("line=%d, toplevel = %b, isArg = %b, address %s\n", this.line,this.isTopLevel,this.isAnArg,this);
-		}
 		return populate(c,m,0);
 	}
 	private Token nextValueNoType(Compiler c,Matcher m) throws CompileError {
@@ -713,7 +712,8 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		String cretype=typeWanted.isLogical()?"success":"result";
 		regnum=stack.setNext(mtype);
 		Register r=stack.getRegister(regnum);
-		p.printf("execute store %s score %s run %s\n", cretype,r.inCMD(),((CommandToken)in).inCMD());
+		String preamble = "execute store %s score %s run".formatted(cretype,r.inCMD());
+		((CommandToken)in).printToCMD(p, c, s, preamble);
 		return regnum;
 	}
 	private ConstExprToken attemptConstConvert(Token in) throws CompileError {
@@ -821,14 +821,15 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	public void compileOps(PrintStream p,Compiler c,Scope s,VarType typeWanted) throws CompileError {
 		boolean consted = this.constify(c,s);	
 		//System.err.printf("line=%d, toplevel = %b, isArg = %b,doesanyops = %b, address %s\n", this.line,this.isTopLevel,this.isAnArg,this.doesAnyOps,this);
-		if (c.resourcelocation.toString().equals("mcpptest:entity/selector_equation")) {
-			this.printTree(System.err);
-			System.err.printf("isconst: %b\n", this.isConstable());
+		if (c.resourcelocation.toString().equals("mcpptest:entity/selector_equation") && false) {
+			//this.printTree(System.err);
+			//System.err.printf("isconst: %b\n", this.isConstable());
 		}
 		if(this.isTopLevel) {
 			this.stack.clear();
 		}
 		if(this.doesAnyOps || !(this.isTopLevel || this.isAnArg)) {
+			if(forceConst) throwNotConstError();
 			//do sub ops on registers
 			if(this.elements.get(0) instanceof UnaryOp) {
 				UnaryOp op=(UnaryOp) this.elements.get(0);
@@ -1024,6 +1025,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		}
 	}
 	public int setReg(PrintStream p,Compiler c,Scope s,VarType typeWanted) throws CompileError {
+		if(forceConst) throwNotConstError();
 		if(this.hasSetToReg) {
 			//already done
 		}else {
@@ -1129,5 +1131,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	}
 	public boolean isEmpty() {return this.elements.isEmpty();}
 
-	
+	public void throwNotConstError() throws CompileError {
+		throw new CompileError("Equation at line %s col %s failed to evaluate to a compile time constant".formatted(this.line,this.col));
+	}
 }

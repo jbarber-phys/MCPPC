@@ -49,6 +49,10 @@ public class Bool extends Const.ConstLiteralToken implements INbtValueProvider{
 		return INbtValueProvider.VALUE.formatted(this.type.boolToStringNumber(this.val));
 	}
 	@Override
+	public String textInMcf() {
+		return this.type.boolToStringNumber(this.val);//should always appear as data of 0b or 1b
+	}
+	@Override
 	public VarType getType() {
 		return this.type;
 	}

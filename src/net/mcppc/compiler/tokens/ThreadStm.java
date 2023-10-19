@@ -371,7 +371,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 					p.printf(stm.loopIf);//unreachable
 				this.delay.setVar(p, c, s, time);
 			}else {
-				System.err.println("skipped delay");
+				//System.err.println("skipped delay");
 			}
 			//p.printf("#exit Delay::add ;\n");
 		}

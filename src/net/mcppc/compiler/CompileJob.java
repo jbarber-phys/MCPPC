@@ -60,6 +60,10 @@ public class CompileJob {
 	public static final PrintStream compileHdrLog=OutputDump.out;
 	public static final PrintStream compileMcfLog=OutputDump.out;
 
+	public static final PrintStream compileHdrError=System.err;
+	public static final PrintStream compileMcfError=System.err;
+	public static final PrintStream postCompileError=System.err;
+
 	public static final PrintStream dommentLog=OutputDump.out;
 	
 	public static final Scanner stdin = new Scanner(System.in);
@@ -182,7 +186,6 @@ public class CompileJob {
 	 * specifies where to find any mcf functions that need to be copied into the resulting datapack;
 	 *  may be same as rootSrc root but not as rootDatapack
 	 *  not every mcf must be here as long as the other mcf files are already in t;
-	 *  TODO figure out if to do this or not
 	 */
 	final List<Path> rootLinks=new ArrayList<Path>();public void addLink(Path o) {
 		rootLinks.add(o);
@@ -504,7 +507,7 @@ public class CompileJob {
         		c.unload();
         		System.gc();//induce garbage collection
         	}catch (CompileError  ce) {
-        		ce.printStackTrace();
+        		compileHdrError.printf("Compile Error in %s : %s\n", res,ce.getMessage());
         		//System.out.println(ce.getMessage());
         		ce.printStackTrace();
         		success=false;
@@ -542,7 +545,7 @@ public class CompileJob {
         		c.unload();
         		System.gc();//induce garbage collection
         	}catch (CompileError  ce) {
-        		ce.printStackTrace();
+        		compileMcfError.printf("Compile Error in %s : %s\n", res,ce.getMessage());
         		//System.out.println(ce.getMessage());
         		ce.printStackTrace();
         		success=false;
@@ -809,9 +812,9 @@ public class CompileJob {
 		//int[] loop=null;
 		int[] loop=CMath.findCycle(graph, N);
 		if(loop!=null) {
-			System.err.println("Error: found circular runs between:");
+			postCompileError.println("Error: found circular runs between:");
 			for(int i=0;i<loop.length;i++)
-				System.err.printf("\t %s\n",cs.get(loop[i]));
+				postCompileError.printf("\t %s\n",cs.get(loop[i]));
 			return false;
 				
 		}return true;

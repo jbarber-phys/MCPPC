@@ -28,7 +28,7 @@ public class HighlightCode {
 
 	private static List<Map> patterns = null;
 	private static Map<String,Object> repository = null;
-	private static int cursor;
+	//private static int cursor;
 	
 	/**
 	 * returns code as json formatted text with the VScode theme colors / fonts
@@ -46,11 +46,14 @@ public class HighlightCode {
 		 done=false;
 		 Matcher m = Pattern.compile(".").matcher(line);
 		 Map<String, Object> result = highlight(line,m,null,null,patterns);
+		 
+		 //System.err.println(result.toString());
 		 return result;
 		
 	}
 	private static synchronized Map<String, Object> highlight(String line,Matcher m,String begin, String end, List<Map> patterns) throws CompileError {
-		 cursor = 0;
+		 //cursor = 0;
+		//TODO begin and end matches
 		 StringBuffer fstring = new StringBuffer();
 		 if(begin!=null)fstring.append(begin);
 		 List<Map> with = new ArrayList<Map>();
@@ -137,7 +140,6 @@ public class HighlightCode {
 		}else if(pattern.containsKey("match")){
 			m.usePattern(Pattern.compile((String) pattern.get("match")));
 			if(m.lookingAt()) {
-				//TODO
 				if(pattern.containsKey("name")) {
 					String name = (String) pattern.get("name");
 					String text = m.group();
@@ -187,9 +189,20 @@ public class HighlightCode {
 			}else {
 				return null;
 			}
+		} else if (pattern.containsKey("patterns")) {//unnamed sub-patterns
+			List<Map> subpatterns = (List<Map>) pattern.get("patterns");
+			Object o = null;
+			 boolean ended = false;
+			 for(Map subpattern : subpatterns) {
+				 o = find(s,m,subpattern);
+				 if(o==null)continue;
+				 else break;
+				 
+			 }
+			return o;
+			
 		}
-
-		System.err.printf("no pattern\n");
+		System.err.printf("no pattern for %s\n",pattern.keySet());
 		return null;
 	}
 	private static Map<String,String> colors = Map.of(
@@ -205,13 +218,24 @@ public class HighlightCode {
 			
 			"markup.bold",ThemeColors.BLUE
 			);
+	private static Map<String,String> colorsOverride = Map.of(
+			"keyword.control",ThemeColors.PURPLE
+			);
 	private static void putFormat(Map<String,Object> jsontext,String name) {
+		//TODO the entry set is not order safe and leads to inconsistant bugs
 		for(Entry<String,String> e: colors.entrySet()) {
 			if(name.contains(e.getKey())) {
 				jsontext.put("color", e.getValue());
 				break;
 			}
-		}if(name.contains("markup.underline")) {
+		}
+		for(Entry<String,String> e: colorsOverride.entrySet()) {
+			if(name.contains(e.getKey())) {
+				jsontext.put("color", e.getValue());
+				break;
+			}
+		}
+		if(name.contains("markup.underline")) {
 			jsontext.put("underlined", true);
 		}
 		if(name.contains("markup.bold")) {

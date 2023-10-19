@@ -56,12 +56,12 @@ public class PrintCode extends BuiltinFunction {
 		BasicArgs args = (BasicArgs) token.getArgs();
 		Selector to = args.isEmpty() ? Selector.AT_S : 
 			Entity.getSelectorFor((args.arg(0)));
-
-		System.err.printf("content: %s", this.content);
+		to = to.playerify();
+		//System.err.printf("%s :: content: %s", c.resourcelocation,this.content);
 		Map<String,Object> json = HighlightCode.highlight(this.content);
 		p.printf("tellraw %s ", to.toCMD());
-			JsonMaker.printAsJson(p, json, false, 0);
-			p.printf("\n");
+		JsonMaker.printAsJson(p, json, false, 0);
+		p.printf("\n");
 	}
 
 	@Override

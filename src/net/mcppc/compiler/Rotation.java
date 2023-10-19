@@ -50,6 +50,10 @@ public class Rotation {
 		public String resSuffix() {
 			return "coords_%s".formatted(this.resCase());
 		}
+		@Override
+		public String textInMcf() {
+			return this.rot.inCMD();
+		}
 		
 	}
 	final String[] angs;

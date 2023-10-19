@@ -233,6 +233,10 @@ public class PrintF extends BuiltinFunction{
 		this.printf(p,"", subject, format, args);
 	}
 	public void printf(PrintStream p, String prefix,Selector subject, String format,IPrintable... args) throws CompileError {
+		//TODO java.util.concurrent.CompletionException: java.lang.IllegalArgumentException: 
+				//Whilst parsing command on line 23: Only players may be affected by this command,
+				// but the provided selector includes entities at position 0: <--[HERE]
+		//playerify subject
 		String argstr=String.join(" , ",   List.of(args).stream().map(var ->var.getJsonTextSafe()).toList());//
 		p.printf("%stellraw %s {\"translate\": %s, \"with\": [%s], \"color\": \"%s\"}\n"
 				,prefix

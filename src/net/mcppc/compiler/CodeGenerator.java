@@ -49,7 +49,7 @@ public abstract class CodeGenerator {
 			try {
 				f.toFile().createNewFile();
 			} catch (IOException e) {
-				System.err.printf("exception while generating mcf file %s\n",gen.res.toString());
+				job.compileMcfError.printf("exception while generating mcf file %s\n",gen.res.toString());
 				e.printStackTrace();
 				continue;
 			}

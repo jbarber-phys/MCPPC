@@ -92,7 +92,7 @@ public class TagStatement extends Statement implements Flow, CodeBlockOpener {
 
 	@Override
 	public void compileMe(PrintStream f, Compiler c, Scope s) throws CompileError {
-		System.err.printf("compiling tag %s\n", this.tag);
+		//System.err.printf("compiling tag %s\n", this.tag);
 		c.job.addTaggedFunction(this.tag, this.taggedScope.getSubRes());
 	}
 

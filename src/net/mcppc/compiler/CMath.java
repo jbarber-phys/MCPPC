@@ -61,7 +61,14 @@ public abstract class CMath {
 		//TODO there is a bug in MC: SCI NOT works in tag values but not in multipliers for /data get ... # ;  and /execute store ... # ;
 		return s.substring(0, size);
 	}
-	
+	/**
+	 * escapes all percents so they are not mistaken for format specifiers
+	 * @param in
+	 * @return
+	 */
+	public static String escepePercents(String in) {
+		return in.replaceAll("%", "%%");
+	}
 	private static int[] cycleElements;
 	private static int cycleElementIndex = 0;
 	private static boolean cycleFound = false;
@@ -126,7 +133,7 @@ public abstract class CMath {
 	    	
 	    
 	    if(cycleFound) {
-			System.err.println("loop found");
+			//System.err.println("loop found");
 	    	int[] ret=new int[cycleElementIndex];
 	    	for(int i = 0; i < cycleElementIndex; i++)ret[i]=cycleElements[i];
 	    	return ret;

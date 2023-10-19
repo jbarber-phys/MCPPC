@@ -124,6 +124,12 @@ public abstract class Token {
 				//do not change cursor location
 				return new WildChar(line,col,matcher.group());
 			}};
+			public static final Factory passFactory=new Factory(Regexes.ANY_CHAR) {
+				@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+					//do not change cursor location
+					c.cursor = matcher.end();
+					return new WildChar(line,col,matcher.group());
+				}};
 		public static final Factory dontPassFactory10=new Factory(Regexes.NEXT_10_CHAR) {
 			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
 				//do not change cursor location
@@ -311,6 +317,10 @@ public abstract class Token {
 		}
 		@Override
 		public String textInHdr() {
+			return this.literal();
+		}
+		@Override
+		public String textInMcf() {
 			return this.literal();
 		}
 		@Override

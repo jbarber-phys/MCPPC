@@ -410,7 +410,7 @@ public class Function {
 	}
 	public void collectFlowVars (Compiler c,Scope s) {
 		
-		System.err.printf("collectFlowVars : %s\n", this.localFlowVars.stream().map(v ->v.holder + "."+v.getAddressToPrepend()).toList());
+		//System.err.printf("collectFlowVars : %s\n", this.localFlowVars.stream().map(v ->v.holder + "."+v.getAddressToPrepend()).toList());
 
 	}
 	public void allocateMyLocalsLoad(PrintStream p) throws CompileError {

@@ -46,7 +46,7 @@ public class Tp extends BuiltinFunction{
 			e2=Entity.checkForSelectorOrEntityToken(c, c.currentScope, matcher, line, col); 
 			if(e2!=null) {
 				args.add("deste", e2);
-				System.err.println("e2");
+				//System.err.println("e2");
 				if(!BuiltinFunction.findArgsep(c)) return args;
 				throw new CompileError("too many args in tp (entity,entity,***BAD...;");
 			} 
