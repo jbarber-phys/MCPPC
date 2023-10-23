@@ -41,6 +41,7 @@ public enum Keyword {
 	STOP("stop"), //call to stop a thread;
 	GOTO("goto"),
 	WAIT("wait"),
+	EXIT("exit"),
 	TAG("tag"),
 	TICK("tick"),
 	LOAD("load"),

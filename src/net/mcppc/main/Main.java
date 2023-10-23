@@ -8,6 +8,26 @@ import net.mcpp.vscode.MakeTmLanguage;
 import net.mcppc.compiler.CompileJob;
 import net.mcppc.compiler.tokens.Regexes;
 
+/**
+ * the command line interface class that runs the compiler<p>
+ * argument options:<br>
+ * <ul>
+ * 		<li>-src $path : the source path; defaults to cwd
+ * 		<li>-o $path : set the output directory (the datapack); defaults to cwd
+ * 		<li>-h $path : set the directory to output files that can be used to import precompiled code (.mch files); defaults to cwd
+ * 		<li>-I $path : adds a directory for precompiled libraries to import
+ * 		<li>-L $path : adds a directory to look for precompiled .mcfunction files that an included library uses
+ * 		<li>-g : enables debug mode (will add comments to mcfunctions indicating the line numbers)
+ * 		<li>-std : recompiles the standard library
+ * 		<li>--std : recompiles the standard library and skips normal compilation
+ * 		<li>-vscode [$path]: makes the tmLanguage used by the vscode extension and writes it to $path (defaults to in the generated folder); also stops normal compilation
+ * </ul>	
+ * everything but this file is usable as a library<br>
+ * the class net.mcpp.compiler.CompileJob handles all actual compilation<br>
+ * the class net.mcpp.vscode.MakeTmLanguage hand vscode extension textmate grammar creation<p>
+ * @author jbarb_t8a3esk
+ *
+ */
 public class Main {
 	public static void regexTest() {
 		//success
@@ -64,7 +84,8 @@ public class Main {
 		stdlib.stdLib();
 		//stdlib.debugMode();
 		boolean success=stdlib.compileAll();
-		System.out.println("successfully compiled std library;");
+		if(success) System.out.println("successfully compiled std library;");
+		else        System.err.println("failed to compile std library;");
 		return success;
 	}
 	public static void main(String[] args) {
@@ -166,7 +187,7 @@ public class Main {
 		if(makevscode) MakeTmLanguage.make(vscode_grammar_path);
 		if(skipMainCompile)return;
 		job.compileAll();
-		if(!stdSuccess)System.err.println("compilation of stdlib failed;");
+		if(!stdSuccess)System.err.println("note: compilation of stdlib failed; see log above;");
 		//floatFormatTest();
 		
 		//C:\Users\jbarb_t8a3esk\AppData\Roaming\.minecraft\saves\Mcpp_test_world\datapacks\

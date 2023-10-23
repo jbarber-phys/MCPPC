@@ -153,11 +153,6 @@ public class ThreadCall extends Statement {
 		super(line, col);
 		this.init=init;
 	}
-	public static void tagAndCall(PrintStream p,Compiler c,Scope s, Selector me,ResourceLocation func) {
-		if(me!=null )me.addTag(p,McThread.TEMPTAG);
-		func.run(p);
-		if(me!=null )me.removeTag(p,McThread.TEMPTAG);
-	}
 
 	@Override
 	public void compileMe(PrintStream f, Compiler c, Scope s) throws CompileError {
@@ -177,16 +172,18 @@ public class ThreadCall extends Statement {
 		}break;
 		case STOP:{
 			RStack stack = s.getStackFor();
-			ThreadCall.tagAndCall(f, c, s, this.me, this.thread.pathStop());
+			this.thread.tagAndCall(f, c, s, this.me, this.thread.pathStop());
 			stack.clear();stack.finish(c.job);
 		}break;
 		case RESTART:{
 			RStack stack = s.getStackFor();
 			//if(this.block==null)
-			ThreadCall.tagAndCall(f, c, s, this.me, this.thread.pathRestart(this.block));
+			this.thread.tagAndCall(f, c, s, this.me, this.thread.pathRestart(this.block));
 			//TODO this is new
 			stack.clear();stack.finish(c.job);
 		}break;
+		default:
+			throw new CompileError("unexpected threadcall keyword %s on line %s col %s".formatted(this.init,this.line,this.col));
 		}
 		
 		

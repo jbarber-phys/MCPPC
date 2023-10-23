@@ -10,6 +10,7 @@ import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 import net.mcppc.compiler.CompileJob.Namespace;
+import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
@@ -27,16 +28,39 @@ import net.mcppc.compiler.tokens.Token;
 
 /**
  * similar to a function but executes over multiple ticks
- * TODO capture first block beforeLastBlock behavior in call statements
- * TODO test
+ * 
+ *     
+ * 
  * @author jbarb_t8a3esk
  *
+ */
+/*TODO test selfification
+ * 
+ * scopes are created as follows:
+ * McThread::createSubsBlocks : creates start, stop, restart functions (called by thread callers); use truestart format
+ * ThreadStm::compileMyBlocks : if public, genrates entry_%d functions; use truestart format; sim to restart but checks for exit after
+ * ThreadStm::addBlockNumberToThread sets this.mySubscope, which is used in:
+ * * * anononamous blocks
+ * * * loops and ThreadStm::setLoop
+ * * * compiler gives this to code blocks, where it is used by actual thread code block_%n
+ * 
+ * 
+ * TODO change execute asat to be as @e[...] at @s
  */
 public class McThread {
 	public static final String TAG_CURRENT = "mcpp+thread+current_executor";
 	public static final Selector SELF = new Selector("@e", TAG_CURRENT,1);
+	public static final Selector SELF_S = new Selector("@s", TAG_CURRENT,null);
 	public static final String TEMPTAG = "mcpp+threadstart";
-	public static final Selector SELFTEMP = new Selector("@e",TEMPTAG,1);
+	public static final Selector SELFTEMP = new Selector("@e",TEMPTAG,null); //no limit; could have multiple
+	public static final Selector SELF_START = Selector.AT_S;//no limit, do not change this, it doesnt actually fix it
+	
+	/**
+	 * name of a scope inherited parameter for thread-selfness
+	 */
+	public static final String IS_THREADSELF = "is_threadself";
+	//TODO enable this and test again
+	public static final boolean DO_SELFIFY = true;
 	public McThread() {}//construction is done post-init
 	Keyword access = null;
 	ResourceLocation path = null;
@@ -219,9 +243,14 @@ public class McThread {
 			myTag= Entity.TAGCHAR_NOTALLOWED.matcher(s).replaceAll("+");
 		}return myTag;
 	}
-	public static final String GOTO= "goto";
-	public static final String WAIT= "wait";
-	public static final String EXIT= "exit";
+	//vars that are reserved words
+	public static final String GOTO= Keyword.GOTO.name;//"goto";
+	public static final String WAIT= Keyword.WAIT.name;//"wait";
+	public static final String EXIT= Keyword.EXIT.name;//"exit";
+	//public static final String GOTO= "goto";
+	//public static final String WAIT= "wait";
+	//public static final String EXIT= "exit";
+	
 	public static final String BREAK_F= "thread.break_%d";
 	public static final String OBJ_GOTO= "mcpp.goto";
 	public static final String OBJ_WAIT= "mcpp.wait";
@@ -229,14 +258,57 @@ public class McThread {
 	public static final String OBJ_BREAK_F= "mcpp.thread.break_%d";
 	public static String getObjBreak(int block) {return OBJ_BREAK_F.formatted(block);};
 	public static String getBreak(int block) {return BREAK_F.formatted(block);};
-	public Selector getSelf() {
+	
+	
+	public Selector summonMe(PrintStream p) {
+		p.printf("summon minecraft:marker 0 0 0 {Tags: [\"%s\"]}\n", TEMPTAG);
+		return SELFTEMP.limited(1);
+	}
+	public Const getThis(Scope s) {
+		//TODO test this keyword
+		//returns selector for self but be smart about @e -> @s conversion for efficiency
+		Selector sf = getSelf(s);
+		Selector.SelectorToken st = new Selector.SelectorToken(-1,-1,sf);
+		Const c = new Const("$this",s.getSubRes(),ConstType.SELECTOR,Keyword.PRIVATE,st);
+		return c;
+		
+	}
+	public boolean hasSelf() {
+		if(this.isSynchronized && this.executeAs==null) {
+			return false;
+		}else {
+			return true;
+		}
+	}
+	/**
+	 * gets the selector for the executor in the given scope
+	 * @return
+	 */
+	public Selector getSelf(Scope s) {
+		Selector sf = getSelf();
+		if(!McThread.DO_SELFIFY) return sf;
+		if(sf==null) return null;
+		Boolean selfify = (Boolean) s.getInheritedParameter(IS_THREADSELF);
+		boolean sff = selfify==null? false: selfify;
+		//the other function should do this at the Variable level instead
+		if(sff) sf = sf.selfify();
+		return sf;
+	}
+	/**
+	 * gets the selector for the executor;
+	 * should stay package access (friend Variable)
+	 * @return
+	 */
+	Selector getSelf() {
+		//friend Variable
 		if(this.isSynchronized && this.executeAs==null) {
 			return null;
 		}else {
-			return this.isCompilingStart ? SELFTEMP:SELF;
+			return this.isCompilingStart ? SELF_START:SELF;
 		}
 	}
 	public Selector getAllExecutors() {
+		//this stays no scope
 		if(this.isSynchronized && this.executeAs==null) {
 			return null;
 		}else return new Selector("@e",this.getTag(),null);
@@ -257,28 +329,30 @@ public class McThread {
 		if(e==null) {
 			return new Variable(GOTO,VarType.INT,null,Mask.SCORE,this.path + "/" + this.name,OBJ_GOTO);
 		}
-		return new Variable(GOTO,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_GOTO);
+		return new Variable(GOTO,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_GOTO).addSelfification(e.selfify());
 	}
 	public Variable wait(Selector e) throws CompileError {
 		if(e==null) {
 			return new Variable(WAIT,VarType.INT,null,Mask.SCORE,this.path + "/" + this.name,OBJ_WAIT);
 		}
-		return new Variable(WAIT,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_WAIT);
+		return waitStatic(e);
+		//return new Variable(WAIT,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_WAIT).addSelfification(e.selfify());
 	}
 	public Variable myBreakVar(Selector e, int block) throws CompileError {
 		if(e==null) {
 			return new Variable(getBreak(block),VarType.BOOL,null,Mask.SCORE,this.path + "/" + this.name,getObjBreak(block));
 		}
-		return new Variable(getBreak(block),VarType.BOOL,null,Mask.SCORE,"","").maskEntityScore(e, getObjBreak(block));
+		return new Variable(getBreak(block),VarType.BOOL,null,Mask.SCORE,"","").maskEntityScore(e, getObjBreak(block)).addSelfification(e.selfify());
 	}
 	public static Variable waitStatic(Selector e) throws CompileError {
-		return new Variable(WAIT,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_WAIT);
+		//same as nonstatic for sub case that e!=null
+		return new Variable(WAIT,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_WAIT).addSelfification(e.selfify());
 	}
 	public Variable exit(Selector e) throws CompileError {
 		if(e==null) {
 			return new Variable(EXIT,VarType.BOOL,null,Mask.SCORE,this.path + "/" + this.name,OBJ_EXIT);
 		}
-		return new Variable(EXIT,VarType.BOOL,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_EXIT);
+		return new Variable(EXIT,VarType.BOOL,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_EXIT).addSelfification(e.selfify());
 	}
 	//public Variable self;
 	public boolean doHdr() {
@@ -295,14 +369,14 @@ public class McThread {
 		String g = "lines %s %s".formatted(this.numBlocks,String.join(" ", lns));
 		p.printf("thread public %s %s %s;\n", this.name,as,g);
 	}
-	public void truestart(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor,int gotob) throws CompileError {
-		this.truestart(p, c, s, stack, executor, ((Object) gotob),true);
+	public void truestart(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor,int gotob,ThreadStm gotoStm) throws CompileError {
+		this.truestart(p, c, s, stack, executor, ((Integer) gotob),gotoStm,true);
 	}
-	public void truestart(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor,Register gotoCache) throws CompileError {
-		this.truestart(p, c, s, stack, executor, ((Object) gotoCache),true);
+	public void truestart(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor) throws CompileError {
+		this.truestart(p, c, s, stack, executor, ((Integer) null),this.firstControl,true);
 	}
 		
-	private void truestart(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor,Object gotoCache, boolean start) throws CompileError {
+	private void truestart(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor,Object gotoCache,ThreadStm gotoStm, boolean start) throws CompileError {
 		//must be pass 2-version
 		boolean tagme = !this.isSynchronized || this.executeAs!=null;
 		if(tagme && start)p.printf("tag %s add %s\n", executor,this.getTag());
@@ -311,60 +385,88 @@ public class McThread {
 		}else if (gotoCache instanceof Integer){
 			this.myGoto(executor).setMeToNumber(p, c, s, stack, ((Integer) gotoCache));
 		}else if (gotoCache instanceof Register){
+			//this is deprecated, never use this
 			this.myGoto(executor).setMe(p, s, ((Register) gotoCache), VarType.INT);
 		} else {
 			throw new CompileError("MCPP::invalidargument McThread::truestart()");
 		}
 		this.wait(executor).setMeToNumber(p, c, s, stack, (Integer)0);
+		this.exit(executor).setMeToBoolean(p, c, s, stack, false);
 		isCompilingStart = true;
-		if(gotoCache==null)for(ThreadBlock block: this.firstControl.blockControls) {
-			block.addToEndOfBeforeBlock(p, c, s, this.firstControl);
+		//ThreadStm gotoStm = this.firstControl;// if goto is null
+		if(gotoCache==null)for(ThreadBlock block: gotoStm.blockControls) {
+			//only do this if it is first
+			block.addToEndOfBeforeBlock(p, c, s, gotoStm,true);
 		}
 		isCompilingStart = false;
 		
 	}
-	boolean isCompilingStart = false;
+	public boolean isCompilingStart = false;
 	public Selector truestartSelf() throws CompileError {
+		return truestartSelf(false);//old default was true
+	}
+	public Selector truestartSelf(boolean entry) throws CompileError {
 		//must be pass 2-version
 		if(this.isSynchronized && this.executeAs==null) return null;
-		return this.executeAs==null?
-				 SELFTEMP
+		return (this.executeAs==null || !entry)?
+				 SELF_START
 				:this.executeAs;
 		
 	}
 	public void start(PrintStream p,Compiler c,Scope s,RStack stack, Integer block,Variable getMe) throws CompileError {
 		if(this.executeAs==null && this.isUnresolvedComp1)
 			throw new CompileError("could not resolve thread %s;".formatted(this.name));
+		
 		if( !this.isSynchronized || this.executeAs !=null) {
-			if(this.executeAs==null) {
-				p.printf("summon minecraft:marker 0 0 0 {Tags: [\"%s\"]}\n", TEMPTAG);
+			Selector me;
+			boolean doGetMe = (getMe!=null);
+			boolean doSummon = (this.executeAs==null);
+			if(doSummon) {
+				me = this.summonMe(p);
 			}else {
-				Selector me = this.executeAs;
+				me = this.executeAs;
 				if(this.isSynchronized) {
 					//remove all current executors
 					Selector old = this.getAllExecutors();
 					this.myGoto(old).setMeToNumber(p, c, s, stack, 0);
 					this.wait(old).setMeToNumber(p, c, s, stack, (Integer)0);
-					p.printf("tag %s remove %s\n", old.toCMD(),this.myTag);
+					this.exit(old).setMeToBoolean(p, c, s, stack, false);
+					old.removeTag(p, this.myTag);
+					
+					me = me.limited(1);
 				}
-				p.printf("tag %s add %s\n", me,TEMPTAG);
+				if(doGetMe) {
+					me.addTag(p, TEMPTAG);
+					me = SELFTEMP;
+				}
 			}
-			this.pathStart(block).run(p);
-			if(getMe!=null) {
+			me.run(p, this.pathStart(block));
+			if(doGetMe) {
 				if(getMe.isStruct() && getMe.type.struct instanceof Entity) {
 					Entity clazz = (Entity) getMe.type.struct;
 					String to = clazz.getScoreTag(getMe);
-					p.printf("tag %s add %s\n", this.truestartSelf().toCMD(),to);
+					me.addTag(p, to);
 				}
 			}
-			p.printf("tag %s remove %s\n", this.truestartSelf().toCMD(),TEMPTAG);
+			if(doGetMe || doSummon) me.removeTag(p, TEMPTAG);
 		}else {
 			this.pathStart(block).run(p);
 		}
 		
 	}
-	public void restart(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor,Register gotoCache) throws CompileError {
-		this.truestart(p, c, s, stack, executor, gotoCache,false);
+	//used for calls to a restart or a stop
+	public void tagAndCall(PrintStream p,Compiler c,Scope s, Selector me,ResourceLocation func) throws CompileError {
+		//if(me!=null )me.addTag(p,McThread.TEMPTAG);
+		if(me!=null) {
+			if(!this.hasSelf()) throw new CompileError("bad call to %s for non-self thread".formatted(func.toString()));
+			me.run(p, func);
+		}
+		else func.run(p);
+		//Selector out = this.truestartSelf();
+		//if(me!=null )me.removeTag(p,McThread.TEMPTAG);
+	}
+	public void restart(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor) throws CompileError {
+		this.truestart(p, c, s, stack, executor,null,this.firstControl,false);
 	}
 	public void stop(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor) throws CompileError {
 		if(!this.isSynchronized && this.executeAs==null) {
@@ -372,7 +474,7 @@ public class McThread {
 		}else {
 			this.myGoto(executor).setMeToNumber(p, c, s, stack, 0);
 			this.wait(executor).setMeToNumber(p, c, s, stack, (Integer)0);
-			if(executor!=null)p.printf("tag %s remove %s\n", executor.toCMD(),this.myTag);
+			if(executor!=null)executor.removeTag(p, this.myTag);
 		}
 	}
 	private ResourceLocation subpath(String suff) {
@@ -384,7 +486,8 @@ public class McThread {
 		return new ResourceLocation(this.path.namespace,buff.toString());
 	}
 	public ResourceLocation pathExit() {
-		return this.subpath("exit");
+		//now that entry exits are asat, exit = stop
+		return this.pathStop();
 	}
 	public static final String BLOCKF = "block_%d";
 	public static final String ENTRYF = "entry_%d";
@@ -418,15 +521,15 @@ public class McThread {
 		return this.subpath(TICK);
 	}
 	public void createSubsBlocks(Compiler c) throws CompileError {
-		//TODO bug c.currentScope is not what it should be; switch to using Scope thread
 		
-		//TODO get block number for key blocks
 		Scope start = new Scope(this.firstControl.getOuterScope(),this,START,false,this.firstControl.getBlockNumber());
 		Selector self = this.truestartSelf();
+		start.addInheritedParameter(IS_THREADSELF, false);
+		//don't selfify unless starts are in execute as form
 		try {
 			PrintStream p = start.open(c.job);
 			RStack stack = start.getStackFor();
-			this.truestart(p, c, start,stack , self, null);
+			this.truestart(p, c, start,stack , self);
 			stack.clear();stack.finish(c.job);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -435,6 +538,7 @@ public class McThread {
 		start.closeFiles();
 		
 		Scope stop = new Scope(this.firstControl.getOuterScope(),this,STOP,false,this.firstControl.getBlockNumber());
+		stop.addInheritedParameter(IS_THREADSELF, false);
 		try {
 			PrintStream p = stop.open(c.job);
 			RStack stack = stop.getStackFor();
@@ -447,10 +551,11 @@ public class McThread {
 		stop.closeFiles();
 		
 		Scope restart = new Scope(this.firstControl.getOuterScope(),this,RESTART,false,this.firstControl.getBlockNumber());
+		restart.addInheritedParameter(IS_THREADSELF, false);
 		try {
 			PrintStream p = restart.open(c.job);
 			RStack stack = restart.getStackFor();
-			this.restart(p, c, restart, stack, self, null);
+			this.restart(p, c, restart, stack, self);
 			stack.clear();stack.finish(c.job);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -503,7 +608,7 @@ public class McThread {
 					,waitv.scorePhrase(),gotov.scorePhrase(),i);
 				this.pathBlock(i).run(p);
 		}
-		//TODO overflow guard
+		//TODO command number overflow guard
 		if(!isGlobal)p.printf("tag @s remove %s\n", McThread.TAG_CURRENT);
 	}
 	public static void onLoad(PrintStream p, CompileJob job,Namespace ns) {
@@ -520,8 +625,8 @@ public class McThread {
 		boolean hasAsync = false;
 		for(McThread self : ns.threads) if(self.isSynchronized && self.executeAs == null) {
 			self.decrementDelaySync(p);
-			Variable block = self.myGoto(null);
-			Variable delay = self.wait(null);
+			Variable block = self.myGoto((Selector)null);
+			Variable delay = self.wait((Selector)null);
 			ResourceLocation res = self.pathTick();
 			p.printf("execute if score %s matches 1.. if score %s matches 0 run "
 					, block.scorePhrase(),delay.scorePhrase());

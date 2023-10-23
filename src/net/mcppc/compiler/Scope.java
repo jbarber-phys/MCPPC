@@ -44,8 +44,26 @@ public class Scope {
 	final List<Scope> children = new ArrayList<Scope>();
 	public PrintStream out=null;
 	boolean isOpen=false;
-	private boolean prohibitLongMult = false;
 	
+	//===SETTABLE SCOPE PARAMETERS
+	//parameters set by the compiler about this scope that are inherited by subs unless they override them
+	//example TODO: thread-selfness is overridden by execute as blocks (and etc
+	private Map<String,Object> inheritedParams = new HashMap<String,Object>();
+	public Object getInheritedParameter(String key) {
+		Object o=this.inheritedParams.get(key);
+		if(o!=null) return o;
+		if(this.parent!=null) return this.parent.getInheritedParameter(key);
+		return null;
+	}
+	public boolean addInheritedParameter(String key,Object o) {
+		return this.inheritedParams.put(key, o)==null;
+	}
+	//sequence flag applied after command for this scope only but no others (not even subs)
+	//maybe put these in some sort of registry in the future, but be carefull to make it so that the sequence is preserved
+	private boolean prohibitLongMult = false;
+	private boolean debugMode=false;
+	
+	//==============
 	private final Map<String,Variable> loopLocals = new HashMap<String,Variable>();
 	public boolean hasLoopLocal(String name) {
 		if(this.parent !=null && this.parent.hasLoopLocal(name)) return true;
@@ -186,7 +204,7 @@ public class Scope {
 			
 		}
 		if(thread!=null) {
-			this.thread.addToPath(path, this.threadsuffix);//TODO test this
+			this.thread.addToPath(path, this.threadsuffix);
 		}
 		int index=path.length();
 		boolean f=this.appendExSuff(path);
@@ -255,7 +273,6 @@ public class Scope {
 	private TemplateDefToken templateBound=null;//can be def or args
 	private boolean isBound=false;//true if this scope has assigned values for all 
 	private boolean isFuncBase=false;
-	private boolean debugMode=false;
 	private Scope(Scope scope, TemplateDefToken templateDef) {
 		this.parent=scope.parent;
 		this.function=null;
@@ -300,6 +317,7 @@ public class Scope {
 		
 	}
 	public Scope(Scope s,McThread thread, String suffix,boolean canBreak, int block) throws CompileError {
+		//TODO add boolean for isStart
 		this.parent=s;
 		this.function=null;
 		this.template=null;
@@ -316,6 +334,9 @@ public class Scope {
 		this.addLoopLocalRef(thread.myGoto());
 		this.addLoopLocalRef(thread.waitIn());
 		this.addLoopLocalRef(thread.exit());
+		if(thread.hasSelf()) {
+			this.addInheritedParameter(McThread.IS_THREADSELF, (Boolean)true);
+		}
 		if(canBreak) {
 			//do it later
 		}
@@ -372,7 +393,8 @@ public class Scope {
 	public Variable getBreakVarInMe(Compiler c) throws CompileError {
 		return getBreakVarInMe(c, 0);
 	}
-	public Variable makeAndgetBreakVarInMe(Compiler c) throws CompileError {
+	//this is only used by thread loop
+	@Deprecated private Variable makeAndgetBreakVarInMe(Compiler c) throws CompileError {
 		if(this.isBreakable && this.myBreakVar==null) this.initializeBreakVarInMe(c, false);
 		return getBreakVarInMe(c, 0);
 	}
@@ -397,7 +419,12 @@ public class Scope {
 			return this.myBreakVar;
 		}return null;
 	}
-	public Variable getBreakVarInMe(Compiler c, int depth) throws CompileError {
+	private Variable getBreakVarInMe(Compiler c, int depth) throws CompileError {
+		return this.getBreakVarInMe(c, depth, this);
+	}
+	public Variable getBreakVarInMe(Compiler c, int depth,Scope s) throws CompileError {
+		//TODO this is called externally, if so, scope is this
+		//add scope arg so var can selfify
 		//note: break ignores template
 		if(this.isBreakable) {
 			//internal scope to the loop
@@ -409,7 +436,7 @@ public class Scope {
 					.formatted(c.line(),this.getSubResNoTemplate().toString()));
 				}
 				
-				return this.myBreakVar;
+				return this.myBreakVar.attemptSelfify(s);
 			}
 			if(this.parent==null)return null;
 			return this.parent.getBreakVarInMe(c,depth-1);
@@ -470,6 +497,10 @@ public class Scope {
 	public void setDebugMode(boolean b) {
 		this.debugMode = b;
 	} public boolean isDebugMode() {return this.debugMode;}
+	public boolean hasThread() {
+		return this.thread!=null;
+		
+	}
 	public McThread getThread() {
 		return this.thread;
 		

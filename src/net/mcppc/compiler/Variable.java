@@ -193,6 +193,27 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		this.pointsTo=Mask.ENTITY;
 		return this;
 	}
+	private Selector holderSelfified = null;
+	public Variable addSelfification(Selector ats) {
+		this.holderSelfified = ats;
+		return this;
+		
+	}
+	public boolean canSelfify() {return this.holderSelfified!=null;}
+	//change var based on scope if it can be selfified
+	public Variable attemptSelfify(Scope s) {
+		if(!McThread.DO_SELFIFY) return this;
+		//read scope flags to see if this is in thread and not in an as/asat subexecute
+		Boolean slf=(Boolean) s.getInheritedParameter(McThread.IS_THREADSELF);
+		if(slf==null) return this;
+		if(slf && this.canSelfify()) {
+			Variable v = new Variable(this.name,this.type,null,this.pointsTo,this.holderSelfified.toCMD(), address);
+			v.holderHeader=this.holderSelfified.toCMD();
+			return v;
+		}
+		//Scope::inheritedParams getter
+		return this;
+	}
 	public Variable maskBlock(Coordinates pos,NbtPath path) throws CompileError {
 		if(this.type.isStruct()) {
 			if(!this.type.struct.canMask(this.type, Mask.BLOCK))
@@ -254,6 +275,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		this.isbasic=false;
 		//equivalent to default (c.res,varname)
 		this.holder=ref.holder;
+		//TODO debug: should hdrholder be here? to test: have 2 public vars, one refing the other, which is @s:...
 		this.address=ref.address;
 		this.pointsTo=ref.pointsTo;
 		this.isRecursive=ref.isRecursive; // behave identically to original var

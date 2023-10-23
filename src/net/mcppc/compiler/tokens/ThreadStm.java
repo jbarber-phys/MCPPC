@@ -66,7 +66,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 			return "-%s ...".formatted(this.name);
 		}
 		public boolean isEnd() {return false;}
-		public void addToEndOfBeforeBlock(PrintStream p, Compiler c, Scope s,ThreadStm stm) throws CompileError{
+		public void addToEndOfBeforeBlock(PrintStream p, Compiler c, Scope s,ThreadStm stm,boolean isStart) throws CompileError{
 			
 		}
 		public void addToStartOfAfterBlock(PrintStream p, Compiler c, Scope s,ThreadStm stm) throws CompileError{
@@ -207,8 +207,8 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 	@Override
 	public void addToStartOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
 
-		this.myThread.myGoto(this.myThread.getSelf()).setMeToNumber(p, c, s, this.mystack, (Integer)this.blockNumber+1);
-		this.myThread.wait(this.myThread.getSelf()).setMeToNumber(p, c, s, this.mystack, (Integer)0);
+		this.myThread.myGoto().attemptSelfify(s).setMeToNumber(p, c, s, this.mystack, (Integer)this.blockNumber+1);
+		this.myThread.waitIn().attemptSelfify(s).setMeToNumber(p, c, s, this.mystack, (Integer)0);
 		for(ThreadBlock block: this.blockControls) {
 			block.addToStartOfAfterBlock(p, c, s, this);
 		}
@@ -216,14 +216,15 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 	}
 	@Override
 	public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
-		//System.err.println("adding to block end from after statements " + s.getSubRes().toString());
 		if(this.afterMe==null) {
 			//you forgot to end the thread statement
 			throw new CompileError("thread %s.%s ended without a 'next start / restart;' statement"
 					.formatted(c.resourcelocation,this.myThread.getName()));
 		}
+		//System.err.printf("addToEndOfMyBlock: s = %s\n", s.getSubRes().toString());
+		//System.err.printf("\t selfify = %s\n", s.getInheritedParameter(McThread.IS_THREADSELF));
 		for(ThreadBlock block: this.afterMe.blockControls) {
-			block.addToEndOfBeforeBlock(p, c, s, this);
+			block.addToEndOfBeforeBlock(p, c, s, this,false);
 		}
 		//System.err.println("adding to block end from before statements " + s.getSubRes().toString());
 		for(ThreadBlock block: this.blockControls) {
@@ -231,7 +232,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		}
 		this.mystack.clear();this.mystack.finish(c.job);
 		String exitCmd = this.myThread.pathExit().toString();
-		String exitif = this.myThread.exit().isTrue();
+		String exitif = this.myThread.exit().attemptSelfify(s).isTrue();
 		p.printf("execute if %s run function %s\n", exitif,exitCmd);
 		
 		
@@ -352,13 +353,12 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 			super(line, col,index, name);
 		}
 		@Override
-		public void addToEndOfBeforeBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
-			if(!stm.loop || stm.loopindex > this.index) this.add(p, c, s, stm,true);
+		public void addToEndOfBeforeBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm,boolean isStart) throws CompileError {
+			if(!stm.loop || stm.loopindex > this.index) this.add(p, c, s, stm,true,isStart);
 		}
 		
-		public void add(PrintStream p, Compiler c, Scope s, ThreadStm stm, boolean before) throws CompileError {
-			//System.err.println("wait compiling before = " + before + ", loop = " + this.isAfterLoop);
-			Variable time = stm.myThread.waitIn();
+		public void add(PrintStream p, Compiler c, Scope s, ThreadStm stm, boolean before,boolean isStart) throws CompileError {
+			Variable time = stm.myThread.waitIn().attemptSelfify(s);
 			//p.printf("#enter Delay::add ; time = %s :: %s\n",time.getHolder(),time.getAddress());
 			this.delay.compileOps(p, c, s, VarType.INT);
 			//dont set the wait if we are AFTER a loop control but editing the block BEFORE
@@ -377,7 +377,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		}
 		@Override
 		public void addToEndOfAfterBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
-			if(stm.loop && stm.loopindex < this.index) this.add(p, c, s, stm,false);
+			if(stm.loop && stm.loopindex < this.index) this.add(p, c, s, stm,false,false);
 		}
 		
 	}
@@ -410,25 +410,26 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 			this.loopBlock = loopStm;
 		}
 		@Override
-		public void addToEndOfBeforeBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
+		public void addToEndOfBeforeBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm,boolean isStart) throws CompileError {
 			stm.mySubscope.setBreakable(true);
-			Variable breakv = stm.mySubscope.makeAndgetBreakVarInMe(c);
+			Variable breakv = stm.myThread.myBreakVar(stm.blockNumber).attemptSelfify(s);//stm.mySubscope.makeAndgetBreakVarInMe(c);
 			breakv.setMeToBoolean(p, c, s, this.test.stack, false);
-			this.add(p, c, s, stm,true);
+			this.add(p, c, s, stm,true,isStart);
 		}
 		@Override
 		public void addToStartOfAfterBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
-			Variable breakv = stm.mySubscope.makeAndgetBreakVarInMe(c);
+			Variable breakv = stm.myThread.myBreakVar(stm.blockNumber).attemptSelfify(s);
 			breakv.setMeToBoolean(p, c, s, this.test.stack, false);
 		}
 		@Override
 		public void addToEndOfAfterBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
-			this.add(p, c, s, stm,false);
+			this.add(p, c, s, stm,false,false);
 		}
-		public void add(PrintStream p, Compiler c, Scope s, ThreadStm stm,boolean isBefore) throws CompileError {
-			//System.err.println("loop compiling " );
-			Variable block = stm.myThread.myGoto();
-			Variable breakv = stm.mySubscope.makeAndgetBreakVarInMe(c);
+		public void add(PrintStream p, Compiler c, Scope s, ThreadStm stm,boolean isBefore,boolean isStart) throws CompileError {
+			//System.err.printf("loop compiling %s, %s\n" ,isBefore,isStart);
+			Variable block = stm.myThread.myGoto().attemptSelfify(s);
+			Variable breakv = stm.myThread.myBreakVar(stm.blockNumber).attemptSelfify(s);//stm.mySubscope.makeAndgetBreakVarInMe(c);
+			
 			int myblock = this.loopBlock.blockNumber;
 			int afterblock = this.loopBlock.blockNumber + 1;
 			if(isBefore) {
@@ -455,8 +456,6 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 			stm.loopIf = condition2;
 			block.setMeToNumber(p, c, s, this.test.stack, myblock);//halt
 			
-			//share stack
-			//TODO Fix loop and wait
 			
 		}
 		
@@ -493,9 +492,9 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		@Override
 		public void addToStartOfAfterBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
 			if(this.restart) {
-				stm.myThread.restart(p, c, s, stm.mystack, stm.myThread.getSelf(), null);
+				stm.myThread.restart(p, c, s, stm.mystack, stm.myThread.getSelf(s));
 			}else {
-				stm.myThread.stop(p, c, s, stm.mystack, stm.myThread.getSelf());
+				stm.myThread.stop(p, c, s, stm.mystack, stm.myThread.getSelf(s));
 			}
 		}
 		@Override
@@ -541,17 +540,19 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		}
 		if(this.blockAccess ==Keyword.PUBLIC) {
 			// start at or restart at
-			Scope s = new Scope(c.currentScope,this.myThread,McThread.ENTRYF.formatted(this.blockNumber),this.canBreak(),this.blockNumber);
+			//make an entry function
+			Scope s = new Scope(this.outerScope,this.myThread,McThread.ENTRYF.formatted(this.blockNumber),this.canBreak(),this.blockNumber);
+			s.addInheritedParameter(McThread.IS_THREADSELF, false);
+			//this is not threadself unless executed as target
 			try {
 				PrintStream p = s.open(c.job);
-				this.myThread.truestart(p, c, s, mystack, this.myThread.truestartSelf(), blockNumber);
-				for(ThreadBlock block: this.blockControls) {
-					block.addToEndOfBeforeBlock(p, c, s, this);
-				}
+				this.myThread.truestart(p, c, s, mystack, this.myThread.truestartSelf(), blockNumber,this);
 				this.mystack.clear();this.mystack.finish(c.job);
-				String exitCmd = this.myThread.pathExit().toString();
-				String exitif = this.myThread.exit().isTrue();
-				p.printf("execute if %s run function %s\n", exitif,exitCmd);
+				//just entered, no need to test for exit
+				//String exitCmd = this.myThread.pathExit().toString();
+				//String exitif = this.myThread.exit().attemptSelfify(s).isTrue();
+				//p.printf("execute if %s run function %s\n", exitif,exitCmd);
+				
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 				throw new CompileError("File not found for %s".formatted(this.mySubscope.getSubRes().toString()));

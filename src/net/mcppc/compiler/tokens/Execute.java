@@ -21,6 +21,7 @@ import net.mcppc.compiler.BuiltinFunction;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Const;
 import net.mcppc.compiler.Function;
+import net.mcppc.compiler.McThread;
 import net.mcppc.compiler.RStack;
 import net.mcppc.compiler.Scope;
 import net.mcppc.compiler.Selector;
@@ -121,6 +122,9 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 				if (g==null)throw new CompileError.UnexpectedToken(t, "execute sub-statement name or '{'");
 				Subexecute sub=g.make(c, matcher, line, col);
 				me.terms.add(sub);
+				if(sub.executeAs()!=null) 
+					//reverts thread variables back to the @e form instead of @s, which could no longer be the executor
+					me.mySubscope.addInheritedParameter(McThread.IS_THREADSELF, (Boolean)false);
 			}
 			else if (t instanceof Token.CodeBlockBrace) {
 				if((!((Token.CodeBlockBrace)t).forward))throw new CompileError.UnexpectedToken(t,"{");
@@ -427,7 +431,9 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 			//do nothing
 		}
 		@Override public String getPrefix(Compiler c, Scope s,Anchor previous, int index) throws CompileError {
-			return "as %s at %s".formatted(this.entity.toCMD(),this.entity.toCMD());
+			//Selector second = this.entity;//old behavior
+			Selector second = Selector.AT_S;//as resets s
+			return "as %s at %s".formatted(this.entity.toCMD(),second.toCMD());
 		}
 
 		@Override

@@ -26,17 +26,19 @@ import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.Token.Factory;
+
+//TODO HTML ify docs
 /**
  * object representing a target selector
  * 
- * Important notes on target selectors
+ * Important notes on target selectors:
  *  a trailing comma is allowed but not a leading one
  *  limit=... is invalid in @@s
  *  there can be multiple tag, predicate, and nbt keys but only those
  *  inside advancements = {...} or scores = {...} , there may be duplicate keys
  *  
  *  
- *  note: raw names are not supported, use @@p[name=<username>] instead
+ *  note: raw names are not supported, use @@p[name=$username] instead
  *  
  * selectors can be intersected with the & operator, and the first one will take precedent for sorting
  * 
@@ -157,7 +159,7 @@ public class Selector {
 		if (!m.usePattern(Regexes.SELECTOR_ARGOPEN) .lookingAt()) {
 			//no args
 			//System.err.printf("no args\n");
-			c.cursor=m.end();
+			//c.cursor=m.end();
 			return;
 		}
 		c.cursor= m.end();
@@ -260,7 +262,9 @@ public class Selector {
 			}else throw new CompileError("failed to find arg key or ] in selector");
 			//pre-seperators are NOT allowed, only post seperators
 		}
-
+		if(this.player.equals(AT_S.player) && this.argmap.containsKey("limit")) {
+			throw new CompileError("limit=... not valid inside @s selector; remove this arg");
+		}
 		//System.err.printf("%s :: %d : made selector %s\n",c.resourcelocation.toString(),c.line(),this.toCMD());
 	}
 	
@@ -309,6 +313,9 @@ public class Selector {
 		//strings are immutable
 		this.scores = getArgs.scores;
 		this.advancements = getArgs.advancements;
+	}
+	private Selector(Selector clone) {
+		this(clone.player,clone);
 	}
 	public Selector(String plr, String tag, Integer limit) {
 		this(plr,tag,limit,null);
@@ -411,6 +418,15 @@ public class Selector {
 		}
 		return s;
 	}
+	public boolean isSelf() {
+		return player.equals(AT_S.player);
+	}
+	public Selector limited(int i) {
+		if(this.isSelf())return this;
+		Selector l = new Selector(this);
+		l.argmap.put("limit", Integer.toString(i));
+		return l;
+	}
 	public void kill(PrintStream p) {
 		p.printf("kill %s\n", this.toCMD());
 	}
@@ -419,6 +435,10 @@ public class Selector {
 	}
 	public void removeTag(PrintStream p, String tag) {
 		p.printf("tag %s remove %s\n", this.toCMD(),tag);
+	}
+	public void run(PrintStream p,ResourceLocation fun) {
+		p.printf("execute as %s run ", this.toCMD());
+			fun.run(p);
 	}
 	public static String mergeTypes(String type1,String type2) throws CompileError{
 		//returns null if none

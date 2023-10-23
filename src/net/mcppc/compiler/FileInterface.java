@@ -306,6 +306,12 @@ public class FileInterface {
 		if(isSelf)for(Const cv:this.template)if(cv.name.equals(name))return cv;
 		if(this.constsPublic.containsKey(name)) return this.constsPublic.get(name);
 		if(isSelf && this.constsPrivate.containsKey(name)) return this.constsPrivate.get(name);
+		//TODO if in thread, attempt to find THIS keyword
+		if(isSelf &&  name.equals(Keyword.THIS.name) && s.hasThread() && s.getThread().hasSelf()) {
+			Const thiss = s.getThread().getThis(s);
+			return thiss;
+			
+		}
 		return null;
 	}
 	public McThread getThread(String name,Scope s) {
@@ -333,7 +339,7 @@ public class FileInterface {
 				if(!v.hasField(name))throw new CompileError.VarNotFound(v.type, name);
 				v=v.getField(name);
 			}
-			return v;
+			return v.attemptSelfify(s);
 		}else {
 			if (!isVar && names.size()>=2+start)throw new CompileError("library (or variable) %s not found loaded in scope %s.".formatted(name,s.resBase));
 			else throw new CompileError("variable (or library) %s not found in scope %s".formatted(String.join(".", names),s.getSubRes()));

@@ -241,7 +241,7 @@ public abstract class Statement extends Token implements TreePrintable{
 			}
 			Token asn=c.nextNonNullMatch(Factories.checkForAssignlike);
 			if(!c.currentScope.hasBreak(depth)) throw new CompileError("tried to break with depth %d that did not exist;".formatted(depth));
-			Variable brk=c.currentScope.getBreakVarInMe(c,depth);
+			Variable brk=c.currentScope.getBreakVarInMe(c,depth,c.currentScope);
 			//? =
 			if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ASSIGNMENT) {
 				Equation eq=Equation.toAssign(line, col, c, m);

@@ -3,7 +3,6 @@ package net.mcppc.compiler;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
@@ -14,24 +13,46 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Scanner;
-import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import net.mcpp.vscode.JsonMaker;
-import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.OutputDump;
 import net.mcppc.compiler.tokens.Import;
 
+
+/*list of language edition TODO ::
+ * 
+ * add this const-var to get current executor in thread
+ * add thread-local vars (will need to use scores OR global maps of UUID: locals)
+ * add ability to put vectors on scoreboard somehow
+ * add UUID struct
+ * 
+ * 
+ * consider switch statements: switch() case {} case{} ;
+ * add math.random() function
+ * add methods to entity to: get selector, get nearest / random / farthest of entities
+ * add thread entity death handling mechanism
+ * add bossbar tools like locks
+ * add mass particle functions for shapes: line, sphere, cylinder
+ * improve printf, add format functions for: color,formatting, click events
+ * add stdlib for attacking entities / hitbox/raycast testing
+ * maybe slap on a bunch of formatted command masks
+ */
+
+
+/**
+ * the class that handles all compilation;
+ * @author jbarb_t8a3esk
+ *
+ */
 public class CompileJob {
 	public static final String DATA="data";
 	public static final String RESOURCES="resources";
@@ -681,7 +702,6 @@ public class CompileJob {
 			Path load=this.pathForMcf(mcf);
 			PrintStreamLineCounting p=null;
 			boolean success=true;
-			boolean hasTick=false;
 			if(ns.isExternal) {
 			}
 			else try {

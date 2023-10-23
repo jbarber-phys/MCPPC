@@ -28,7 +28,24 @@ import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.tokens.Execute;
 import net.mcppc.compiler.tokens.Keyword;
 import net.mcppc.compiler.tokens.Regexes;
-
+/**
+ * creates a Textmate language json file for this language
+ * 
+ * this will basically handle all nonn-programatic hilighting except for the following:
+ * * ./language-configuration.json has info on comments and brackets / auto closing pairs
+ * * ./package.json might be able to define custom colors, but right now it does not work
+ * 
+ * currently, the vscode extension is a seperate project that uses the tmLanguage.json generated here
+ * compilation instruction notes (in a vscode-ext project):
+ * extension might not work in testing; if so, uninstall and repackage to test
+ * *	if worried, backup the old .vsix file
+ * to package >>> vsce package
+ * 		makes a ./<name>.vsix file
+ * to install >>> code --install-extension .\<name>.vsix
+ * 
+ * @author jbarb_t8a3esk
+ *
+ */
 public class MakeTmLanguage extends Regexes.Strs{
 	/*
 	 * theme: Dark+ (vscode default)
@@ -102,6 +119,7 @@ public class MakeTmLanguage extends Regexes.Strs{
 			file = getOutput(path);
 			JsonMaker.printAsJson(file, json, true, 0);
 			System.out.println("successfully made vscode extension");
+			System.out.printf("path: %s\n",path);
 		}catch (Exception e) {
 			e.printStackTrace();
 		}finally {
@@ -155,13 +173,14 @@ public class MakeTmLanguage extends Regexes.Strs{
 		//TODO split into @ and non-@ cases
 		//addToRepo("targetselectors",namedMatch(selector,SELECTOR,italic));
 		//addToRepo("targetselectors_at",namedMatch(selector,SELECTOR_ATONLY,italic)); //was replaced by new thing
-		addToRepo("targetselectors_noat",namedMatch(selector,SELECTOR_NOAT,italic));
+		//addToRepo("targetselectors_noat",namedMatch(selector,SELECTOR_NOAT,italic));
 		
 		addSubRepo(selectorArgs, patterns(List.of(include(stringLits),
 				enclosed(selector,"\\[","\\]",List.of(include(selectorArgs))))
 				));//include strings and selectorArgPatterns
 		Map selectorNewAt = enclosed(selector,SELECTOR_ATONLY_START,SELECTOR_END,List.of(include(selectorArgs)));
 		addToRepo(targetSelectors,patterns(List.of(selectorNewAt,namedMatch(selector,SELECTOR_ATONLY_NOARG))));
+		//TODO this is not entering the repo
 		
 		
 		//mcfunction calls
@@ -171,10 +190,9 @@ public class MakeTmLanguage extends Regexes.Strs{
 				List.of(include(stringLits),
 						include(resourcelocations),
 						include(targetSelectors),//may be deprecated
-						namedMatch(selector,SELECTOR_BASIC,italic),
+						//namedMatch(selector,SELECTOR_BASIC,italic),
 						namedMatch(keyword,regexMCFkeyword()),
 						namedMatch(basictype,regexMCFsubkeyword()),
-						//TODO test escape expressions
 						mcf_escapes
 						) //good enough
 				);

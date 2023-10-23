@@ -67,6 +67,8 @@ public final class Factories {
 		public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
 			Keyword w=Keyword.fromString(matcher.group());
 			boolean isGoto = false;
+			boolean isThreadvar = false;
+			boolean isThis = false;
 			//CompileJob.compileMcfLog.printf("keyword: %s;\n", w);
 			if (w!=null )switch(w) {
 			//from declarations, only extract estimantes / assignments / code blocks
@@ -97,6 +99,7 @@ public final class Factories {
 			case RETURN:
 				return Statement.Assignment.makeReturn(c, matcher, line, col);
 			case THIS:
+				isThis=true;
 				break;//treat it as a normal var name and it will work
 				//return Statement.Assignment.makeThis(c, matcher, line, col);
 
@@ -109,9 +112,12 @@ public final class Factories {
 				return ThreadCall.make(c, matcher, line, col, w,false, true);
 			}
 			case GOTO:{
-				isGoto=true;//normal var under the hood
+				isThreadvar = true;
+				isGoto=true;//normal var under the hood, but only accept block names
 			}break;
-
+			case WAIT: case EXIT: {
+				isThreadvar=true;
+			}break;
 			case TAG,TICK,LOAD:
 				return TagStatement.makeMe(c, matcher, line, col, w);
 			default:
@@ -213,6 +219,7 @@ public final class Factories {
 						if (v instanceof VariableElementToken)return ((VariableElementToken) v).convertSet(c, c.currentScope, eq);
 						else nm = (MemberName) v;
 					}
+					//if(isThreadvar)nm.var = nm.var.attemptSelfify(c.currentScope);//fileInterface did this already
 					return new Statement.Assignment(line, col, nm.var, eq);
 				}else
 					throw new CompileError.UnexpectedToken(asn, "'=' or '~~' or '('");
