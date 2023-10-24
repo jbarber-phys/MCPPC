@@ -30,10 +30,9 @@ import net.mcppc.compiler.tokens.Import;
 
 /*list of language edition TODO ::
  * 
- * add this const-var to get current executor in thread
+ * add UUID struct = int[4]
  * add thread-local vars (will need to use scores OR global maps of UUID: locals)
  * add ability to put vectors on scoreboard somehow
- * add UUID struct
  * 
  * 
  * consider switch statements: switch() case {} case{} ;
@@ -47,6 +46,18 @@ import net.mcppc.compiler.tokens.Import;
  * maybe slap on a bunch of formatted command masks
  */
 
+/** if the eclipse bug happens that fails to load java:
+ * 
+ * Close the project and resume it.
+Clean the project (It will restore the buildpath hence reconfiguring with the JDK libraries)
+OR
+
+Delete and Re-import the project and if required do the above steps again.
+The better cure is to try NetBeans rather of Eclipse :-)
+
+Example error: The type java.lang.Object cannot be resolved. It is indirectly referenced from required .class files
+ * 
+ */
 
 /**
  * the class that handles all compilation;

@@ -421,6 +421,13 @@ public class Selector {
 	public boolean isSelf() {
 		return player.equals(AT_S.player);
 	}
+	public boolean isPlayer() {
+		if(this.argmap.containsKey("type")) {
+			if(isTypePlayer(this.argmap.get("type"))) return true;//move on
+			else return false;
+		}
+		return this.isMyPlrPlayer();
+	}
 	public Selector limited(int i) {
 		if(this.isSelf())return this;
 		Selector l = new Selector(this);

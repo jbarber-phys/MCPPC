@@ -7,6 +7,7 @@ import java.util.regex.Matcher;
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.BuiltinFunction.BFCallToken;
+import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Entity;
@@ -24,6 +25,9 @@ import net.mcppc.compiler.tokens.TreePrintable;
  * ([selector target], <string format>, [selector or equation param]...)
  * 
  * json text format: https://minecraft.fandom.com/wiki/Raw_JSON_text_format?so=search#Plain_Text
+ * 
+ * 
+ * TODO consider preventing translation confilcts using {"translate": "", "fallback": format,...}
  * 
  * @author jbarb_t8a3esk
  *
@@ -126,7 +130,7 @@ public class PrintF extends BuiltinFunction{
 	public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col,RStack stack)throws CompileError {
 
 		Selector s=Selector.AT_S;
-		Token t=Const.checkForExpressionSafe(c,c.currentScope, matcher, line, col, ConstType.SELECTOR,ConstType.STRLIT);
+		ConstExprToken t=Const.checkForExpressionSafe(c,c.currentScope, matcher, line, col, ConstType.SELECTOR,ConstType.STRLIT);
 				//c.nextNonNullMatch(testForSelector);
 		
 		if(t!=null &&t instanceof Selector.SelectorToken) {
@@ -138,7 +142,10 @@ public class PrintF extends BuiltinFunction{
 		
 		if(t==null ||!(t instanceof Token.StringToken)) {
 			Selector s2=Entity.checkForEntityVar(c, c.currentScope, matcher, line, col);
-			if(s2==null)throw new CompileError.UnexpectedToken(t, "string literal");
+			if(s2==null) {
+				String next = c.getNextChars();
+				throw new CompileError("printf: unexpected first argument: %s...".formatted(next));
+			}
 			s=s2;
 			if(!BuiltinFunction.findArgsep(c))new CompileError("not enough args in printf(...)");
 			t=Const.checkForExpression(c,c.currentScope, matcher, line, col,ConstType.STRLIT);

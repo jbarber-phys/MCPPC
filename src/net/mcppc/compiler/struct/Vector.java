@@ -596,11 +596,11 @@ public class Vector extends Struct {
 		int i=dir(name);
 		return this.getComponent(self, i);
 	}
-	public Variable getComponent(Variable self, int i) throws CompileError {
+	protected Variable getComponent(Variable self, int i) throws CompileError {
 		if(i<0)throw new CompileError.VarNotFound(this, name);
 		return self.indexMyNBTPathBasic(i, Vector.myMembType(self.type));
 	}
-	public static Variable componentOf(Variable self,int i)throws CompileError {
+	protected static Variable componentOf(Variable self,int i)throws CompileError {
 		return ((Vector)self.type.struct).getComponent(self, i);
 	}
 	private Map<String,BuiltinFunction> METHODS;

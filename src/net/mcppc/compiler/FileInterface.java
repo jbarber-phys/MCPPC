@@ -243,6 +243,12 @@ public class FileInterface {
 			for(Const c:this.template)if(c.name.equals(name))return true;
 		}
 		//no extern constants
+		
+		//if in a thread, check for the const-this selector
+		if(isSelf &&  name.equals(Keyword.THIS.name) && s.hasThread() && s.getThread().hasSelf()) {
+			return true;
+			
+		}
 		return ret;
 	}
 	public boolean hasThread(String name,Scope s) {

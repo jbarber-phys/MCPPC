@@ -9,6 +9,8 @@ import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
 
 public class NbtPath {
+	public static NbtPath UUID = new NbtPath("UUID");
+	
 	public static NbtPath POS = new NbtPath("Pos");
 	public static NbtPath MOTION = new NbtPath("Motion");
 	public static NbtPath ROTATION = new NbtPath("Rotation");

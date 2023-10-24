@@ -37,7 +37,10 @@ import net.mcppc.compiler.tokens.Type;
  * @author jbarb_t8a3esk
  *
  *TODO binary lookup, add seperate class for long sets / maps
- *TODO comparisons
+ *
+ *
+ *TODO comparisons. data set does work for NBT lists (success or result both work)
+ *order does matter for comparison, which may not be good for Set / Map types
  */
 public class NbtCollection extends Struct {
 	public static final NbtCollection stack = new NbtCollection("Stack");

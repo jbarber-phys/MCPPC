@@ -73,6 +73,7 @@ public abstract class Struct {
 		Entity.registerAll();
 		NbtCollection.registerAll();
 		NbtMap.registerAll();
+		Uuid.registerAll();
 	}
 	public static boolean load() {
 		//a dumb method that exists soly to make sure this initializes before something else else
@@ -391,6 +392,7 @@ public abstract class Struct {
 			return;
 		}
 		p.printf("data modify %s set value %s\n",var.dataPhrase(), DEFAULT_LIST);
+		if(size==0) return;
 		//TODO double check that lists within lists can have differente element types
 		//TODO allocate member if they are structs
 		String subname="\"$%s\".\"$allocate_fill\"".formatted(this.name);

@@ -296,6 +296,7 @@ public class McThread {
 	}
 	/**
 	 * gets the selector for the executor;
+	 * TODO playerify if nececcary (check execute as for type=player)
 	 * should stay package access (friend Variable)
 	 * @return
 	 */
@@ -304,7 +305,11 @@ public class McThread {
 		if(this.isSynchronized && this.executeAs==null) {
 			return null;
 		}else {
-			return this.isCompilingStart ? SELF_START:SELF;
+			if(this.isCompilingStart) return SELF_START;
+			if(this.executeAs!=null && this.executeAs.isPlayer()) {
+				return SELF.playerify();
+			}
+			return SELF;
 		}
 	}
 	public Selector getAllExecutors() {
@@ -608,7 +613,6 @@ public class McThread {
 					,waitv.scorePhrase(),gotov.scorePhrase(),i);
 				this.pathBlock(i).run(p);
 		}
-		//TODO command number overflow guard
 		if(!isGlobal)p.printf("tag @s remove %s\n", McThread.TAG_CURRENT);
 	}
 	public static void onLoad(PrintStream p, CompileJob job,Namespace ns) {
@@ -636,6 +640,9 @@ public class McThread {
 		}
 		if(hasAsync) {
 			ns.addEntityTick();
+			//TODO consider command number overflow guard:
+			//remove @e[tag=!] the thread-executor tag to prevent overflow bugs
+			//but this would cost 1 @e per tick
 			
 			p.printf("execute as @e[tag=!,scores = {%s = 1..}] at @s run ", McThread.OBJ_GOTO);
 				ns.getEntityTickFunction().run(p);
