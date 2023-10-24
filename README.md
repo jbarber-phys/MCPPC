@@ -18,6 +18,7 @@ Some of its key features are:
  - interoperability within and between mcpp projects, including pre-compiled ones
  - interoperability with normal mcfunction code
  - project-level compilation
+
 It is possible that MCPP will have more key features in the future (true classes, version targeting, true floats, etc).
 ## Documentation
 Documentation is still TODO.
