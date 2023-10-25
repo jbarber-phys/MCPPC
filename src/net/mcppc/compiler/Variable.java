@@ -275,7 +275,9 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		this.isbasic=false;
 		//equivalent to default (c.res,varname)
 		this.holder=ref.holder;
+		this.holderHeader = ref.holderHeader;
 		//TODO debug: should hdrholder be here? to test: have 2 public vars, one refing the other, which is @s:...
+		this.holderSelfified = ref.holderSelfified;
 		this.address=ref.address;
 		this.pointsTo=ref.pointsTo;
 		this.isRecursive=ref.isRecursive; // behave identically to original var
@@ -671,7 +673,9 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		}else if(from.pointsTo==Mask.SCORE) {
 			String data=to.dataPhrase();
 			double mult=Math.pow(10, -from.type.getPrecision(s));//scientific notation may cause problems
-			f.printf("execute store result %s %s run scoreboard players get %s %s\n", data,CMath.getMultiplierFor(mult),from.holder,from.getAddressToGetset());
+			String type = to.type.getNBTTagType();
+			//TODO bugged has no type
+			f.printf("execute store result %s %s %s run scoreboard players get %s %s\n", data,type,CMath.getMultiplierFor(mult),from.holder,from.getAddressToGetset());
 		} else {
 			String dto=to.dataPhrase();
 			String dfrom=from.dataPhrase();

@@ -108,6 +108,11 @@ public abstract class Struct {
 	public Struct(String name) {
 		this(name,false,false,false);
 	}
+	/**
+	 * should be unused as long as no structs are direct set from /execute store statements
+	 * @param varType
+	 * @return
+	 */
 	public abstract String getNBTTagType(VarType varType);
 	
 	/**

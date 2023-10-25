@@ -34,7 +34,7 @@ import net.mcppc.compiler.tokens.Token;
  * @author jbarb_t8a3esk
  *
  */
-/*TODO test selfification
+/*
  * 
  * scopes are created as follows:
  * McThread::createSubsBlocks : creates start, stop, restart functions (called by thread callers); use truestart format
@@ -44,8 +44,28 @@ import net.mcppc.compiler.tokens.Token;
  * * * loops and ThreadStm::setLoop
  * * * compiler gives this to code blocks, where it is used by actual thread code block_%n
  * 
- * 
- * TODO change execute asat to be as @e[...] at @s
+ *  TODO thread local vars:
+ *  if thread is synchronized, ignore all of this;
+ *  if type is non-data (like Entity) ignore all of this;
+ *  public: can access in any block
+ *  private: can access only in this block
+ *  private ... = ...; normal behavior
+ *  ... volatile ...; normal behavior
+ *  ... -> ...; normal behavior
+ *  public ...; new behavior, score of executor / data in uuid table
+ *  
+ *  
+ *  add option to enable uuid tables but leave it off by default for optimization
+ *  lookup index at start of block, back copy after: time O(N_thread)
+ *  add flag for completion, throw runtime error if it fails
+ *  score is preffered, do this only if a local is non-stackable
+ *  
+ *  
+ */
+/**
+ * A thread that runs mcfunctions over multiple ticks; can also run multiple threads at once (but only 1 on each entity)
+ * @author jbarb_t8a3esk
+ *
  */
 public class McThread {
 	public static final String TAG_CURRENT = "mcpp+thread+current_executor";
@@ -265,7 +285,6 @@ public class McThread {
 		return SELFTEMP.limited(1);
 	}
 	public Const getThis(Scope s) {
-		//TODO test this keyword
 		//returns selector for self but be smart about @e -> @s conversion for efficiency
 		Selector sf = getSelf(s);
 		Selector.SelectorToken st = new Selector.SelectorToken(-1,-1,sf);
@@ -295,8 +314,7 @@ public class McThread {
 		return sf;
 	}
 	/**
-	 * gets the selector for the executor;
-	 * TODO playerify if nececcary (check execute as for type=player)
+	 * gets the selector for the executor; does not selfify it
 	 * should stay package access (friend Variable)
 	 * @return
 	 */
@@ -358,6 +376,16 @@ public class McThread {
 			return new Variable(EXIT,VarType.BOOL,null,Mask.SCORE,this.path + "/" + this.name,OBJ_EXIT);
 		}
 		return new Variable(EXIT,VarType.BOOL,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_EXIT).addSelfification(e.selfify());
+	}
+	
+	
+	public Variable thisNbt(Variable v, NbtPath path) throws CompileError {
+		Selector e = this.getSelf();
+		return v.maskEntity(e, path).addSelfification(e.selfify());
+	}
+	public Variable thisScore(Variable v, String objective) throws CompileError {
+		Selector e = this.getSelf();
+		return v.maskEntityScore(e, objective).addSelfification(e.selfify());
 	}
 	//public Variable self;
 	public boolean doHdr() {

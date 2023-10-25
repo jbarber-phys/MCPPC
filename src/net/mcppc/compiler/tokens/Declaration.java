@@ -18,6 +18,8 @@ import java.util.regex.Matcher;
 //TODO allow estimate of function return value
 //example public int a(int b,int c) ~~ a*b*2 {...}
 //example public float sin(float x) ~~ min(x,1) {...}
+
+
 /**
  * declares a function or variable or const:
  * 
@@ -84,11 +86,16 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	}
 	public void applyMask(Compiler c, Matcher matcher, int line, int col,Keyword access, boolean skip) throws CompileError {
 		Token holder=c.nextNonNullMatch(lookMaskHolder);
+		boolean isThreadThis = false;
+		//TODO change behavior if selector is thread-this: may have to convert at call
 		if(holder instanceof Token.WildChar) {
-			holder = Const.checkForExpressionSafe(c,c.currentScope, matcher, line, col, ConstType.SELECTOR);//check for consts
+			//holder is a member-name
+			if (c.currentScope.hasThread() && c.currentScope.getThread().hasSelf()) 
+				isThreadThis = Keyword.checkFor(c, matcher, Keyword.THIS);
+			if(isThreadThis) ;
+			else holder = Const.checkForExpressionSafe(c,c.currentScope, matcher, line, col, ConstType.SELECTOR);//check for consts
 		}
-		if(holder ==null) {
-			//optional: require an & before var to mark it as a reference
+		if(holder ==null && !isThreadThis) {
 			holder = c.nextNonNullMatch(Factories.checkForBasicName);
 			if(holder instanceof Token.BasicName) holder = ((Token.BasicName) holder).toMembName();
 			if(!(holder instanceof MemberName)) throw new CompileError.UnexpectedToken(holder,"var name or mask target");
@@ -111,23 +118,34 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		boolean isEntity=false;
 		boolean isSelector=false;
 		isEntity = isSelector = holder instanceof Selector.SelectorToken;
-		isEntity = isEntity	|| (holder instanceof MemberName && ((MemberName) holder).var.type.struct==Entity.entity);
+		isEntity = isEntity	|| (holder instanceof MemberName && ((MemberName) holder).var.type.struct==Entity.entity);//TODO unsafe test
+		isEntity = isEntity || isThreadThis;
 		if (isEntity && op instanceof Token.TagOf) {
 			//entity
-			Selector selector = Entity.getSelectorFor(holder,true);
-					//=isSelector? ((Selector.SelectorToken)holder).selector():Entity.entities.getSelectorFor(((MemberName) holder).var);
 			Token address=Const.checkForExpression(c,c.currentScope, matcher, line, col, ConstType.NBT);
-					//c.nextNonNullMatch(lookMaskNbt);
 			if(!(address instanceof NbtPath.NbtPathToken))throw new CompileError.UnexpectedToken(address,"nbt path");
-			if(!skip)this.variable.maskEntity(selector, ((NbtPath.NbtPathToken)address).path());
+			NbtPath path = ((NbtPath.NbtPathToken)address).path();
+			if(!skip) {
+				if(isThreadThis) c.currentScope.getThread().thisNbt(variable, path);
+				else {
+					Selector selector = Entity.getSelectorFor(holder,true);
+					this.variable.maskEntity(selector, path);
+				}
+			}
 			return;
 		}else if (isEntity && op instanceof Token.ScoreOf) {
 			//score
-			Selector selector = Entity.getSelectorFor(holder,true);
 			//=isSelector? ((Selector.SelectorToken)holder).selector():Entity.entities.getSelectorFor(((MemberName) holder).var);
 			Token address=c.nextNonNullMatch(lookMaskScore);
 			if(!(address instanceof Token.BasicName))throw new CompileError.UnexpectedToken(address,"score");
-			if(!skip)this.variable.maskScore(selector, ((Token.BasicName)address).name);
+			String objective = ((Token.BasicName)address).name;
+			if(!skip) {
+				if(isThreadThis) c.currentScope.getThread().thisScore(this.variable, objective);
+				else {
+					Selector selector = Entity.getSelectorFor(holder,true);
+					this.variable.maskScore(selector, objective);
+				}
+			}
 			return;
 			
 		}else if (holder instanceof ResourceLocation.ResourceToken && op instanceof Token.TagOf) {
@@ -336,6 +354,8 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			if(thisType!=null) throw new CompileError("variable definition cannot be a type-member;");
 			//CompileJob.compileHdrLog.println("Declaration its a variable");
 			boolean isFuncLocal=c.currentScope.isInFunctionDefine();
+			boolean isInThreadBlock=c.currentScope.hasThread();
+			;
 			if (isFuncLocal && d.access==Keyword.PUBLIC) {
 				Warnings.warning("vars declared in functions cannot be public; converted var %s to local;".formatted(varname.asString()));
 			}
@@ -344,6 +364,9 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			if(isFuncLocal) {
 				localOf = c.currentScope.getFunction();
 				d.variable.localOf(localOf);
+			}else if (isInThreadBlock) {
+				//TODO thread locals
+				//add volitile keyword
 			}
 			d.objType=DeclareObjType.VAR;
 			if (t3 instanceof Token.LineEnd) {
@@ -364,6 +387,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			}
 			//skip equals statements - they are compile time
 			//? =
+			//TODO if in thread, use existance of equals to warn
 			
 			//? ~~
 			//then:

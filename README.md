@@ -8,10 +8,11 @@ Some of its key features are:
  - fixed point arithmatic, basic math functions, and vector math
  - functions with arguments and return values
  - several builtin functions that are built into the compiler (for optimization)
- - a type system, with the following basic types: int, long, short, byte, float<precision>, double<precision>, bool, void; in addition to structs
+ - a type system, with the following basic types: int, long, short, byte, float`<precision>`, double`<precision>`, bool, void; in addition to structs
  - constants expressions; these have their own type system with the types being: num, flag, text, type, selector, nbt, coords, rot; these evaluate at compile time
  - structs: similar to classes but are built into the compiler (cannot be defined by mcpp code); examples being: String, Vector, Entity, Uuid
  - collections: struct types for various collections: Stack, Queue, List, Set; as well as: Map
+ - threads that can execute over multiple ticks
  - low level control
  - interoperability with
  - a standard library

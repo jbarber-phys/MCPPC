@@ -30,20 +30,22 @@ import net.mcppc.compiler.tokens.Import;
 
 /*list of language edition TODO ::
  * 
- * add UUID struct = int[4]
+ * 
  * add thread-local vars (will need to use scores OR global maps of UUID: locals)
  * add ability to put vectors on scoreboard somehow
  * 
  * 
- * consider switch statements: switch() case {} case{} ;
+ * consider switch statements: switch() case {} case {} ;
  * add math.random() function
- * add methods to entity to: get selector, get nearest / random / farthest of entities
+ * add Entity option to filter
  * add thread entity death handling mechanism
  * add bossbar tools like locks
  * add mass particle functions for shapes: line, sphere, cylinder
  * improve printf, add format functions for: color,formatting, click events
  * add stdlib for attacking entities / hitbox/raycast testing
  * maybe slap on a bunch of formatted command masks
+ * add an NbtCompound type for direct-copying of {...} values
+ * and an Object type -> {value: ?}, for dynamic type capability
  */
 
 /** if the eclipse bug happens that fails to load java:

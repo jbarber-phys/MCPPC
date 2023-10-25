@@ -18,12 +18,10 @@ import net.mcppc.compiler.tokens.Keyword;
 import net.mcppc.compiler.tokens.MemberName;
 
 /**
- * contains all of the fields used by a mcpp file;
+ * contains all of the interface for an mcpp file: all variables, functions, imports, consts, and threads;
+ * private members are included here but not given to any other mcpp files;
  * 
- * TODO figure out how templates
- * add which params accepted to FileInterface
- * add tokens with template params to other stuff
- * allow Compiler::compile2 to be bound to template args
+ * 
  * @author jbarb_t8a3esk
  *
  */
@@ -41,7 +39,7 @@ public class FileInterface {
 	final Map<String, ResourceLocation> imports = new HashMap<String, ResourceLocation>();
 	final Map<String, Boolean> importsStrict = new HashMap<String, Boolean>();
 	final Map<String, ResourceLocation> runs = new HashMap<String, ResourceLocation>();
-	//then make interfaces in
+	//then make FileInterfaces in
 	final Map<String, FileInterface> libs = new HashMap<String, FileInterface>();
 
 	//member
