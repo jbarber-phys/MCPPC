@@ -4,6 +4,7 @@ import java.io.PrintStream;
 import java.util.regex.Matcher;
 
 import net.mcppc.compiler.Const.ConstType;
+import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Struct;
 import net.mcppc.compiler.tokens.BiOperator;
@@ -13,9 +14,9 @@ import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.Type;
 import net.mcppc.compiler.tokens.UnaryOp;
 /**
- * a variable type, incliding type parameters like precision;
+ * a variable type, including type parameters like precision;
  * 
- * Note: strings can be set to values from const or other tags with command so string vars are addable but maybe should be introduced as a struct
+ * Note: strings are a struct type
  * 
  * @author jbarb_t8a3esk
  *
@@ -164,6 +165,22 @@ public class VarType {
 	}
 	public boolean isVoid() {
 		return this.type.isVoid;
+	}
+	public boolean isConstReducable(ConstType ctype) {
+		if(ctype==null) return this.struct!=null && this.struct.getConstType(this) != null;
+		return this.struct!=null && this.struct.getConstType(this) == ctype;
+		
+	}
+	public boolean isDataEquivalent() {
+		return this.struct==null || this.struct.isDataEquivalent(this);
+		
+	}
+	public boolean isScoreEquivalent() {
+		return this.canMask(Mask.SCORE);
+	}
+	public boolean canMask(Variable.Mask mask) {
+		if(this.struct!=null)return this.struct.canMask(this, mask);
+		return true;//builtins can mask all
 	}
 	//number of registers
 	public int sizeOf() {

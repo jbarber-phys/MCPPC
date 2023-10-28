@@ -11,11 +11,11 @@ import net.mcppc.compiler.tokens.Equation.End;
 import net.mcppc.compiler.tokens.Statement.Assignment;
 
 public class VariableElementToken extends Token{
-	public static final Token make(Compiler c,Matcher m, Token name,RStack stack, int line,int col,boolean isTopLevel) throws CompileError {
+	public static final Token make(Compiler c,Scope s, Matcher m,Token name, RStack stack,int line,int col, boolean isTopLevel) throws CompileError {
 		Equation index=new Equation(line, col, stack);
 		index.isAnArg=true;
 		index.isTopLevel=false;
-		index=index.populate(c, m);
+		index=index.populate(c, s, m);
 		if(index.end!=End.INDEXBRACE)throw new CompileError("unexpected arg list ended with a %s.".formatted(index.end.name()));
 		return new VariableElementToken(name.line,name.col,name,index,stack).convertVar(c,c.currentScope);
 		

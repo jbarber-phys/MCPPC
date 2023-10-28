@@ -511,7 +511,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 					c.cursor=start;
 					boolean relative = Token.LoneTilde.testFor(c, matcher, line, col);
 					//Variable vec = Variable.checkForVar(c, c.currentScope, matcher, line, col);
-					Equation veceq=Equation.toArgue(line, col, c, matcher);
+					Equation veceq=Equation.toArgue(line, col, c, matcher, c.currentScope);
 					if(veceq.end!=Equation.End.CLOSEPAREN) throw new CompileError("unexpected ',' in as statement, expected a ')'");
 					//if(vec==null )throw new CompileError("at statement needs a coords, 3 nums, an entity, or a Vector var to work");
 					//if(!vec.type.isStruct() || !(vec.type.struct instanceof Vector)) throw new CompileError("at statement needs a coords, 3 nums, an entity, or a Vector var to work");
@@ -604,7 +604,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 					c.cursor=start;
 					boolean relative = Token.LoneTilde.testFor(c, matcher, line, col);
 					//Variable vec = Variable.checkForVar(c, c.currentScope, matcher, line, col);
-					Equation veceq=Equation.toArgue(line, col, c, matcher);
+					Equation veceq=Equation.toArgue(line, col, c, matcher, c.currentScope);
 					if(veceq.end==Equation.End.CLOSEPAREN) didVecComma= false;
 					else if(veceq.end==Equation.End.ARGSEP) didVecComma= true;
 					else throw new CompileError("unexpected ',' in as statement, expected a ')'");
@@ -695,13 +695,13 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 				if (sl == null) {
 					c.cursor=start;
 					//Variable v1 = Variable.checkForVar(c, c.currentScope, matcher, line, col);
-					Equation eq1=Equation.toArgue(line, col, c, matcher);
+					Equation eq1=Equation.toArgue(line, col, c, matcher, c.currentScope);
 					//boolean comma=BuiltinFunction.findArgsep(c);
 					//if(!comma) throw new CompileError("unexpected ')' in as statement, expected a ','");
 					if(eq1.end!=Equation.End.ARGSEP) throw new CompileError("unexpected ')' in as statement, expected a ','");
 					
 					//Variable v2 = Variable.checkForVar(c, c.currentScope, matcher, line, col);
-					Equation eq2=Equation.toArgue(line, col, c, matcher);
+					Equation eq2=Equation.toArgue(line, col, c, matcher, c.currentScope);
 					//boolean comma=BuiltinFunction.findArgsep(c);
 					//if(!comma) throw new CompileError("unexpected ')' in as statement, expected a ','");
 					if(eq2.end!=Equation.End.CLOSEPAREN) throw new CompileError("unexpected ',' in as statement, expected a ')'");

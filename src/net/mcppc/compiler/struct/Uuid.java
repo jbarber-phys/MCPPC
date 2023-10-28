@@ -142,7 +142,7 @@ public class Uuid extends Struct {
 		@Override public VarType getRetType(BFCallToken token) {
 			return VarType.INT;
 		}
-		@Override public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+		@Override public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 			return BuiltinFunction.tokenizeArgsNone(c, matcher, line, col);
 		}
 		@Override public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {

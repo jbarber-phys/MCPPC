@@ -94,14 +94,14 @@ public abstract class BuiltinFunction {
 	}
 	public static class BFCallToken extends AbstractCallToken{
 		@Deprecated
-		private static BFCallToken make(Compiler c,Matcher m,int line, int col,RStack stack,List<String> names) throws CompileError {
+		private static BFCallToken make(Compiler c,Scope s,Matcher m,int line, int col,RStack stack,List<String> names) throws CompileError {
 			BFCallToken t=new BFCallToken(line,col,BuiltinFunction.getBuiltinFunc(names, c, c.currentScope));
-			t.args=t.f.tokenizeArgs(c, m, line, col,stack);
+			t.args=t.f.tokenizeArgs(c, s, m, line,col, stack);
 			return t;
 		}
-		public static BFCallToken make(Compiler c,Matcher m,int line, int col,RStack stack,BuiltinFunction func) throws CompileError {
+		public static BFCallToken make(Compiler c,Scope s,Matcher m, int line,int col,RStack stack, BuiltinFunction func) throws CompileError {
 			BFCallToken t=new BFCallToken(line,col,func);
-			t.args=t.f.tokenizeArgs(c, m, line, col,stack);
+			t.args=t.f.tokenizeArgs(c, s, m, line,col, stack);
 			return t;
 		}
 		final BuiltinFunction f;public BuiltinFunction getBF(){
@@ -210,8 +210,8 @@ public abstract class BuiltinFunction {
 		public int nargs() {return this.targs.size();}
 		public BasicArgs(){
 		}
-		public BasicArgs equations(Compiler c,int line,int col,Matcher m,RStack stack) throws CompileError {
-			Function.FuncCallToken.addArgs(c, line, col, m, stack, this.targs);
+		public BasicArgs equations(Compiler c,Scope s,int line,int col,Matcher m, RStack stack) throws CompileError {
+			Function.FuncCallToken.addArgs(c, s, line, col, m, stack, this.targs);
 			return this;
 		}
 		public boolean isEmpty() {
@@ -230,12 +230,13 @@ public abstract class BuiltinFunction {
 	 * tokenizes the type arguments, leaving cursor after the closing paren;
 	 * can be used to take unexpected objects like tags + selectors as args (not allowed for normal functions)
 	 * @param c
+	 * @param s TODO
 	 * @param matcher
 	 * @param line
 	 * @param col
 	 * @return
 	 */
-	public abstract Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col,RStack stack)throws CompileError ;
+	public abstract Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line,int col, RStack stack)throws CompileError ;
 	
 	public abstract void call(PrintStream p, Compiler c, Scope s,BFCallToken token,RStack stack) throws CompileError;
 	public abstract void getRet(PrintStream p, Compiler c, Scope s,BFCallToken token,RStack stack,int stackstart) throws CompileError;
@@ -250,6 +251,7 @@ public abstract class BuiltinFunction {
 	/**
 	 * serializes argis in a basic way; if t
 	 * @param c
+	 * @param s TODO
 	 * @param matcher
 	 * @param line
 	 * @param col
@@ -258,14 +260,14 @@ public abstract class BuiltinFunction {
 	 * @return
 	 * @throws CompileError
 	 */
-	public static final Args tokenizeArgsBasic(Compiler c, Matcher matcher, int line, int col,List<Token.Factory[]> looks,boolean endEarly)throws CompileError {
+	public static final Args tokenizeArgsBasic(Compiler c, Scope s, Matcher matcher, int line,int col,List<Token.Factory[]> looks, boolean endEarly)throws CompileError {
 		BasicArgs args=new BasicArgs();
 		int index=0;
 		for(Token.Factory[] look:looks) {
 			Token t=look!=null?
 					c.nextNonNullMatch(look)
 					:
-					Equation.toArgue(c.line, c.column(), c, matcher);//.populate(c, matcher);
+					Equation.toArgue(c.line, c.column(), c, matcher, s);//.populate(c, matcher);
 			args.add(t);
 			if(t instanceof Equation) {
 				switch (((Equation)t).end) {
@@ -294,9 +296,9 @@ public abstract class BuiltinFunction {
 		}
 		throw new CompileError("too many args in builtin function;");
 	}
-	public static final BasicArgs tokenizeArgsEquations(Compiler c, Matcher matcher, int line, int col,RStack stack)throws CompileError {
+	public static final BasicArgs tokenizeArgsEquations(Compiler c, Scope s, Matcher matcher, int line,int col, RStack stack)throws CompileError {
 		BasicArgs args = new BasicArgs();
-		args.equations(c, line, col, matcher, stack);
+		args.equations(c, s, line, col, matcher, stack);
 		return args;
 		
 	}
@@ -408,7 +410,7 @@ public abstract class BuiltinFunction {
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 			List<Const.ConstType> atps=new ArrayList<Const.ConstType>();
 			atps.add(ConstType.BOOLIT);
 			return BuiltinFunction.tokenizeArgsConsts(c, matcher, line, col, atps, true);
@@ -462,7 +464,7 @@ public abstract class BuiltinFunction {
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 			return BuiltinFunction.tokenizeArgsNone(c, matcher, line, col);
 		}
 

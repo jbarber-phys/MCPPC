@@ -95,9 +95,9 @@ public class NbtList extends NbtCollection{
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 			
-			BasicArgs args = super.tokenizeArgsEquations(c, matcher, line, col, stack);
+			BasicArgs args = super.tokenizeArgsEquations(c, s, matcher, line, col, stack);
 			if(args.nargs()!=1) throw new CompileError("wrong number of args in List.get(index); expected 1 but got %d;".formatted(args.nargs()));
 			return args;
 		}
@@ -227,9 +227,9 @@ public class NbtList extends NbtCollection{
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 			
-			BasicArgs args = super.tokenizeArgsEquations(c, matcher, line, col, stack);
+			BasicArgs args = super.tokenizeArgsEquations(c, s, matcher, line, col, stack);
 			if(args.nargs()!=2) throw new CompileError("wrong number of args in List.%s(index); expected 1 but got %d;".formatted(this.name,args.nargs()));
 			return args;
 		}

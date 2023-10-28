@@ -621,7 +621,7 @@ public class Vector extends Struct {
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 			return super.tokenizeArgsNone(c, matcher, line, col);
 		}
 
@@ -653,8 +653,8 @@ public class Vector extends Struct {
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col,RStack stack) throws CompileError {
-			BasicArgs a=new BuiltinFunction.BasicArgs().equations(c, line, col, matcher, stack);
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line,int col, RStack stack) throws CompileError {
+			BasicArgs a=new BuiltinFunction.BasicArgs().equations(c, s, line, col, matcher, stack);
 			if(a.nargs()!=DIM) throw new CompileError("wrong number of args in Vector()...;");
 			return a;
 		}

@@ -127,42 +127,42 @@ public class PrintF extends BuiltinFunction{
 		}
 		
 	}
-	public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col,RStack stack)throws CompileError {
+	public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line,int col, RStack stack)throws CompileError {
 
-		Selector s=Selector.AT_S;
-		ConstExprToken t=Const.checkForExpressionSafe(c,c.currentScope, matcher, line, col, ConstType.SELECTOR,ConstType.STRLIT);
+		Selector reciver=Selector.AT_S;
+		ConstExprToken t=Const.checkForExpressionSafe(c,s, matcher, line, col, ConstType.SELECTOR,ConstType.STRLIT);
 				//c.nextNonNullMatch(testForSelector);
 		
 		if(t!=null &&t instanceof Selector.SelectorToken) {
-			s=((Selector.SelectorToken) t).selector();
+			reciver=((Selector.SelectorToken) t).selector();
 			if(!BuiltinFunction.findArgsep(c))new CompileError("not enough args in printf(...)");
-			t=Const.checkForExpressionSafe(c,c.currentScope, matcher, line, col,ConstType.STRLIT);
+			t=Const.checkForExpressionSafe(c,s, matcher, line, col,ConstType.STRLIT);
 		}
 		//t=c.nextNonNullMatch(nextFormatString);
 		
 		if(t==null ||!(t instanceof Token.StringToken)) {
-			Selector s2=Entity.checkForEntityVar(c, c.currentScope, matcher, line, col);
+			Selector s2=Entity.checkForEntityVar(c, s, matcher, line, col);
 			if(s2==null) {
 				String next = c.getNextChars();
 				throw new CompileError("printf: unexpected first argument: %s...".formatted(next));
 			}
-			s=s2;
+			reciver=s2;
 			if(!BuiltinFunction.findArgsep(c))new CompileError("not enough args in printf(...)");
-			t=Const.checkForExpression(c,c.currentScope, matcher, line, col,ConstType.STRLIT);
+			t=Const.checkForExpression(c,s, matcher, line, col,ConstType.STRLIT);
 		}
-		s=s.playerify();
+		reciver=reciver.playerify();
 		String litFstring=((StringToken) t).literal();
 		//CompileJob.compileMcfLog.printf("printf: %s, %s;\n",s,litFstring);
-		PrintfArgs args=new PrintfArgs(s,litFstring);
+		PrintfArgs args=new PrintfArgs(reciver,litFstring);
 		boolean moreArgs=BuiltinFunction.findArgsep(c);
 		while(moreArgs) {
 			//t=c.nextNonNullMatch(testForSelector);
-			t=Const.checkForExpressionSafe(c,c.currentScope, matcher, line, col, ConstType.SELECTOR);
+			t=Const.checkForExpressionSafe(c,s, matcher, line, col, ConstType.SELECTOR);
 			if(t!=null && t instanceof Selector.SelectorToken) {
 				args.targs.add(t);
 				moreArgs =BuiltinFunction.findArgsep(c);
 			}else {
-				Equation eq=Equation.toArgue(line, col, c, matcher);
+				Equation eq=Equation.toArgue(line, col, c, matcher, s);
 				args.targs.add(eq);
 				moreArgs=!eq.wasLastArg();
 			}

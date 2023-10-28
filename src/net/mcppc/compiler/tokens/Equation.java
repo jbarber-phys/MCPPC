@@ -29,11 +29,11 @@ import net.mcppc.compiler.tokens.UnaryOp.UOType;
  */
 public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	private static final boolean PRE_EVAL_EXP = false;
-	public static Equation toAssign(int line,int col,Compiler c,Matcher m) throws CompileError {
+	public static Equation toAssign(int line,int col,Compiler c,Scope s, Matcher m) throws CompileError {
 		Equation e=new Equation(line,col,c);
 		e.isTopLevel=true;
 		e.wasOpenedWithParen=false;
-		e=e.populate(c, m);
+		e=e.populate(c, s, m);
 		return e;
 	}
 	public static Equation toAssignGoto(int line,int col,Compiler c,Matcher m) throws CompileError {
@@ -60,12 +60,12 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		for(Token t: tokens)e.elements.add(t);
 		return e;
 	}
-	public static Equation toArgue(int line,int col,Compiler c,Matcher m) throws CompileError {
+	public static Equation toArgue(int line,int col,Compiler c,Matcher m, Scope s) throws CompileError {
 		Equation e=new Equation(line,col,c);
 		e.isTopLevel=false;
 		e.wasOpenedWithParen=false;
 		e.isAnArg=true;
-		e=e.populate(c, m);
+		e=e.populate(c, s, m);
 		return e;
 	}
 	public static Equation toArgueHusk(RStack stack,Token... tokens) throws CompileError {
@@ -299,9 +299,9 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		return core.getRetConstRef();
 	}
 	
-	public Equation populate(Compiler c,Matcher m) throws CompileError {
+	public Equation populate(Compiler c,Scope s, Matcher m) throws CompileError {
 
-		return populate(c,m,0);
+		return populate(c,s,m, 0);
 	}
 	private Token nextValueNoType(Compiler c,Matcher m) throws CompileError {
 		Token v=c.nextNonNullMatch(lookForValue);
@@ -313,19 +313,20 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	 * fills the equation with members from the matcher.
 	 * Also identifies any variables or functions it finds
 	 * @param c
+	 * @param s TODO
 	 * @param m
 	 * @param recurrs
 	 * @return
 	 * @throws CompileError
 	 */
-	public Equation populate(Compiler c,Matcher m,int recurrs) throws CompileError {
+	public Equation populate(Compiler c,Scope s,Matcher m, int recurrs) throws CompileError {
 		if(recurrs==10)Warnings.warning("equation recurred 10 times; warning");
 		if(recurrs==20)throw new CompileError("equation recurred 20 times; overflow for debug purposes;");
 		while(true) {
 			//look for value / unary
 			int pc=c.cursor;
 			//Token v=c.nextNonNullMatch(lookForValue);//old
-			Token v=Const.checkForExpressionSafe(c,c.currentScope, m, line, col, ConstType.TYPE); 
+			Token v=Const.checkForExpressionSafe(c,s, m, line, col, ConstType.TYPE); 
 			if(v==null) v=this.nextValueNoType(c, m);
 			//boolean willAddV=false;
 
@@ -350,12 +351,12 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 						throw new CompileError.UnexpectedToken(name, "static function %s not found in struct %s".formatted(name.asString(),v.asString()));
 					BuiltinFunction bf=struct.getStaticBuiltinMethod((((MemberName) name).names.get(0)), ((Type)v).type);
 					BuiltinFunction.open(c);
-					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col,this.stack, bf);
-					sub.withTemplate(((Type)v).type.getTemplateArgs(c.currentScope));//transfer template from arg to function
+					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, s, m, v.line,v.col, this.stack, bf);
+					sub.withTemplate(((Type)v).type.getTemplateArgs(s));//transfer template from arg to function
 					if(sub.canConvert()) {
-						v=sub.convert(c, c.currentScope, this.stack);
+						v=sub.convert(c, s, this.stack);
 						if(v instanceof FuncCallToken)
-							((FuncCallToken) v).linkMeByForce(c, c.currentScope);
+							((FuncCallToken) v).linkMeByForce(c, s);
 						if (v instanceof Equation)
 							this.doesAnyOps=true;
 					}else 
@@ -369,12 +370,12 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 						if(!((Type)v).type.isStruct()) throw new CompileError("cannot construct non-struct type: %s;".formatted(((Type)v).type.asString()));
 						Struct struct=((Type)v).type.struct;
 						BuiltinConstructor cstr=struct.getConstructor(((Type)v).type);
-						BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col,this.stack, cstr);
+						BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, s, m, v.line,v.col, this.stack, cstr);
 						sub.withStatic(((Type)v).type);
 						if(sub.canConvert()) {
-							v=sub.convert(c, c.currentScope, this.stack);
+							v=sub.convert(c, s, this.stack);
 							if(v instanceof FuncCallToken)
-								((FuncCallToken) v).linkMeByForce(c, c.currentScope);
+								((FuncCallToken) v).linkMeByForce(c, s);
 							if (v instanceof Equation)
 								this.doesAnyOps=true;
 						}else 
@@ -406,7 +407,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 				Equation sub=new Equation(v.line,v.col,this.stack);
 				sub.isTopLevel=false;
 				sub.wasOpenedWithParen=true;
-				sub=sub.populate(c, m,recurrs+1);
+				sub=sub.populate(c, s,m, recurrs+1);
 				if(sub.end!=End.CLOSEPAREN)throw new CompileError("unexpected subeq ending %s, expected a ')'".formatted(sub.end.name()));
 				
 				if(sub.isCast) {
@@ -415,7 +416,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 					sub2.wasOpenedWithParen=false;
 					sub2.elements.add(sub);
 					sub2.lastOp=OperationOrder.CAST;
-					sub2=sub2.populate(c, m,recurrs+1);
+					sub2=sub2.populate(c, s,m, recurrs+1);
 					v=sub2;
 					if(sub2.end!=End.LATEROP) {
 						this.elements.add(sub2);
@@ -439,7 +440,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 				sub.wasOpenedWithParen=false;
 				sub.elements.add(v);
 				sub.lastOp=((UnaryOp) v).getOpOrder();
-				sub=sub.populate(c, m,recurrs+1);
+				sub=sub.populate(c, s,m, recurrs+1);
 				v=sub;
 				if(sub.end!=End.LATEROP) {
 					this.elements.add(sub);
@@ -459,9 +460,9 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			//check for function template 
 			TemplateArgsToken tempargs=null;
 			if(v instanceof MemberName) {
-				Function f=c.myInterface.checkForFunctionWithTemplate(((MemberName) v).names, c.currentScope);
+				Function f=c.myInterface.checkForFunctionWithTemplate(((MemberName) v).names, s);
 				if(f!=null) {
-					tempargs=TemplateArgsToken.checkForArgs(c, c.currentScope, m);
+					tempargs=TemplateArgsToken.checkForArgs(c, s, m);
 					if(tempargs==null)c.cursor=pc;
 				}
 			}
@@ -470,22 +471,22 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 				//function call
 				//constructor has its own hook
 				BuiltinFunction bf = null;
-				if(v instanceof MemberName )bf=BuiltinFunction.getBuiltinFunc(((MemberName) v).names, c, c.currentScope);
+				if(v instanceof MemberName )bf=BuiltinFunction.getBuiltinFunc(((MemberName) v).names, c, s);
 				if(bf!=null) {
 					//a builtin function
-					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, m, v.line, v.col,this.stack, bf);
+					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, s, m, v.line,v.col, this.stack, bf);
 					if(tempargs!=null)sub.withTemplate(tempargs);
 					if(bf.isNonstaticMember()) {
 						List<String> nms=((MemberName) v).names;nms=nms.subList(0, nms.size()-1);
-						Variable self = c.myInterface.identifyVariable(nms, c.currentScope);
+						Variable self = c.myInterface.identifyVariable(nms, s);
 						sub.withThis(self);
-						TemplateArgsToken typetemp = self.type.getTemplateArgs(c.currentScope);
+						TemplateArgsToken typetemp = self.type.getTemplateArgs(s);
 						sub.prependTemplate(typetemp);
 					}
 					if(sub.canConvert()) {
-						v=sub.convert(c, c.currentScope, this.stack);
+						v=sub.convert(c, s, this.stack);
 						if(v instanceof FuncCallToken)
-							((FuncCallToken) v).linkMeByForce(c, c.currentScope);
+							((FuncCallToken) v).linkMeByForce(c, s);
 						if (v instanceof Equation)
 							this.doesAnyOps=true;
 					}
@@ -497,10 +498,10 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 				else {
 					if(!(v instanceof MemberName)) throw new CompileError.UnexpectedToken(v, "name before '('");
 					//a normal function
-					Function.FuncCallToken ft=Function.FuncCallToken.make(c, v.line, v.col, m, (MemberName) v, this.stack);
-					ft.identify(c,c.currentScope);
+					Function.FuncCallToken ft=Function.FuncCallToken.make(c, s, v.line, v.col, m, (MemberName) v, this.stack);
+					ft.identify(c,s);
 					if(tempargs!=null)ft.withTemplate(tempargs);
-					ft.linkMe(c,c.currentScope);
+					ft.linkMe(c,s);
 					//this.elements.add(ft);
 					v=ft;
 				}
@@ -514,13 +515,13 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 					//see if it is a const
 					Const cv;
 					try{
-						cv=c.myInterface.identifyConst((MemberName) v, c.currentScope);
+						cv=c.myInterface.identifyConst((MemberName) v, s);
 					}catch  (CompileError e){
 						cv=null;
 					}
 					if(cv==null) {
 						//a var
-						((MemberName) v).identify(c,c.currentScope);
+						((MemberName) v).identify(c,s);
 						//do not add here
 					}else {
 						v=cv.getValue();
@@ -530,9 +531,9 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			}
 			while (op instanceof Token.IndexBrace && ((Token.IndexBrace) op).forward) {
 				//if(!(v instanceof Token.MemberName) )throw new CompileError("%s is not a variable and so cannot be indexed []".formatted(v.asString()));
-				Token vet=VariableElementToken.make(c, m,  v, this.stack, v.line, v.col,false);
+				Token vet=VariableElementToken.make(c, s,  m, v, this.stack, v.line,v.col, false);
 				v=vet;
-				if(v instanceof VariableElementToken) v = ((VariableElementToken) v).convertGet(c, c.currentScope);
+				if(v instanceof VariableElementToken) v = ((VariableElementToken) v).convertGet(c, s);
 				op=c.nextNonNullMatch(lookForOperation);
 			}
 			oploop: while(op instanceof BiOperator) {
@@ -549,7 +550,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 					sub.elements.add(v);
 					sub.elements.add(op);
 					sub.lastOp=((BiOperator) op).getOpOrder();
-					sub=sub.populate(c, m,recurrs+1);
+					sub=sub.populate(c, s,m, recurrs+1);
 					//this.elements.add(sub);
 					v=sub;
 					//CompileJob.compileMcfLog.printf("sub of size %s;\n", sub.elements.size());
@@ -824,6 +825,11 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		if (c.resourcelocation.toString().equals("mcpptest:entity/selector_equation") && false) {
 			//this.printTree(System.err);
 			//System.err.printf("isconst: %b\n", this.isConstable());
+		}
+		if(s.hasThread()) for (Token t:this.elements) if (t instanceof MemberName){
+			//aprove of all thread locals
+			s.getThread().approveVar(((MemberName) t).getVar(), s);
+			
 		}
 		if(this.isTopLevel) {
 			this.stack.clear();

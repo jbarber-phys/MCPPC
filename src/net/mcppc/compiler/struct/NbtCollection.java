@@ -271,9 +271,9 @@ public class NbtCollection extends Struct {
 			return VarType.VOID;
 		}
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 			MCFArgs args=new MCFArgs();
-			Function.FuncCallToken.addArgs(c, line, col, matcher, stack, args.args);
+			Function.FuncCallToken.addArgs(c, s, line, col, matcher, stack, args.args);
 			if(args.args.size()!=1)throw new CompileError("function instanceof EndPend must have 1 arg;");
 			return args;
 		}
@@ -313,7 +313,7 @@ public class NbtCollection extends Struct {
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 			return BuiltinFunction.tokenizeArgsNone(c, matcher, line, col);
 		}
 
@@ -365,7 +365,7 @@ public class NbtCollection extends Struct {
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 			return BuiltinFunction.tokenizeArgsNone(c, matcher, line, col);
 		}
 
@@ -407,8 +407,8 @@ public class NbtCollection extends Struct {
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col,RStack stack) throws CompileError {
-			BasicArgs a=new BuiltinFunction.BasicArgs().equations(c, line, col, matcher, stack);
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line,int col, RStack stack) throws CompileError {
+			BasicArgs a=new BuiltinFunction.BasicArgs().equations(c, s, line, col, matcher, stack);
 			//any number of args is OK
 			return a;
 		}

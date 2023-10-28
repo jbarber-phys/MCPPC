@@ -36,6 +36,7 @@ public enum Keyword {
 	NEXT("next") ,//thread subblock
 	THEN("then") ,//thread subblock
 	SYNCHRONIZED("synchronized") ,//states that a thread cannot have multiple running instances
+	VOLATILE("volatile"), //states that a variable in a thread is not thread-local but shared (disables masking onto executor)
 	START("start"), //call to start a thread;
 	RESTART("restart"), //call to restart a thread;
 	STOP("stop"), //call to stop a thread;

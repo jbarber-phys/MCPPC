@@ -24,17 +24,19 @@ import net.mcppc.compiler.tokens.Execute.Subexecute;
 import net.mcppc.compiler.tokens.Execute.Subgetter;
 import net.mcppc.compiler.tokens.Statement.CodeBlockOpener;
 /**
- * defines a thread
- * syntax:
- * thread [synchronized] [public/private <name>] [as() / asat()] [<controls>] {}
- * next [<controls>] {}
- * next [<controls>] then
- * next stop/restart [start ...];
+ * defines a thread<p>
+ * syntax:<br>
+ * thread [synchronized] [public/private &ltname&gt] [as() / asat()] [&ltcontrols&gt] {}<br>
+ * next [&ltcontrols&gt] {}<br>
+ * next [&ltcontrols&gt] then<br>
+ * next stop/restart [start ...];<p>
  * 
- * <controls>:
- * wait(<delay>) //wait until next block
- * while / until (<condition>) wait (<delay>) // wait until next loop
- * stop [start...] //end thread
+ * &ltcontrols&gt:<br>
+ * <ul>
+ * <li>wait(&ltdelay&gt) //wait until next block
+ * <li>while / until (&ltcondition&gt) wait (&ltdelay&gt) // wait until next loop
+ * <li>stop [start...] //end thread
+ * </ul>
  * @author jbarb_t8a3esk
  *
  */
@@ -84,19 +86,29 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		//start after the name of this
 		public ThreadBlock make(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,int index, boolean isPass1) throws CompileError;
 	}
-	
+	public int startCursor;
 	public static ThreadStm skipMe(Compiler c, Matcher matcher, int line, int col,Keyword w) throws CompileError {
 		//test for else if
-		c.cursor=matcher.end();
+		
 		ThreadStm me=new ThreadStm(line,col,w,null);
+		me.startCursor=c.cursor;
+		c.cursor=matcher.end();
 		me.outerScope = c.currentScope;
 		//me.mySubscope = c.currentScope.subscope(c,me,true);
 		if(me.isFirst) {
-			me.myThread = new McThread().populate(c, matcher, line, col,me,true);
+			me.myThread = McThread.populate(c, matcher, line, col,me,true);
+			me.startedBy = me;
+			me.myThread.cleanControllerScope();
+			me.controlScope = me.myThread.getTokenizeScopeForControls(me);
 		}else {
-			//do later in setPredicessor(...)
+		}
+		me.makeBlockNumber(c, matcher, line, col, true);
+		if(!me.isFirst) {
+			//old code does this later in setPredicessor(...)
+			c.demandPrevFlow(me);
 		}
 		me.makeBlockControl(c, matcher, line, col, true);
+		
 		//Token term=Factories.carefullSkipStm(c, matcher, line, col);
 		//if((!(term instanceof Token.CodeBlockBrace)) || (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{");
 
@@ -105,20 +117,33 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 	}
 	public static ThreadStm makeMe(Compiler c, Matcher matcher, int line, int col,Keyword opener) throws CompileError {
 		//test for else if
-		c.cursor=matcher.end();
 		//CompileJob.compileMcfLog.printf("flow ifElse %s;\n", opener);
 		//Equation eq=null;
 		RStack stack=c.currentScope.getStackFor();
 		ThreadStm me=new ThreadStm(line,col,opener,stack);
+		me.startCursor=c.cursor;
+		c.cursor=matcher.end();
 		me.outerScope = c.currentScope;
 		//me.mySubscope = c.currentScope.subscope(c,me,false);
 		if(me.isFirst) {
-			me.myThread = new McThread().populate(c, matcher, line, col,me,false);
+			me.myThread = McThread.populate(c, matcher, line, col,me,false);
 			me.startedBy = me;
+			me.myThread.cleanControllerScope();
+			me.controlScope = me.myThread.getTokenizeScopeForControls(me);
 		} else {
-			//do later in setPredicessor(...)
+			//nothing yet
 		}
+		me.makeBlockNumber(c, matcher, line, col, false);
+		if(!me.isFirst) {
+			//old code does this later in setPredicessor(...)
+			c.demandPrevFlow(me);
+			//we will need a scope now
+		}
+		
+		//TODO make it possible to skip equations
 		me.makeBlockControl(c, matcher, line, col, false);
+		
+		
 		me.endStatement(c,matcher);
 		return me;
 	}
@@ -144,7 +169,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		}
 		
 	}
-	public void makeBlockControl(Compiler c, Matcher matcher, int line, int col,boolean isPass1) throws CompileError {
+	public void makeBlockNumber(Compiler c, Matcher matcher, int line, int col,boolean isPass1) throws CompileError {
 		//find control statements for block
 		this.blockAccess=Keyword.checkFor(c, matcher, Keyword.PUBLIC,Keyword.PRIVATE);
 		if(this.blockAccess!=null) {
@@ -156,6 +181,11 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 			this.blockNumber=1;
 			this.addBlockNumberToThread(this.outerScope);
 		}
+				
+	}
+	public void makeBlockControl(Compiler c, Matcher matcher, int line, int col,boolean isPass1) throws CompileError {
+		
+		
 		boolean last=false;
 		while(true) {
 			int cs = c.cursor;
@@ -178,6 +208,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 	private boolean hasBlock=true;
 	Scope outerScope;
 	Scope mySubscope;
+	Scope controlScope;
 	McThread myThread;
 	
 	int blockNumber = 1;//starts at 1
@@ -202,6 +233,10 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 
 	@Override
 	public Scope getNewScope() {
+		if(this.mySubscope == null) {
+			System.err.printf("null getNewScope in threadstm\n");
+			System.err.printf("%s,%s,%s\n", this.myThread,this.blockNumber,this.startedBy);
+		}
 		return this.mySubscope;
 	}
 	@Override
@@ -293,6 +328,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 			((ThreadStm) pred).afterMe = this;
 			this.blockNumber = ((ThreadStm) pred).blockNumber+((ThreadStm) pred).size();
 			this.addBlockNumberToThread(this.outerScope);
+			this.controlScope = this.myThread.getTokenizeScopeForControls(this);
 			return true;
 		}
 		else return false;
@@ -337,8 +373,9 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		public static Delay make(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,int index,boolean isPass1) throws CompileError{
 			Delay me = new Delay(line,col,index,name);
 			//System.err.printf("Delay::make(...)\n");
+			Scope s = stm.controlScope;
 			BuiltinFunction.open(c);
-			BasicArgs args=BuiltinFunction.tokenizeArgsEquations(c, matcher, line, col, stm.mystack);
+			BasicArgs args=BuiltinFunction.tokenizeArgsEquations(c, s, matcher, line, col, stm.mystack);
 			if(args.nargs()!=1) throw new CompileError("wrong number of args in wait(...) statement; expected 1 but got %d;"
 					.formatted(args.nargs()));
 			me.delay=(Equation) args.arg(0);
@@ -391,7 +428,8 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		private static Loop make(Compiler c, Matcher matcher, int line, int col,ThreadStm stm, int index,String name,boolean inverted,boolean isPass1) throws CompileError{
 			Loop me = new Loop(line,col,index,name,inverted,stm);
 			BuiltinFunction.open(c);
-			BasicArgs args=BuiltinFunction.tokenizeArgsEquations(c, matcher, line, col, stm.mystack);
+			Scope s = stm.controlScope;
+			BasicArgs args=BuiltinFunction.tokenizeArgsEquations(c, s, matcher, line, col, stm.mystack);
 			if(args.nargs()!=1) throw new CompileError("wrong number of args in wait(...) statement; expected 1 but got %d;"
 					.formatted(args.nargs()));
 			me.test=(Equation) args.arg(0);

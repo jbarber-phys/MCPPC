@@ -60,10 +60,10 @@ public class FunctionMask extends BuiltinFunction {
 		return null;
 	}
 
-	public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+	public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 		//default
 		MCFArgs args=new MCFArgs();
-		Function.FuncCallToken.addArgs(c, line, col, matcher, stack, args.args);
+		Function.FuncCallToken.addArgs(c, s, line, col, matcher, stack, args.args);
 		if(this.defaultArgs!=null && this.defaultArgs.size()>args.args.size()) for(int i=args.args.size();i<this.defaultArgs.size();i++) {
 			Token deft=this.defaultArgs.get(i);
 			if(deft!=null && !(deft instanceof Token.NullArgDefault)){

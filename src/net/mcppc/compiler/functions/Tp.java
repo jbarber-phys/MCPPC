@@ -32,7 +32,7 @@ public class Tp extends BuiltinFunction{
 	}
 
 	@Override
-	public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+	public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 		BasicArgs args=new BasicArgs();
 		Token e1=null,e2=null;
 		e1=Entity.checkForSelectorOrEntityToken(c, c.currentScope, matcher, line, col);

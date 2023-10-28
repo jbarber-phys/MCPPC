@@ -21,7 +21,7 @@ public class Size extends BuiltinFunction{
 	}
 
 	@Override
-	public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+	public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 		return BuiltinFunction.tokenizeArgsNone(c, matcher, line, col);
 	}
 

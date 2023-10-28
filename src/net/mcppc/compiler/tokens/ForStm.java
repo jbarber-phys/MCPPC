@@ -122,7 +122,7 @@ public class ForStm extends Statement implements Statement.CodeBlockOpener,State
 				Token end = c.nextNonNullMatch(Factories.genericLook(Token.ArgEnd.factory,Token.ForInSep.factory));
 				if(end instanceof Token.ForInSep) {
 					boolean fnal = Keyword.checkFor(c, m, Keyword.FINAL);
-					Equation list = Equation.toArgue(line, col, c, m);
+					Equation list = Equation.toArgue(line, col, c, m, c.currentScope);
 					args.add(list);
 					if(list.end!=End.CLOSEPAREN)throw new CompileError("unexpected arg list ended with a %s.".formatted(list.end.name()));
 					return fnal? 1:2;
@@ -130,7 +130,7 @@ public class ForStm extends Statement implements Statement.CodeBlockOpener,State
 				else if(!(end instanceof Token.ArgEnd)) throw new CompileError("unexpected arg list ended with a %s.".formatted(end.asString()));
 
 			}else {
-				Equation arg = Equation.toArgue(line, col, c, m);
+				Equation arg = Equation.toArgue(line, col, c, m, c.currentScope);
 				if(arg.elements.size()==0) {
 					break fargs;
 				}
@@ -138,7 +138,7 @@ public class ForStm extends Statement implements Statement.CodeBlockOpener,State
 				if(arg.end==End.CLOSEPAREN)break fargs;
 				if(arg.end == End.INOP) {
 					boolean fnal = Keyword.checkFor(c, m, Keyword.FINAL);
-					Equation list = Equation.toArgue(line, col, c, m);
+					Equation list = Equation.toArgue(line, col, c, m, c.currentScope);
 					args.add(list);
 					if(list.end!=End.CLOSEPAREN)throw new CompileError("unexpected arg list ended with a %s.".formatted(list.end.name()));
 					return fnal? 1:2;

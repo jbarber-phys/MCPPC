@@ -33,7 +33,7 @@ public class While extends Statement implements Statement.CodeBlockOpener,Statem
 		RStack stack=c.currentScope.getStackFor();
 		t=c.nextNonNullMatch(Factories.checkForParen);
 		if (!(t instanceof Token.Paren) || !((Token.Paren)t).forward)throw new CompileError.UnexpectedToken(t, "'('");
-		Function.FuncCallToken call=Function.FuncCallToken.make(c, line, col, matcher, While.name, stack);
+		Function.FuncCallToken call=Function.FuncCallToken.make(c, c.currentScope, line, col, matcher, While.name, stack);
 		if(call.args.size()!=1)throw new CompileError("wrong number of args in while statement; expected 1;");
 		eq=call.args.get(0);
 		While me=new While(line,col,stack,eq);

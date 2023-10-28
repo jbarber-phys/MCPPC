@@ -59,6 +59,7 @@ public class FileInterface {
 
 		final Map<String,McThread> threadsPublic=new HashMap<String, McThread>();
 		final Map<String,McThread> threadsPrivate=new HashMap<String, McThread>();
+		final Map<Integer,McThread> threadsAnonamous=new HashMap<Integer, McThread>();
 	//template: const value is their default
 	@Deprecated
 	private final List<Const> template=new ArrayList<Const>();//warning: unused, template is at function level
@@ -132,6 +133,9 @@ public class FileInterface {
 		
 		}
 	}
+	public boolean addAnonamous(McThread th,int cursor){
+		return this.threadsAnonamous.putIfAbsent(cursor, th)==null;
+	}
 	public boolean attemptLoadLibs(CompileJob job) {
 		boolean success=true;
 		for(String alias:this.imports.keySet()) {
@@ -196,6 +200,12 @@ public class FileInterface {
 			if (f.locals.containsKey(name)) return true;
 			//keep going
 		}
+		if(isSelf && s!=null && s.hasThread()) {
+			//function args
+			boolean found = s.getThread().hasVar(name,s);
+			if(found)return true;
+			//keep going else
+		}
 		boolean ret=this.varsPublic.containsKey(name);
 		if(isSelf)ret=ret || this.varsPrivate.containsKey(name);
 		if(isSelf)ret=ret || this.varsExtern.containsKey(name);
@@ -233,6 +243,12 @@ public class FileInterface {
 					return true;
 				}
 			}//keep going
+		}
+		if(isSelf && s!=null && s.hasThread()) {
+			//function args
+			boolean found = s.getThread().hasConst(name,s);
+			if(found)return true;
+			//keep going else
 		}
 		boolean ret=this.constsPublic.containsKey(name);
 		if(isSelf)ret=ret || this.constsPrivate.containsKey(name);
@@ -283,6 +299,12 @@ public class FileInterface {
 			if (f.locals.containsKey(name)) return f.locals.get(name);
 			//keep going
 		}
+		if(isSelf && s!=null && s.hasThread()) {
+			//function args
+			boolean found = s.getThread().hasVar(name,s);
+			if(found)return s.getThread().getVar(name,s);
+			//keep going else
+		}
 		if(this.varsPublic.containsKey(name)) return this.varsPublic.get(name);
 		if(isSelf && this.varsPrivate.containsKey(name)) return this.varsPrivate.get(name);
 		if(isSelf && this.varsExtern.containsKey(name)) return this.varsExtern.get(name);
@@ -306,6 +328,12 @@ public class FileInterface {
 					return arg;
 				}
 			}//keep going
+		}
+		if(isSelf && s!=null && s.hasThread()) {
+			//function args
+			boolean found = s.getThread().hasConst(name,s);
+			if(found)return s.getThread().getConst(name,s);
+			//keep going else
 		}
 		if(isSelf)for(Const cv:this.template)if(cv.name.equals(name))return cv;
 		if(this.constsPublic.containsKey(name)) return this.constsPublic.get(name);
@@ -346,7 +374,7 @@ public class FileInterface {
 			return v.attemptSelfify(s);
 		}else {
 			if (!isVar && names.size()>=2+start)throw new CompileError("library (or variable) %s not found loaded in scope %s.".formatted(name,s.resBase));
-			else throw new CompileError("variable (or library) %s not found in scope %s".formatted(String.join(".", names),s.getSubRes()));
+			else throw new CompileError("variable, const, or library %s not found in scope %s".formatted(String.join(".", names),s.getSubRes()));
 		}
 	}
 
@@ -496,6 +524,11 @@ public class FileInterface {
 			}
 		}
 	}
+	public  McThread identifyThreadAnonamous(Scope s,int startCursor) throws CompileError {
+		McThread thread = this.threadsAnonamous.get(startCursor);
+		if(thread==null) throw new CompileError("Failed to identify anonamous thread %d".formatted(startCursor));
+		return thread;
+	}
 	@Deprecated
 	public String getNameOfConstIn(Const cv,Scope s) throws CompileError {
 		if( this.isSelf(s))
@@ -547,10 +580,13 @@ public class FileInterface {
 		for(Variable v:this.varsPublic.values()) if (v.willAllocateOnLoad(ALLOCATE_WITH_DEFAULT_VALUES)) v.allocateLoad(p, ALLOCATE_WITH_DEFAULT_VALUES);
 		for(Variable v:this.varsPrivate.values()) if (v.willAllocateOnLoad(ALLOCATE_WITH_DEFAULT_VALUES)) v.allocateLoad(p, ALLOCATE_WITH_DEFAULT_VALUES);
 		//for(Variable v:this.varsExtern.values()) if (v.willAllocateOnLoad()) v.allocate(p, ALLOCATE_WITH_DEFAULT_VALUES); //do not load externs
-		if(true) {
-			for(Function f:this.funcsPublic.values()) f.allocateMyLocalsLoad(p);
-			for(Function f:this.funcsPrivate.values()) f.allocateMyLocalsLoad(p);
-			//for(Function f:this.funcsExtern.values()) f.allocateMyLocals(p); // do not load externs
-		}
+
+		for(Function f:this.funcsPublic.values()) f.allocateMyLocalsLoad(p);
+		for(Function f:this.funcsPrivate.values()) f.allocateMyLocalsLoad(p);
+		//for(Function f:this.funcsExtern.values()) f.allocateMyLocals(p); // do not load externs
+		
+		for(McThread td:this.threadsPublic.values()) td.allocateMyLocalsLoad(p);
+		for(McThread td:this.threadsPrivate.values()) td.allocateMyLocalsLoad(p);
+		for(McThread td:this.threadsAnonamous.values()) td.allocateMyLocalsLoad(p);
 	}
 }

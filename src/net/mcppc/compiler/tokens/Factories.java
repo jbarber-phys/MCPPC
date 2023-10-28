@@ -28,6 +28,9 @@ public final class Factories {
 		public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
 			Keyword w=Keyword.fromString(matcher.group());
 			if (w!=null )switch(w) {
+			case VOLATILE: case SYNCHRONIZED: case RECURSIVE:
+				throw new CompileError("Keyword %s must be later in the statement (after the access or thread keywords)".formatted(w.name()));
+				//TODO in future could intercept these and add them to thread / declare statements
 			case PUBLIC:return Declaration.header(c, matcher, line, col, w,c.isHeaderOnly());
 			case PRIVATE:return Declaration.fromSrc1(c, matcher, line, col, w);
 			case EXTERN:return Declaration.fromSrc1(c, matcher, line, col, w);
@@ -139,7 +142,7 @@ public final class Factories {
 					//CompileJob.compileMcfLog.printf("builtin funct: %s\n", nm.names);
 					//static and nonstatic members
 					RStack stack=c.currentScope.getStackFor();
-					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, matcher, nm.line, nm.col,stack, bf);
+					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, c.currentScope, matcher, nm.line,nm.col, stack, bf);
 					if(bf.isNonstaticMember()) {
 						List<String> nms=((MemberName) nm).names;nms=nms.subList(0, nms.size()-1);
 						Variable self = c.myInterface.identifyVariable(nms, c.currentScope);
@@ -163,7 +166,7 @@ public final class Factories {
 
 				}else {
 					//a normal function
-					Function.FuncCallToken ft=Function.FuncCallToken.make(c, nm.line, nm.col, matcher, nm, new RStack(c.resourcelocation,c.currentScope));
+					Function.FuncCallToken ft=Function.FuncCallToken.make(c, c.currentScope, nm.line, nm.col, matcher, nm, new RStack(c.resourcelocation,c.currentScope));
 					ft.identify(c,c.currentScope);
 					Token end=c.nextNonNullMatch(Factories.nextIsLineEnd);
 					if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(end, ";","code block after builtin func not yet supported");
@@ -180,7 +183,7 @@ public final class Factories {
 				boolean indexed=false;
 				while (sbk instanceof Token.IndexBrace && ((Token.IndexBrace) sbk).forward) {
 					//if(!(v instanceof Token.MemberName) )throw new CompileError("%s is not a variable and so cannot be indexed []".formatted(v.asString()));
-					Token vet=VariableElementToken.make(c, matcher,  v, new RStack(c.resourcelocation,c.currentScope), v.line, v.col,true);
+					Token vet=VariableElementToken.make(c, c.currentScope,  matcher, v, new RStack(c.resourcelocation,c.currentScope), v.line,v.col, true);
 					v=vet;
 					sbk=c.nextNonNullMatch(checkForIndexBrace);
 					//System.err.printf("sbk = %s\n",sbk.asString());
@@ -212,7 +215,7 @@ public final class Factories {
 				//? =
 				if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ASSIGNMENT) {
 					Equation eq=isGoto? Equation.toAssignGoto(line, col, c, matcher)
-							:Equation.toAssign(line, col, c, matcher);
+							:Equation.toAssign(line, col, c, c.currentScope, matcher);
 					//equation finds the semicolon;
 					if(eq.end !=End.STMTEND) throw new CompileError("assignment ended with a non-';'");
 					if(indexed) {

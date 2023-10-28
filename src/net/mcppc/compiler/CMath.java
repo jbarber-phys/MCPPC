@@ -69,6 +69,11 @@ public abstract class CMath {
 	public static String escepePercents(String in) {
 		return in.replaceAll("%", "%%");
 	}
+	
+	
+	
+	
+	
 	private static int[] cycleElements;
 	private static int cycleElementIndex = 0;
 	private static boolean cycleFound = false;

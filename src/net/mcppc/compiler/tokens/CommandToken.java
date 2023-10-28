@@ -37,7 +37,7 @@ import net.mcppc.compiler.tokens.Token.LineEnd;
 public class CommandToken extends Token{
 	public static final boolean CAN_BE_FORMATTED = true;
 	
-	public static CommandToken formatted(Compiler c,Matcher m,int line,int col,boolean attemptFormat) throws CompileError {
+	public static CommandToken formatted(Compiler c,Scope s,Matcher m,int line,int col,boolean attemptFormat) throws CompileError {
 		//command does not capture leading ; , \n those are evaluated later (there is a lookahead statement)
 		boolean debug = false;
 		
@@ -68,7 +68,7 @@ public class CommandToken extends Token{
 					//begin formatting
 					RStack stack = null; //stack usage is not allowed in const math
 					int li = formats.size();
-					Function.FuncCallToken.addArgs(c, line, col, m, stack, formats);
+					Function.FuncCallToken.addArgs(c, s, line, col, m, stack, formats);
 					if(formats.size()!=li+1)
 						throw new CompileError("a number of eqs other than 1 found in mcf format statement at line %s col %s".formatted(t.line,t.col));
 					Equation eq = formats.get(li);
@@ -108,7 +108,7 @@ public class CommandToken extends Token{
 			this.attemptFormat = attemptFormat;
 		}
 		@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
-			return formatted(c, matcher, line, col, attemptFormat);
+			return formatted(c,c.currentScope, matcher, line, col, attemptFormat);
 		}}
 	
 	public static final Token.Factory factory=new Factory(Regexes.CMD,true);

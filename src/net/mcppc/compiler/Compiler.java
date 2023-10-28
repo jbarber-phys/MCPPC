@@ -220,7 +220,10 @@ public class Compiler{
 		comploop: while(cursor<this.content.length()) {
 			int startline=this.line;
 			//domments go before their statement
+			this.earlySetPredicessor = false; this.thePredFlow = flowPreds.peek();
 			Token sm=this.nextNonNullMatch(Factories.headerLnStart,true);
+			boolean didEarlySetPredicessor = this.earlySetPredicessor;
+			this.thePredFlow=null; this.earlySetPredicessor = false;
 			if (sm==null)break comploop;
 			if(sm instanceof Token.CodeBlockBrace) {
 				if(((Token.CodeBlockBrace)sm).forward) {
@@ -228,6 +231,8 @@ public class Compiler{
 					throw new CompileError.UnexpectedToken(sm,"'{' or line;","previous statement should have handled any forward braces");
 				}else {
 					//end block
+
+
 					if(this.currentScope.parent==null) {
 						//may leave early
 						domments.clear();
@@ -265,7 +270,7 @@ public class Compiler{
 				//System.err.printf("multiflow %s\n", ((Statement.MultiFlow)sm).getFlowType());
 				MultiFlow flowPred = flowPreds.peek();
 				if(flowPred!=null && ((Statement.MultiFlow)sm).recive())
-					if(!((MultiFlow) sm).setPredicessor(flowPred)) {
+					if(!didEarlySetPredicessor)if(!((MultiFlow) sm).setPredicessor(flowPred)) {
 						//System.err.printf("before %s\n", this.currentScope.getSubRes().toString());
 						throw new CompileError("%s cannot be sent as predicessor to a %s statement;"
 								.formatted(flowPred.getFlowType(),((MultiFlow) sm).getFlowType()));
@@ -297,6 +302,7 @@ public class Compiler{
 				
 				
 				this.currentScope=((Statement.CodeBlockOpener) sm).getNewScope();
+				
 				flowPreds.push(null);
 				//System.err.printf("scoped into a %s\n",sm);
 				//if(sm instanceof ThreadStm) System.err.println("opened thread");
@@ -338,6 +344,22 @@ public class Compiler{
 		BuildCodeBlockOrCode(null,compiledLines,false);
 		return compiledLines;
 	}
+	
+	private boolean earlySetPredicessor = false;
+	private MultiFlow thePredFlow = null;
+	/**
+	 * gives a block a previous multiflow block early to give it a proper scope; also prevents it from being run twice
+	 * @param thePredFlow
+	 * @throws CompileError
+	 */
+	public void demandPrevFlow(MultiFlow nextFlow) throws CompileError{
+		//if(!this.hasMadeHeader) throw new CompileError("attempted to do early setPrevFlow during compile pass 1");
+		boolean success = nextFlow.setPredicessor(this.thePredFlow);
+		if(!success)throw new CompileError("%s cannot be sent as predicessor to a %s statement;"
+					.formatted(this.thePredFlow.getFlowType(),nextFlow.getFlowType()));
+		this.earlySetPredicessor = true;
+	}
+	
 	/**
 	 * tokenization routine for global and more local scopes
 	 * @param block
@@ -359,7 +381,12 @@ public class Compiler{
 		MultiFlow flowPred=null;
 		comploop: while(cursor<this.content.length()) {
 			//domments go before statements
+			this.earlySetPredicessor = false; this.thePredFlow = flowPred;
 			Token sm=this.nextNonNullMatch(Factories.compileLnStart,!isInCodeBlock);
+			boolean didEarlySetPredicessor = this.earlySetPredicessor;
+			this.thePredFlow=null; this.earlySetPredicessor = false;
+			//the lines above might need to set Predicessor early
+			//allow it to do so but set the earlyPredicessor flag
 			if(isInCodeBlock) {
 				if (sm==null)throw new CompileError("unexpected end of file inside code block; missing a '}'");
 			}else {
@@ -393,11 +420,11 @@ public class Compiler{
 			else compiledLines.add((Statement) sm);
 
 			if(sm instanceof Statement.MultiFlow) {
-				if(flowPred!=null && ((Statement.MultiFlow)sm).recive())
-					if(!((MultiFlow) sm).setPredicessor(flowPred)) 
+				if(flowPred!=null && ((Statement.MultiFlow)sm).recive()) {
+					if(!didEarlySetPredicessor)if(!((MultiFlow) sm).setPredicessor(flowPred)) 
 						throw new CompileError("%s cannot be sent as predicessor to a %s statement;"
 								.formatted(flowPred.getFlowType(),((MultiFlow) sm).getFlowType()));
-				
+				}
 				if(flowPred==null && ((Statement.MultiFlow)sm).sendForward())flowPred=(MultiFlow) sm;
 				else if(flowPred!=null && ((Statement.MultiFlow)sm).sendForward()&& ((Statement.MultiFlow)sm).claim())flowPred=(MultiFlow) sm;
 				if(!((Statement.MultiFlow)sm).sendForward())flowPred=null;

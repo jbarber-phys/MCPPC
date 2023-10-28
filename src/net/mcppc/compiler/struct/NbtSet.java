@@ -64,9 +64,9 @@ public class NbtSet  extends NbtCollection{
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 			
-			BasicArgs args = super.tokenizeArgsEquations(c, matcher, line, col, stack);
+			BasicArgs args = super.tokenizeArgsEquations(c, s, matcher, line, col, stack);
 			if(args.nargs()!=1) throw new CompileError("wrong number of args in Set.%s(value); expected 1 but got %d;".formatted(this.name,args.nargs()));
 			return args;
 		}
@@ -210,8 +210,8 @@ public class NbtSet  extends NbtCollection{
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col,RStack stack) throws CompileError {
-			BasicArgs a=new BuiltinFunction.BasicArgs().equations(c, line, col, matcher, stack);
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line,int col, RStack stack) throws CompileError {
+			BasicArgs a=new BuiltinFunction.BasicArgs().equations(c, s, line, col, matcher, stack);
 			//any number of args is OK
 			return a;
 		}

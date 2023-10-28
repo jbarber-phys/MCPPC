@@ -153,7 +153,7 @@ public abstract class Statement extends Token implements TreePrintable{
 	public static class CommandStatement extends Statement{
 		public static final Statement.Factory factory=new Statement.Factory(Regexes.CMD) {
 			@Override public Statement createStatement(Compiler c, Matcher matcher, int line, int col) throws CompileError {
-				CommandToken t=CommandToken.formatted(c, matcher, line, col, true);
+				CommandToken t=CommandToken.formatted(c,c.currentScope, matcher, line, col, true);
 				if(c.nextNonNullMatch(Factories.nextIsLineEnd) instanceof Token.LineEnd)
 					c.cursor=matcher.end();
 				else throw new CompileError.UnexpectedToken(t, ";");
@@ -214,7 +214,7 @@ public abstract class Statement extends Token implements TreePrintable{
 			//calls to makeReturn are not allowed
 			//? =
 			if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ASSIGNMENT) {
-				Equation eq=Equation.toAssign(line, col, c, m);
+				Equation eq=Equation.toAssign(line, col, c, c.currentScope, m);
 				//equation finds the semicolon;
 				if(eq.end !=End.STMTEND) throw new CompileError("assignment ended with a non-';'");
 				return new Statement.Assignment(line, col, ret, eq);
@@ -244,7 +244,7 @@ public abstract class Statement extends Token implements TreePrintable{
 			Variable brk=c.currentScope.getBreakVarInMe(c,depth,c.currentScope);
 			//? =
 			if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ASSIGNMENT) {
-				Equation eq=Equation.toAssign(line, col, c, m);
+				Equation eq=Equation.toAssign(line, col, c, c.currentScope, m);
 				//equation finds the semicolon;
 				if(eq.end !=End.STMTEND) throw new CompileError("assignment ended with a non-';'");
 				return new Statement.Assignment(line, col, brk, eq);

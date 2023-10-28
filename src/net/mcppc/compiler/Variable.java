@@ -49,6 +49,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	private String address;
 	boolean isParameter=false;
 	boolean isFuncLocal=false;
+	boolean isThreadLocalNonFlowNonVolatile = false;
 	private boolean isReference=false;
 	private boolean isRecursive=false;
 	public boolean isReference() {
@@ -212,6 +213,10 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 			return v;
 		}
 		//Scope::inheritedParams getter
+		return this;
+	}
+	public Variable makeScoreOfThreadRunner() {
+		this.isbasic=true;
 		return this;
 	}
 	public Variable maskBlock(Coordinates pos,NbtPath path) throws CompileError {
@@ -794,6 +799,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		if(this.isRecursive)return true;
 		if(this.type.isStruct())
 			return this.isbasic  && this.type.struct.willAllocateLoad(this, fillWithDefaultvalue);//usually true
+		else if (this.pointsTo==Mask.SCORE && this.isbasic) return true;
 		return this.isbasic  && fillWithDefaultvalue;
 	}
 	public boolean willAllocateOnCall(boolean fillWithDefaultvalue) {
@@ -811,6 +817,11 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	public void allocateLoadBasic(PrintStream p,boolean fillWithDefaultvalue,String defaultValue) throws CompileError  {
 		if(!this.isbasic) {
 			Warnings.warningf("attempted to allocate %s to non-basic %s;",this.name,this.pointsTo);
+			return;
+		}
+		if(this.pointsTo == Mask.SCORE && this.isbasic) {
+			String objective = this.address;
+			p.printf("scoreboard objectives add %s dummy\n",objective);
 			return;
 		}
 		if(this.pointsTo!=Mask.STORAGE) {

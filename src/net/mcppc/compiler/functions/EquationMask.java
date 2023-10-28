@@ -27,7 +27,7 @@ public abstract class EquationMask extends BuiltinFunction {
 		
 
 	@Override
-	public abstract Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError ;
+	public abstract Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError ;
 
 	@Override
 	public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {

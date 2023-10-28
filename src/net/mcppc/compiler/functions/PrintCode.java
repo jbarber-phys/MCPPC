@@ -35,7 +35,7 @@ public class PrintCode extends BuiltinFunction {
 	}
 	private String content;
 	@Override
-	public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+	public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 		BasicArgs args = new BasicArgs(); //BuiltinFunction.tokenizeArgsEquations(c, matcher, line, col, stack);
 		Token me = Entity.checkForSelectorOrEntityToken(c, c.currentScope, matcher, line, col);
 		if(me!=null)args.add("entity", me);

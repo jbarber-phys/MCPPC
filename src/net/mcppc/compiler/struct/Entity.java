@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.mcpp.util.Strings;
 import net.mcppc.compiler.BuiltinFunction;
 import net.mcppc.compiler.CompileJob;
 import net.mcppc.compiler.Compiler;
@@ -70,8 +71,17 @@ public class Entity extends Struct {
 		return null;//this should never be called
 		//if it is called, let the nullpointer crash the program as punishment
 	}
+	@Override public Const.ConstType getConstType(VarType type){
+		return Const.ConstType.SELECTOR;
+	}
+
+	@Override public boolean isDataEquivalent(VarType type){
+		return false;
+	}
+	
+	
 	//private static final Pattern SLASH = Pattern.compile("\\/"); // \/
-	public static final Pattern TAGCHAR_NOTALLOWED = Pattern.compile("[^\\w.+-]"); // [^\w.+-]
+	//public static final Pattern TAGCHAR_NOTALLOWED = Pattern.compile("[^\\w.+-]"); // [^\w.+-]
 
 	/**
 	 * a unique tag that this var uses as a tracker
@@ -83,7 +93,8 @@ public class Entity extends Struct {
 	public String getScoreTag(Variable self) throws CompileError{
 		String s=self.getHolder()+"."+self.getAddressToGetset(); //ignore the index
 		if(self.getHolder().length()==0) s=self.getAddressToGetset();
-		return TAGCHAR_NOTALLOWED.matcher(s).replaceAll("+");
+		return Strings.getTagSafeString(s);
+		//return TAGCHAR_NOTALLOWED.matcher(s).replaceAll("+");
 	}
 	
 
@@ -319,7 +330,7 @@ public class Entity extends Struct {
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 			final Token.Factory[] lookEtype = Factories.genericCheck(ResourceLocation.ResourceToken.factory);
 			BasicArgs args=new BasicArgs();
 			Token etype=c.nextNonNullMatch(lookEtype);
@@ -400,7 +411,7 @@ public class Entity extends Struct {
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 			return BuiltinFunction.tokenizeArgsNone(c, matcher, line, col);
 		}
 
@@ -452,7 +463,7 @@ public class Entity extends Struct {
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 			return BuiltinFunction.tokenizeArgsNone(c, matcher, line, col);
 		}
 
@@ -516,7 +527,7 @@ public class Entity extends Struct {
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 			return BuiltinFunction.tokenizeArgsNone(c, matcher, line, col);
 		}
 

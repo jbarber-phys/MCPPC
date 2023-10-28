@@ -9,12 +9,14 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
+import net.mcpp.util.Strings;
 import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.struct.Entity;
+import net.mcppc.compiler.tokens.Declaration;
 import net.mcppc.compiler.tokens.Execute;
 import net.mcppc.compiler.tokens.Execute.Subexecute;
 import net.mcppc.compiler.tokens.Execute.Subgetter;
@@ -43,16 +45,14 @@ import net.mcppc.compiler.tokens.Token;
  * * * anononamous blocks
  * * * loops and ThreadStm::setLoop
  * * * compiler gives this to code blocks, where it is used by actual thread code block_%n
+ * * * (tokenize only) thread controls call to get a subscope with null block number
  * 
  *  TODO thread local vars:
- *  if thread is synchronized, ignore all of this;
- *  if type is non-data (like Entity) ignore all of this;
- *  public: can access in any block
- *  private: can access only in this block
- *  private ... = ...; normal behavior
- *  ... volatile ...; normal behavior
- *  ... -> ...; normal behavior
- *  public ...; new behavior, score of executor / data in uuid table
+ *  TODO give locals to control blocks; current bug: controls lack access thread while they are being created
+ *  because the thread is not given untel setPredicessor(), which happens after token creation
+ *  will need to alter compile2 to allow earlier setPredicessor() TODO test
+ *  also need to propagate some scope arguments through builtin function;
+ * 
  *  
  *  
  *  add option to enable uuid tables but leave it off by default for optimization
@@ -81,10 +81,11 @@ public class McThread {
 	public static final String IS_THREADSELF = "is_threadself";
 	//TODO enable this and test again
 	public static final boolean DO_SELFIFY = true;
-	public McThread() {}//construction is done post-init
+	private McThread() {}//construction is done post-init
 	Keyword access = null;
 	ResourceLocation path = null;
 	String name = null;
+	boolean isAnonamous = false;
 	boolean isSynchronized;
 	boolean madeExecs = false;
 	//this is true if not all execute terms were resolvable at compile-1 time
@@ -100,6 +101,153 @@ public class McThread {
 	ThreadStm firstControl=null;
 	
 	int numBlocks = 0;
+	
+	//vars found in all blocks
+	private Map<String,Variable> varsPublic = new HashMap<String,Variable>();
+	//vars findable in only one block
+	private Map<Integer,Map<String,Variable>> varsPrivate = new HashMap<Integer,Map<String,Variable>>();
+	
+	private Map<String,Const> constsPublic = new HashMap<String,Const>();
+	//vars findable in only one block
+	private Map<Integer,Map<String,Const>> constsPrivate = new HashMap<Integer,Map<String,Const>>();
+	
+	//this is all still TODO
+	/**
+	 * adds a thread-local define to this thread;<p>
+	 *  public vars can be accessed in any block but private vars are lmited to this block;<p>
+	 * will modify the vars mask to make it thread-safe according to the following rules: TODO <br>
+	 * <ul>
+	 *  <li>if thread is synchronized, or if it is not data equivalent, change nothing
+	 *  <li> private ... = ...; normal behavior
+	 *   <li>... volatile ...; normal behavior
+	 *   <li>... `->` ...; normal behavior
+	 *   <li>public ...; new behavior, score of executor / data in uuid table
+	 *  </ul>
+	 * 
+	 * @param dec
+	 * @param c
+	 * @param s
+	 * @param block
+	 * @return
+	 * @throws CompileError
+	 */
+	public boolean add(Declaration dec,Compiler c,Scope s,int block) throws CompileError {
+		//System.err.printf("%s::%s thread var name: %s, blocknum = %s;\n",s.resBase,this.makeName(), dec.getVariable().name,block);
+		//if(false) return c.myInterface.add(dec);
+		switch(dec.getObjType()) {
+		case VAR:break;//see below
+		case CONST: {
+			Const cv = dec.getConst();
+			switch (dec.access) {
+			case PUBLIC: {
+				return this.constsPublic.putIfAbsent(cv.name, cv)==null;
+			}
+			case PRIVATE: {
+				this.constsPrivate.putIfAbsent(block, new HashMap<String,Const>());
+				Map<String,Const> blockLocals = this.constsPrivate.get(block);
+				return blockLocals.putIfAbsent(cv.name, cv)==null;
+			}
+			default:throw new CompileError("access %s not allowed for thread const".formatted(dec.access));
+			}
+		}case FUNC: {
+			throw new CompileError("functions not allowed in threads");//could change this later, TODO let local funcs access thread vars
+		}
+		}
+		Variable var = dec.getVariable();
+		//TODO stop truestart from using local vars incorrectly (do not allow this)
+		boolean modify = (!this.isSynchronized);
+		modify = modify && var.type.isDataEquivalent();
+		modify = modify && !dec.hdrHasMask;
+		modify = modify && !dec.isVolatile;
+		modify = modify && !(dec.access==Keyword.PRIVATE && dec.hdrHasAssign);
+		if(modify) {
+			var.isThreadLocalNonFlowNonVolatile=true;//could also allow true-selfification during make start
+			//System.err.printf("CHANGED: %s to mask this ::\n", var.name);
+			//TODO test this
+			if(var.type.isScoreEquivalent()) {
+				ResourceLocation prefix = c.resourcelocation;
+				String threadname = this.getName();
+				String objective = "%s.%s.%s".formatted(Strings.getObjectiveSafeString(prefix.toString()),threadname,var.name);
+				Selector e=this.getSelf();
+				var.maskScore(e, objective).addSelfification(e.selfify()).makeScoreOfThreadRunner();
+			} else {
+				throw new CompileError("could not apply thread-local score mask to %s of type %s; shared vars should me marked as 'volatile'"
+						.formatted(var.name,var.type.asString()));
+			}
+		}else {
+			//assume volatile or local var;
+			//do nothing
+			//System.err.printf("IGNORED: %s to stay the same ::\n", var.name);
+		}
+		
+		switch (dec.access) {
+		case PUBLIC: return this.varsPublic.putIfAbsent(var.name, var)==null;
+		case PRIVATE: {
+			this.varsPrivate.putIfAbsent(block, new HashMap<String,Variable>());
+			Map<String,Variable> blockLocals = this.varsPrivate.get(block);
+			return blockLocals.putIfAbsent(var.name, var)==null;
+		}
+		default:throw new CompileError("access %s not allowed for thread var".formatted(dec.access));
+		}
+	}
+
+	public boolean hasVar(String name,Scope s) {
+		int block = s.getThreadBlock();
+		//System.err.printf("McThread::hasVar %s  in block %d\n", name, block);
+		if(this.varsPublic.containsKey(name)) return true;
+		this.varsPrivate.putIfAbsent(block, new HashMap<String,Variable>());
+		Map<String,Variable> blockLocals = this.varsPrivate.get(block);
+		if(blockLocals.containsKey(name))return true;
+		return false;
+	}
+	public Variable getVar(String name,Scope s) {
+		int block = s.getThreadBlock();
+		if(this.varsPublic.containsKey(name)) return this.varsPublic.get(name);
+		this.varsPrivate.putIfAbsent(block, new HashMap<String,Variable>());
+		Map<String,Variable> blockLocals = this.varsPrivate.get(block);
+		if(blockLocals.containsKey(name))return blockLocals.get(name);
+		return null;
+	}
+	public Variable getVarInTruestart(String name,Scope s) {
+		int block = s.getThreadBlock();
+		if(this.varsPublic.containsKey(name)) return this.varsPublic.get(name);
+		this.varsPrivate.putIfAbsent(block, new HashMap<String,Variable>());
+		Map<String,Variable> blockLocals = this.varsPrivate.get(block);
+		if(blockLocals.containsKey(name))return blockLocals.get(name);
+		return null;
+	}
+	public void approveVar(Variable v,Scope s) throws CompileError{
+		if(!v.isThreadLocalNonFlowNonVolatile) return;
+		if(!s.hasThread()) return;
+		if(this.isCompilingStart) {
+			throw new CompileError("thread-local non-volatile var %s cannot be used on the first thread control as it has not been initialized");
+		}
+	}
+	public boolean hasConst(String name, Scope s) {
+		int block = s.getThreadBlock();
+		if(this.constsPublic.containsKey(name)) return true;
+		this.constsPrivate.putIfAbsent(block, new HashMap<String,Const>());
+		Map<String,Const> blockLocals = this.constsPrivate.get(block);
+		if(blockLocals.containsKey(name))return true;
+		return false;
+	}
+	public Const getConst(String name, Scope s) {
+		int block = s.getThreadBlock();
+		if(this.constsPublic.containsKey(name)) return this.constsPublic.get(name);
+		this.constsPrivate.putIfAbsent(block, new HashMap<String,Const>());
+		Map<String,Const> blockLocals = this.constsPrivate.get(block);
+		if(blockLocals.containsKey(name))return blockLocals.get(name);
+		return null;
+	}
+	public void allocateMyLocalsLoad(PrintStream p) throws CompileError {
+		for(Map<String,Variable> subBlock: this.varsPrivate.values())for(Variable v: subBlock.values()) 
+			if (v.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES)) v.allocateLoad(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+		for(Variable v: this.varsPublic.values()) 
+			if (v.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES)) v.allocateLoad(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+	}
+	
+	
+	
 	public void ensureSize(ThreadStm stm, int index) {
 		this.numBlocks = Math.max(this.numBlocks, index);
 	}
@@ -116,6 +264,8 @@ public class McThread {
 		}
 	}
 	public Integer getBlockNumber(String name,boolean inside) {
+		//System.err.printf("block name: %s, %s\n", name, inside);
+		//System.err.printf("blocks: %s, %s\n", this.namedBlocksPublic,this.namedBlocksPrivate);
 		if(inside) {
 			Integer b = this.namedBlocksPrivate.get(name);
 			if(b!=null)return b;
@@ -159,30 +309,44 @@ public class McThread {
 		String name = ((MemberName) t).names.get(0);
 		return name;
 	}
-	private String makeName() {
-		return this.name==null?
-				"thread__anon__%d__%d".formatted(this.firstControl.line,this.firstControl.col)
-				:this.name;
+	private void makeName(int line, int col) {
+		//note this is OK for name but dont use line,col for lookup
+		if(this.name==null) {
+			this.name="thread__anon__%d__%d".formatted(line,col);
+			this.isAnonamous=true;
+		}
 	}
 	public void addToPath(StringBuffer buff,String suffix) {
-		String nm = this.makeName();
+		String nm = this.getName();
 		buff.append(nm);
 		buff.append(CompileJob.FILE_TO_SUBDIR_SUFFIX);
 		buff.append(suffix);
 	}
 	boolean hasPass2 = false;
-	public McThread populate(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,boolean isPass1) throws CompileError {
+	public static McThread populate(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,boolean isPass1) throws CompileError {
+		McThread self = new McThread();//if double-newed, will only recive name and access before death + replacement
 		if(c.currentScope.parent!=null) throw new CompileError("threads must be defined in global scope");
-		this.isSynchronized = Keyword.checkFor(c, matcher, Keyword.SYNCHRONIZED);
-		this.path=c.resourcelocation;
+		self.isSynchronized = Keyword.checkFor(c, matcher, Keyword.SYNCHRONIZED);
+		self.path=c.resourcelocation;
 		
-		this.checkForName(c, matcher, line, col);
-		McThread self=this;
-		if(this.name!=null)if(!isPass1) {
-			//substitute self for registered thing
-			self = c.myInterface.identifyThread(this.name, c.currentScope);
-		}else {
-			c.myInterface.add(this);//by ref
+		self.checkForName(c, matcher, line, col);
+		if(self.name!=null) {
+			if(!isPass1) {
+				//substitute self for registered thing
+				self = c.myInterface.identifyThread(self.name, c.currentScope);
+			}else {
+				c.myInterface.add(self);//by ref
+			}
+		} else {
+			//anonamous thread
+			
+			if(!isPass1) {
+				//substitute self for registered thing
+				self = c.myInterface.identifyThreadAnonamous(c.currentScope, stm.startCursor);
+			}else {
+				c.myInterface.addAnonamous(self,stm.startCursor);//by ref
+			}
+			self.makeName(line,col);
 		}
 		//System.err.printf("thread populate ()%s;\n",isPass1);
 		if(!isPass1) {
@@ -260,7 +424,8 @@ public class McThread {
 	public String getTag() {
 		if(myTag==null) {
 			String s=this.path.toString()+"."+this.name; //ignore the index
-			myTag= Entity.TAGCHAR_NOTALLOWED.matcher(s).replaceAll("+");
+			myTag = Strings.getTagSafeString(s);
+			//myTag= Entity.TAGCHAR_NOTALLOWED.matcher(s).replaceAll("+");
 		}return myTag;
 	}
 	//vars that are reserved words
@@ -402,6 +567,20 @@ public class McThread {
 		String g = "lines %s %s".formatted(this.numBlocks,String.join(" ", lns));
 		p.printf("thread public %s %s %s;\n", this.name,as,g);
 	}
+	private Scope controllerScopeTokenize = null;
+	public void cleanControllerScope() {
+		this.controllerScopeTokenize = null;
+	}
+	public Scope getTokenizeScopeForControls(ThreadStm stm) throws CompileError {
+		if(this.controllerScopeTokenize==null) {//skip if pass 1
+			//TOOD nullpointer on firstControl; change where calls occur to get around this
+			this.controllerScopeTokenize = new Scope(stm.getOuterScope(),this,"control",false,-1);
+		}
+		
+		return this.controllerScopeTokenize;
+		
+	}
+	
 	public void truestart(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor,int gotob,ThreadStm gotoStm) throws CompileError {
 		this.truestart(p, c, s, stack, executor, ((Integer) gotob),gotoStm,true);
 	}
@@ -513,7 +692,7 @@ public class McThread {
 	private ResourceLocation subpath(String suff) {
 		StringBuffer buff = new StringBuffer(this.path.path);
 		buff.append(CompileJob.FILE_TO_SUBDIR_SUFFIX);
-		buff.append(this.makeName());
+		buff.append(this.getName());
 		buff.append(CompileJob.FILE_TO_SUBDIR_SUFFIX);
 		buff.append(suff);
 		return new ResourceLocation(this.path.namespace,buff.toString());

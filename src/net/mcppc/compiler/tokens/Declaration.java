@@ -87,7 +87,6 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	public void applyMask(Compiler c, Matcher matcher, int line, int col,Keyword access, boolean skip) throws CompileError {
 		Token holder=c.nextNonNullMatch(lookMaskHolder);
 		boolean isThreadThis = false;
-		//TODO change behavior if selector is thread-this: may have to convert at call
 		if(holder instanceof Token.WildChar) {
 			//holder is a member-name
 			if (c.currentScope.hasThread() && c.currentScope.getThread().hasSelf()) 
@@ -118,7 +117,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		boolean isEntity=false;
 		boolean isSelector=false;
 		isEntity = isSelector = holder instanceof Selector.SelectorToken;
-		isEntity = isEntity	|| (holder instanceof MemberName && ((MemberName) holder).var.type.struct==Entity.entity);//TODO unsafe test
+		isEntity = isEntity	|| (holder instanceof MemberName && ((MemberName) holder).var.type.isConstReducable(ConstType.SELECTOR));
 		isEntity = isEntity || isThreadThis;
 		if (isEntity && op instanceof Token.TagOf) {
 			//entity
@@ -197,6 +196,10 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			if(this.access==Keyword.PUBLIC)
 				Warnings.warning("consts declared in functions cannot be public; converted var %s to local;".formatted(constv));
 			s.getFunction().addConst(this.constv);
+		}else if (this.isInThread ){
+			if(!s.getThread().add(this, c, s, s.getThreadBlock())) throw new CompileError.DoubleDeclaration(this);
+			//if(!c.myInterface.add(this)) throw new CompileError.DoubleDeclaration(this);
+			
 		}else {
 			if(!c.myInterface.add(this)) throw new CompileError.DoubleDeclaration(this);
 		}
@@ -205,9 +208,14 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	}
 	public void addVar(Compiler c,Scope s, boolean isReadingHeader, boolean isCompiling) throws CompileError {
 		if(isCompiling) return ;//skip
+		
 		if(s.isInFunctionDefine()) {
 			//System.err.printf("local %s . %s created\n", s.getFunction().name,this.variable.name);
 			s.getFunction().withLocalVar(this.variable, c);
+		}else if (this.isInThread ){
+			if(!s.getThread().add(this, c, s, s.getThreadBlock())) throw new CompileError.DoubleDeclaration(this);
+			//if(!c.myInterface.add(this)) throw new CompileError.DoubleDeclaration(this);
+			
 		}else {
 			if(!c.myInterface.add(this)) throw new CompileError.DoubleDeclaration(this);
 		}
@@ -225,13 +233,20 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		//typename
 		c.cursor=matcher.end();
 		boolean isRecursive=false;
-		Token isConst = c.nextNonNullMatch(Factories.checkForKeyword);
-		if(isConst instanceof Token.BasicName && Keyword.fromString(((Token.BasicName)isConst).name)==Keyword.CONST) {
-			d.addConst(c,c.currentScope, matcher, line, col, access, isReadingHeader,false);
-			return d;
-		}else if (isConst instanceof Token.BasicName && Keyword.fromString(((Token.BasicName)isConst).name)==Keyword.RECURSIVE) {
-			isRecursive=true;
+		d.isInThread=c.currentScope.hasThread();
+		Token keyword2 = c.nextNonNullMatch(Factories.checkForKeyword);
+		if(keyword2 instanceof Token.BasicName) {
+			Token.BasicName kw2 = (BasicName) keyword2;
+			if( Keyword.fromString(kw2.name)==Keyword.CONST) {
+				d.addConst(c,c.currentScope, matcher, line, col, access, isReadingHeader,false);
+				return d;
+			}else if ( Keyword.fromString(kw2.name)==Keyword.RECURSIVE) {
+				isRecursive=true;
+			}else if ( Keyword.fromString(kw2.name)==Keyword.VOLATILE) {
+				d.isVolatile=true;
+			}
 		}
+		
 
 		TemplateDefToken template = TemplateDefToken.checkForDef(c,c.currentScope, matcher);
 		Scope typescope=template==null?c.currentScope:c.currentScope.defTemplateScope(template);
@@ -354,7 +369,6 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			if(thisType!=null) throw new CompileError("variable definition cannot be a type-member;");
 			//CompileJob.compileHdrLog.println("Declaration its a variable");
 			boolean isFuncLocal=c.currentScope.isInFunctionDefine();
-			boolean isInThreadBlock=c.currentScope.hasThread();
 			;
 			if (isFuncLocal && d.access==Keyword.PUBLIC) {
 				Warnings.warning("vars declared in functions cannot be public; converted var %s to local;".formatted(varname.asString()));
@@ -364,9 +378,8 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			if(isFuncLocal) {
 				localOf = c.currentScope.getFunction();
 				d.variable.localOf(localOf);
-			}else if (isInThreadBlock) {
-				//TODO thread locals
-				//add volitile keyword
+			}else if (d.isInThread) {
+				//later
 			}
 			d.objType=DeclareObjType.VAR;
 			if (t3 instanceof Token.LineEnd) {
@@ -379,17 +392,18 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.MASK) {
 				d.applyMask(c, matcher, line, col, access, false);
 				asn = c.nextNonNullMatch(look);
+				d.hdrHasMask=true;
 			}
 			if (asn instanceof Token.LineEnd) {
 				//if(!c.myInterface.add(d)) throw new CompileError.DoubleDeclaration(d);
 				d.addVar(c, c.currentScope, isReadingHeader, false);
 				return d;//end early
 			}
-			//skip equals statements - they are compile time
-			//? =
-			//TODO if in thread, use existance of equals to warn
+			if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ASSIGNMENT) {
+				d.hdrHasAssign = true;
+			}
 			
-			//? ~~
+			//skip? ~~
 			//then:
 			c.nextNonNullMatch(Factories.headerSkipline);
 			//if(!c.myInterface.add(d)) throw new CompileError.DoubleDeclaration(d);
@@ -407,15 +421,21 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		c.dommentCollector=DommentCollector.Dump.INSTANCE;
 		//typename
 		c.cursor=matcher.end();
-		Token isConst = c.nextNonNullMatch(Factories.checkForKeyword);
+		Token keyword2 = c.nextNonNullMatch(Factories.checkForKeyword);
 		boolean isRecursive=false;
-		if(isConst instanceof Token.BasicName && Keyword.fromString(((Token.BasicName)isConst).name)==Keyword.CONST) {
-			d.addConst(c,c.currentScope, matcher, line, col, access, false,true);
-			return null;//ignore if in header file
-			//return d;
-		}else if (isConst instanceof Token.BasicName && Keyword.fromString(((Token.BasicName)isConst).name)==Keyword.RECURSIVE) {
-			isRecursive=true;
+		if(keyword2 instanceof Token.BasicName) {
+			Token.BasicName kw2 = (BasicName) keyword2;
+			if( Keyword.fromString(kw2.name)==Keyword.CONST) {
+				d.addConst(c,c.currentScope, matcher, line, col, access, false,true);
+				return null;//ignore if in header file
+				//return d;
+			}else if ( Keyword.fromString(kw2.name)==Keyword.RECURSIVE) {
+				isRecursive=true;
+			}else if ( Keyword.fromString(kw2.name)==Keyword.VOLATILE) {
+				d.isVolatile=true;
+			}
 		}
+		
 
 		TemplateDefToken template = TemplateDefToken.checkForDef(c,c.currentScope, matcher);
 		Scope typescope=template==null?c.currentScope:c.currentScope.defTemplateScope(template);
@@ -561,7 +581,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			}
 			//? =
 			if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ASSIGNMENT) {
-				Equation eq=Equation.toAssign(line, col, c, matcher);
+				Equation eq=Equation.toAssign(line, col, c, c.currentScope, matcher);
 				//asn = c.nextNonNullMatch(look);
 				//equation finds the semicolon;
 				d.assignment=eq;
@@ -596,6 +616,11 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	Const constv=null;
 	Const.ConstLiteralToken constValue=null;
 	
+	boolean isInThread = false;
+	public boolean hdrHasAssign = false;
+	public boolean hdrHasMask = false;
+	public boolean isVolatile = false;
+	
 	public boolean isFunction() {return this.objType==DeclareObjType.FUNC;}
 	public boolean isVariable() {return this.objType==DeclareObjType.VAR;}
 	public boolean isConst() {return this.objType==DeclareObjType.CONST;}
@@ -625,7 +650,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	}
 	@Override
 	public boolean doHeader() {
-		return this.access==Keyword.PUBLIC;
+		return this.access==Keyword.PUBLIC && (!this.isInThread);
 	}
 	@Override
 	public void headerMe(PrintStream f) throws CompileError {

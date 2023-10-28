@@ -59,7 +59,7 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 		if(open!=Keyword.ELSE) {
 			t=c.nextNonNullMatch(Factories.checkForParen);
 			if (!(t instanceof Token.Paren) || !((Token.Paren)t).forward)throw new CompileError.UnexpectedToken(t, "'('");
-			Function.FuncCallToken call=Function.FuncCallToken.make(c, line, col, matcher, IfElse.name, stack);
+			Function.FuncCallToken call=Function.FuncCallToken.make(c, c.currentScope, line, col, matcher, IfElse.name, stack);
 			if(call.args.size()!=1)throw new CompileError("wrong number of args in %s statement; expected 1;".formatted(open.name));
 			eq=call.args.get(0);
 		}

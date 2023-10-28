@@ -505,4 +505,8 @@ public class Scope {
 		return this.thread;
 		
 	}
+	public int getThreadBlock(){
+		if(this.threadBlockNumber == -1 && this.parent!=null) return this.parent.getThreadBlock();
+		return this.threadBlockNumber;
+	}
 }

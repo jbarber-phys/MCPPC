@@ -280,9 +280,9 @@ public class NbtMap extends Struct {
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 			
-			BasicArgs args = super.tokenizeArgsEquations(c, matcher, line, col, stack);
+			BasicArgs args = super.tokenizeArgsEquations(c, s, matcher, line, col, stack);
 			int wnargs = this.condition==PutIf.NEVER? 1:2;
 			if(args.nargs()!=wnargs) throw new CompileError("wrong number of args in Map.%s(value); expected %d but got %d;".formatted(this.name,wnargs,args.nargs()));
 			return args;
@@ -364,9 +364,9 @@ public class NbtMap extends Struct {
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 			
-			BasicArgs args = super.tokenizeArgsEquations(c, matcher, line, col, stack);
+			BasicArgs args = super.tokenizeArgsEquations(c, s, matcher, line, col, stack);
 			int wnargs = 1;
 			if(args.nargs()!=wnargs) throw new CompileError("wrong number of args in Map.%s(value); expected %d but got %d;".formatted(this.name,wnargs,args.nargs()));
 			return args;
@@ -429,9 +429,9 @@ public class NbtMap extends Struct {
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
 			
-			BasicArgs args = super.tokenizeArgsEquations(c, matcher, line, col, stack);
+			BasicArgs args = super.tokenizeArgsEquations(c, s, matcher, line, col, stack);
 			int wnargs = 1;
 			if(args.nargs()!=wnargs) throw new CompileError("wrong number of args in Map.%s(value); expected %d but got %d;".formatted(this.name,wnargs,args.nargs()));
 			return args;
@@ -582,8 +582,8 @@ public class NbtMap extends Struct {
 		}
 
 		@Override
-		public Args tokenizeArgs(Compiler c, Matcher matcher, int line, int col,RStack stack) throws CompileError {
-			BasicArgs a=new BuiltinFunction.BasicArgs().equations(c, line, col, matcher, stack);
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line,int col, RStack stack) throws CompileError {
+			BasicArgs a=new BuiltinFunction.BasicArgs().equations(c, s, line, col, matcher, stack);
 			if(a.nargs() % 2 !=0) throw new CompileError("map constructor must have even number of args");
 			return a;
 		}

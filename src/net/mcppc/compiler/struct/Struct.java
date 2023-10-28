@@ -171,10 +171,19 @@ public abstract class Struct {
 	 * @return
 	 */
 	public boolean isConstEquivalent(VarType type) {
-		return false;
+		return this.getConstType(type)!=null;
 	}
 	/**
-	 * returns the const equivalent of this variable (such as the selector of an entity); return null if invalid
+	 * returns the types const-equivalent, return null if not const equivalent
+	 * this is very uncommmon and is basically only for the Entity types (which can cast to a const selector)
+	 * @param type
+	 * @return
+	 */
+	public Const.ConstType getConstType(VarType type){
+		return null;
+	}
+	/**
+	 * returns the const equivalent of this variable (such as the selector of an Entity); throws if invalid
 	 * @param v
 	 * @param row
 	 * @param col
@@ -184,6 +193,14 @@ public abstract class Struct {
 	public ConstExprToken getConstEquivalent(Variable v,int row,int col) throws CompileError {
 		//this should never be called
 		throw new CompileError("cannot convert %s of type %s to a const expression".formatted(v.name,v.getType().asString()));
+	}
+	/**
+	 * returns true if this variable is an abstraction of either data or scores; this is basically only false for Entity
+	 * @param type
+	 * @return
+	 */
+	public boolean isDataEquivalent(VarType type) {
+		return !this.isConstEquivalent(type);
 	}
 	public void castRegistersFrom(PrintStream p, Scope s,RStack stack,int start,VarType old, VarType mytype) throws CompileError{
 		//do nothing
