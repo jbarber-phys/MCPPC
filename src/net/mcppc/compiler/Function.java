@@ -24,7 +24,7 @@ import net.mcppc.compiler.tokens.Equation.End;
  * TODO allow func-local vars
  * TODO add option recursive to switch vars to stacks (on call, prepend the value, then access [0] to read/write; when finished,remove [0])
  * TODO add inline option; compiles to a .mcfunction.inline file and contains fstrings
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class Function {

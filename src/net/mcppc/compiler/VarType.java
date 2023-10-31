@@ -18,7 +18,7 @@ import net.mcppc.compiler.tokens.UnaryOp;
  * 
  * Note: strings are a struct type
  * 
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class VarType {

@@ -10,7 +10,7 @@ import net.mcppc.compiler.errors.CompileError;
 
 /**
  * internal use only; do not use this in code; also do not register this struct;
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class StackStorage extends Struct implements Struct.IInternalOnly {

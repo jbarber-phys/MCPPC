@@ -37,7 +37,7 @@ import net.mcppc.compiler.tokens.Statement.CodeBlockOpener;
  * <li>while / until (&ltcondition&gt) wait (&ltdelay&gt) // wait until next loop
  * <li>stop [start...] //end thread
  * </ul>
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class ThreadStm extends Statement implements Statement.IFunctionMaker,

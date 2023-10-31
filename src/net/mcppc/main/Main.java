@@ -25,7 +25,7 @@ import net.mcppc.compiler.tokens.Regexes;
  * everything but this file is usable as a library<br>
  * the class net.mcpp.compiler.CompileJob handles all actual compilation<br>
  * the class net.mcpp.vscode.MakeTmLanguage hand vscode extension textmate grammar creation<p>
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class Main {

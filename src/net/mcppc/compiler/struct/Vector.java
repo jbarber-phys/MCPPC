@@ -35,7 +35,7 @@ import net.mcppc.compiler.tokens.UnaryOp.UOType;
  * Vector . normalized() const
  * Vector . sqrmag() const
  * allow Vec as arg to tp for entities: either tp(@,Vector) or Vector.tp(@)
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class Vector extends Struct {

@@ -17,7 +17,7 @@ import net.mcppc.compiler.functions.Size;
 /**
  * string tags cannot be appended / inserted ...
  * TODO can use data get to get string length (similar to array size)
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class Str extends Struct{

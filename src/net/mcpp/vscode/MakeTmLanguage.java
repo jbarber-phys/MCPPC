@@ -43,7 +43,7 @@ import net.mcppc.compiler.tokens.Regexes;
  * 		makes a ./<name>.vsix file
  * to install >>> code --install-extension .\<name>.vsix
  * 
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class MakeTmLanguage extends Regexes.Strs{

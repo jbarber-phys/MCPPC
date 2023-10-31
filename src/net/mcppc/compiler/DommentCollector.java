@@ -7,7 +7,7 @@ import net.mcppc.compiler.tokens.Statement.Domment;
 
 /**
  * domments are collected by compiler and line start statements
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public interface DommentCollector{

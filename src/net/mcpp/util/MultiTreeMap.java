@@ -6,7 +6,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 /**
  * a double Tree implimentation of MultiMap (both K and V are ordered)
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  * @param <K>
  * @param <V>

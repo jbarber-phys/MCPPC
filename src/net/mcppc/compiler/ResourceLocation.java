@@ -17,7 +17,7 @@ import net.mcppc.compiler.tokens.Token;
 /**
  * location of a resource datapack:path/to/thing
  * resourcelocation is synonym for Namespaced ID
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class ResourceLocation {

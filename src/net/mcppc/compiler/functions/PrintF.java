@@ -29,7 +29,7 @@ import net.mcppc.compiler.tokens.TreePrintable;
  * 
  * TODO consider preventing translation confilcts using {"translate": "", "fallback": format,...}
  * 
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class PrintF extends BuiltinFunction{

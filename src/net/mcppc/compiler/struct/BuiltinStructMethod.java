@@ -5,7 +5,7 @@ import net.mcppc.compiler.*;
 @Deprecated
 /**
  * Deprecated; this binding is at the token level now;
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public abstract class BuiltinStructMethod extends BuiltinFunction {

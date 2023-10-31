@@ -34,7 +34,7 @@ import net.mcppc.compiler.tokens.Type;
 /**
  * one big class for Stack, Queue, and List; size changing nbt array types;
  * dont use for vectors, directions, nbt tags, or armor inventories;
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  *TODO binary lookup, add seperate class for long sets / maps
  *

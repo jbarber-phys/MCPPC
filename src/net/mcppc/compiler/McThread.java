@@ -34,7 +34,7 @@ import net.mcppc.compiler.tokens.Token;
  * 
  *     
  * 
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 /*
@@ -65,7 +65,7 @@ import net.mcppc.compiler.tokens.Token;
  */
 /**
  * A thread that runs mcfunctions over multiple ticks; can also run multiple threads at once (but only 1 on each entity)
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class McThread {

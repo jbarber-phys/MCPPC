@@ -23,7 +23,7 @@ import net.mcppc.compiler.tokens.BiOperator.OpType;
 /**
  * struct representing a UUID of an entity; equivalent to an nbt int[4].
  * 
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class Uuid extends Struct {

@@ -13,7 +13,7 @@ package net.mcppc.compiler;
  * 
  * for now, extra op orders have been inserted for the possibility of custom operators
  * 
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public enum OperationOrder{

@@ -10,7 +10,7 @@ import java.util.Set;
  * an alternative to Guava
  * 
  * the example given used a HashMap and ArrayList implementation of the Map and Collection
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public abstract class MultiMap<K, V> {

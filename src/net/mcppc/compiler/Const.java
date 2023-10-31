@@ -46,7 +46,7 @@ import net.mcppc.compiler.tokens.UnaryOp;
  * 
  * side note: based on this, precision should also be settable at runtime
  * 
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class Const {
@@ -225,7 +225,7 @@ public class Const {
 	}
 	/**
 	 * token type enclosing literal expressions that Consts can evaluate to
-	 * @author jbarb_t8a3esk
+	 * @author RadiumE13
 	 *
 	 */
 	public static abstract class ConstLiteralToken extends ConstExprToken{

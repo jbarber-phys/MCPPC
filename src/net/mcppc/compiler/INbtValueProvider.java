@@ -2,7 +2,7 @@ package net.mcppc.compiler;
 /**
  * hook for assigning nbt data
  * used for basic comparisons
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public interface INbtValueProvider {

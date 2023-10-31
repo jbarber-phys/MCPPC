@@ -42,7 +42,7 @@ import net.mcppc.compiler.tokens.Token.Factory;
  *  
  * selectors can be intersected with the & operator, and the first one will take precedent for sorting
  * 
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class Selector {

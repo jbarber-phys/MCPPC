@@ -22,7 +22,7 @@ import net.mcppc.compiler.tokens.Token.Assignlike.Kind;
  * code lines
  * equations and equation segments
  * 
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public abstract class Statement extends Token implements TreePrintable{
@@ -106,7 +106,7 @@ public abstract class Statement extends Token implements TreePrintable{
 	}
 	/**
 	 * comment that will show in both headers and mcfunctions
-	 * @author jbarb_t8a3esk
+	 * @author RadiumE13
 	 *
 	 */
 	public static class Domment extends Statement implements Headerable{
@@ -148,7 +148,7 @@ public abstract class Statement extends Token implements TreePrintable{
 	/**
 	 * statement for vanilla command; can only appear as a line start (has no prefix command);
 	 * must be semicolon terminated;
-	 * @author jbarb_t8a3esk
+	 * @author RadiumE13
 	 */
 	public static class CommandStatement extends Statement{
 		public static final Statement.Factory factory=new Statement.Factory(Regexes.CMD) {

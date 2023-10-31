@@ -12,7 +12,7 @@ import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.errors.CompileError;
 /**
  * manages code that generates mcfunctions for stdlib
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public abstract class CodeGenerator {

@@ -16,7 +16,7 @@ import net.mcppc.compiler.tokens.Token.Assignlike.Kind;
  * import [run] [<alias> ->] <resourcelocation>;
  * 
  * default alias is the file-name part of path:  name -> ns:folder/dir/name
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class Import extends Statement implements Statement.Headerable,DommentCollector {

@@ -24,7 +24,7 @@ import net.mcppc.compiler.tokens.Statement.Flow;
  * to tag the following block of code
  * 
  * can also use tick or load instead of tag minecraft:tick or tag minecraft:load
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class TagStatement extends Statement implements Flow, CodeBlockOpener {

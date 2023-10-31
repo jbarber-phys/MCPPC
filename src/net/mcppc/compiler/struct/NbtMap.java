@@ -497,7 +497,7 @@ public class NbtMap extends Struct {
 	 * until the first remaining element matches the key (then exit);
 	 * also sets a flag for if a key was detected;
 	 * any recombination or back copying is done by the caller;
-	 * @author jbarb_t8a3esk
+	 * @author RadiumE13
 	 *
 	 */
 	private static final class Loop extends CodeGenerator {

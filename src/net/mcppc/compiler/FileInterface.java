@@ -22,7 +22,7 @@ import net.mcppc.compiler.tokens.MemberName;
  * private members are included here but not given to any other mcpp files;
  * 
  * 
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class FileInterface {

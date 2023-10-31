@@ -15,7 +15,7 @@ import net.mcppc.compiler.tokens.Token;
  * NOTE: integer absolute coordinates will actually center on the block (add a half integer to x and/or z):
  * 			 0 0 0 = 0.5 0 0.5
  * 			0 0 0.1 = 0.5 0 0.1
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class Coordinates {

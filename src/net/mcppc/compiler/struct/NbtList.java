@@ -27,7 +27,7 @@ import net.mcppc.compiler.tokens.Token;
  * currently uses a simple list + loops; if you want a big list, make a different struct
  * is currently compadible with other basic Sets
  * TODO test
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class NbtList extends NbtCollection{

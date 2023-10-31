@@ -24,7 +24,7 @@ import net.mcppc.compiler.tokens.UnaryOp.UOType;
  * a numeric equation;
  * currently does not support string equations; if its added, it will be a seperate token
  * TODO (a+b).method()
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class Equation extends Token  implements TreePrintable,INbtValueProvider{

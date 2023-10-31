@@ -31,6 +31,7 @@ import net.mcppc.compiler.tokens.Import;
 /*list of language edition TODO ::
  * 
  * add ability to put vectors on scoreboard somehow
+ * compile options for things like optimization and code safety; make it configurable in cmd
  * 
  * 
  * consider switch statements: switch() case {} case {} ;
@@ -65,9 +66,20 @@ Example error: The type java.lang.Object cannot be resolved. It is indirectly re
  * 
  */
 
+/*convention: use mc username as author
+ * 
+ * 
+ * note: can set author per project using the following settings:
+ * project: Properties -> Java Code Style->Code Templates -> comments :
+ * 	enable project specific settings
+ *  change types and modules;
+ * 
+ * similar to : https://stackoverflow.com/questions/13967636/how-can-i-change-author-tag-configuration-in-eclipse-in-such-a-way-that-it-take
+ * but per project instead of system-wide;
+ */
 /**
  * the class that handles all compilation;
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class CompileJob {
@@ -107,7 +119,7 @@ public class CompileJob {
 	public static final Scanner stdin = new Scanner(System.in);
 	/**
 	 * file filters singleton
-	 * @author jbarb_t8a3esk
+	 * @author RadiumE13
 	 *
 	 */
 	public static class FFs{

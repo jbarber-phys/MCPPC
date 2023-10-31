@@ -35,7 +35,7 @@ import net.mcppc.compiler.tokens.Token;
 /**
  * a struct that uses tags to create an assignable selector abstraction
  * can be set to track a single entity or multiple (can then append to)
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  *MAYBETODO make recurivable using a score for my entities;
  */

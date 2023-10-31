@@ -20,7 +20,7 @@ import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Num;
 /**
  * functions that are not memory safe inside threads with uuid lookup tables for local vars
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public abstract class UnsafeThreadCommand extends BuiltinFunction {

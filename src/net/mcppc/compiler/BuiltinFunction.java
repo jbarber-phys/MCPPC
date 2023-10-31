@@ -28,7 +28,7 @@ import net.mcppc.compiler.tokens.Token;
 /**
  * represents an object that is called like a function but it is able to interact directly with the compiler
  * is able to take unexpected expressions like target selectors and tag addresses as arguments
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public abstract class BuiltinFunction {

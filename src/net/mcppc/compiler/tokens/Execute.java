@@ -49,7 +49,7 @@ import net.mcppc.compiler.tokens.Statement.CodeBlockOpener;
  * 
  * WARNING: in mcfunction, execute statements: at,  positioned; do not actually change nbt values during execution; you will have to use \tp or other 
  * means of doing that.
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class Execute extends Statement implements CodeBlockOpener,Statement.Flow  {

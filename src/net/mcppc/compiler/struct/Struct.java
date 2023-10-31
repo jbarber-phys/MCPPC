@@ -54,7 +54,7 @@ import net.mcppc.compiler.tokens.UnaryOp.UOType;
  * FIXED doubles & floats also dont play nice;
  * FIXED also the d,f index comes AFTER the sci notation
  * 
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public abstract class Struct {

@@ -29,7 +29,7 @@ import net.mcppc.compiler.tokens.UnaryOp.UOType;
  * dymanic precision float; intended to replace templates (cast everything to this for unknown precision)
  * 
  * unfinished, dont use; use templates instead
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 @Deprecated

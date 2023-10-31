@@ -9,7 +9,7 @@ import net.mcppc.compiler.errors.CompileError;
 
 /**
  * Keywords appear usually at the start of a statement and are not function-formatted usually
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 

@@ -20,7 +20,7 @@ import net.mcppc.compiler.tokens.TemplateDefToken;
  * also holds var estmates built up sequentially
  * 
  * TODO consider a const ifelse statement
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class Scope {

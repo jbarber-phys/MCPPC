@@ -26,7 +26,7 @@ import net.mcppc.compiler.tokens.Token.LineEnd;
  * 
  * good practice is to add a $ before the / like: $/kill; but this is only actually required inside of equations in statements that open a code block
  *  (to keep data tags from being mistaken for code block starts and also not confuse with division)
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 /*

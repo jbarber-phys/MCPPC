@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 /**
  * Hash map implementation of MultiMap (using a HashSet for values)
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  * @param <K>
  * @param <V>

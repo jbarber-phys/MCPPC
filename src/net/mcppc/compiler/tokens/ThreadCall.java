@@ -18,7 +18,7 @@ import net.mcppc.compiler.struct.Entity;
  * 
  * usgage:
  * start <thread name> ([starting point],[entity var to store to]);
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class ThreadCall extends Statement {

@@ -34,7 +34,7 @@ import java.util.regex.Matcher;
  * for an arg:
  * 	[ref] <type> name
  * 	Separator: ','
- * @author jbarb_t8a3esk
+ * @author RadiumE13
  *
  */
 public class Declaration extends Statement implements Statement.Headerable,DommentCollector,Statement.CodeBlockOpener{
