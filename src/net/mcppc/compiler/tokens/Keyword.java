@@ -40,6 +40,7 @@ public enum Keyword {
 	START("start"), //call to start a thread;
 	RESTART("restart"), //call to restart a thread;
 	STOP("stop"), //call to stop a thread;
+	KILL("kill"),
 	GOTO("goto"),
 	WAIT("wait"),
 	EXIT("exit"),

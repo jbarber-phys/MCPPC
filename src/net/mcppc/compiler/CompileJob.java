@@ -30,13 +30,11 @@ import net.mcppc.compiler.tokens.Import;
 
 /*list of language edition TODO ::
  * 
- * 
- * add thread-local vars (will need to use scores OR global maps of UUID: locals)
  * add ability to put vectors on scoreboard somehow
  * 
  * 
  * consider switch statements: switch() case {} case {} ;
- * add math.random() function
+ * add math.random() function (ACTUALLY wait until targeting is added)
  * add Entity option to filter
  * add thread entity death handling mechanism
  * add bossbar tools like locks
@@ -44,8 +42,14 @@ import net.mcppc.compiler.tokens.Import;
  * improve printf, add format functions for: color,formatting, click events
  * add stdlib for attacking entities / hitbox/raycast testing
  * maybe slap on a bunch of formatted command masks
- * add an NbtCompound type for direct-copying of {...} values
+ * expose the TagCompound -> {} struct so that the user can use it to pass around mystery compound data
  * and an Object type -> {value: ?}, for dynamic type capability
+ * 
+ * add java edition targeting
+ * incorperate new 1.20.3 commands: return, tick, random;
+ * add true return / breaks (optional); use return # to give the depth to return back to, and if retype = int / bool / long: do a /return as well as $return
+ * 
+ * add true-classes: warning, may involve heavy reworking of the compiler
  */
 
 /** if the eclipse bug happens that fails to load java:
@@ -101,6 +105,11 @@ public class CompileJob {
 	public static final PrintStream dommentLog=OutputDump.out;
 	
 	public static final Scanner stdin = new Scanner(System.in);
+	/**
+	 * file filters singleton
+	 * @author jbarb_t8a3esk
+	 *
+	 */
 	public static class FFs{
 		public static final FileFilter data = new FileFilter() {
 		      @Override public boolean accept(File file) {

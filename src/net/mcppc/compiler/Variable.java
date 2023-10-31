@@ -219,6 +219,10 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		this.isbasic=true;
 		return this;
 	}
+	public Variable makeStorageOfThreadRunner() {
+		this.isbasic=true;
+		return this;
+	}
 	public Variable maskBlock(Coordinates pos,NbtPath path) throws CompileError {
 		if(this.type.isStruct()) {
 			if(!this.type.struct.canMask(this.type, Mask.BLOCK))
@@ -751,8 +755,11 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 				this.access,
 				this.pointsTo,
 				this.holder,
-				"%s.%s".formatted(this.getAddressToGetset(),field) // fields revive the getset address
+				this.fieldMyNBTPathAddress(field, type) // fields revive the getset address
 				);
+	}
+	public String fieldMyNBTPathAddress(String field,VarType type) {
+		return "%s.%s".formatted(this.getAddressToGetset(),field);
 	}
 	public boolean isStruct() {
 		return this.type.isStruct();

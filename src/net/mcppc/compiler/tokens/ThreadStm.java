@@ -54,6 +54,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		 register(Loop.loopuntil,Loop::makeUntil);
 		 register(End.endstop,End::makeStop);
 		 register(End.endrestart,End::makeRestart);
+		 register(End.endkill,End::makeKill);
 		}
 	public static abstract class ThreadBlock extends Token {
 		public final String name;
@@ -241,13 +242,19 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 	}
 	@Override
 	public void addToStartOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
-
+		if (this.myThread.hasLookup()) {
+			//pull data locals
+			ResourceLocation res = this.myThread.pathLookupPull();
+			res.run(p);
+		}
 		this.myThread.myGoto().attemptSelfify(s).setMeToNumber(p, c, s, this.mystack, (Integer)this.blockNumber+1);
 		this.myThread.waitIn().attemptSelfify(s).setMeToNumber(p, c, s, this.mystack, (Integer)0);
 		for(ThreadBlock block: this.blockControls) {
 			block.addToStartOfAfterBlock(p, c, s, this);
 		}
 		this.mystack.clear();this.mystack.finish(c.job);
+		
+		
 	}
 	@Override
 	public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
@@ -270,7 +277,11 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		String exitif = this.myThread.exit().attemptSelfify(s).isTrue();
 		p.printf("execute if %s run function %s\n", exitif,exitCmd);
 		
-		
+		if (this.myThread.hasLookup()) {
+			//push data locals
+			ResourceLocation res = this.myThread.pathLookupPush();
+			res.run(p);
+		}
 	}
 	@Override
 	public void compileMe(PrintStream p, Compiler c, Scope s) throws CompileError {
@@ -505,6 +516,12 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		public static End makeRestart(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,int index,boolean isPass1) throws CompileError{
 			return End.make(c, matcher, line, col, stm, index, endrestart,true, isPass1);
 		}
+		public static End makeKill(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,int index,boolean isPass1) throws CompileError{
+			End me = End.make(c, matcher, line, col, stm, index, endstop,false, isPass1);
+			me.kill = true;
+			stm.myThread.setToKill();
+			return me;
+		}
 		private static End make(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,int index,String name,boolean restart,boolean isPass1) throws CompileError{
 			End me = new End(line,col,index,name,restart);
 			stm.hasBlock = false;
@@ -520,9 +537,11 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		//for mch
 		public static final String endstop = "stop";
 		public static final String endrestart = "restart";
+		public static final String endkill = "kill";
 		private Equation test;
 		private final boolean restart;
 		private ThreadCall call = null;
+		private boolean kill = false;
 		public End(int line, int col,int index, String name,boolean restart) {
 			super(line, col,index, name);
 			this.restart=restart;
@@ -532,7 +551,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 			if(this.restart) {
 				stm.myThread.restart(p, c, s, stm.mystack, stm.myThread.getSelf(s));
 			}else {
-				stm.myThread.stop(p, c, s, stm.mystack, stm.myThread.getSelf(s));
+				stm.myThread.stop(p, c, s, stm.mystack, stm.myThread.getSelf(s),this.kill);
 			}
 		}
 		@Override

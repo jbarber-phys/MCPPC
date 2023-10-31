@@ -1,6 +1,8 @@
 package net.mcppc.compiler.struct;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -22,13 +24,18 @@ import net.mcppc.compiler.BuiltinFunction.BFCallToken;
 import net.mcppc.compiler.BuiltinFunction.BasicArgs;
 import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.Const.ConstExprToken;
+import net.mcppc.compiler.McThread;
+import net.mcppc.compiler.NbtPath;
 import net.mcppc.compiler.StructTypeParams.MembTypePair;
+import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.errors.RuntimeError;
 import net.mcppc.compiler.functions.Size;
 import net.mcppc.compiler.struct.NbtCollection.Clear;
 import net.mcppc.compiler.struct.NbtList.ChangeAt;
 import net.mcppc.compiler.struct.NbtList.GetAt;
 import net.mcppc.compiler.tokens.Equation;
+import net.mcppc.compiler.tokens.Keyword;
 import net.mcppc.compiler.tokens.Token;
 
 public class NbtMap extends Struct {
@@ -276,7 +283,7 @@ public class NbtMap extends Struct {
 		@Override
 		public VarType getRetType(BFCallToken token) {
 			return VarType.VOID;
-			
+			//TODO make it bool instead
 		}
 
 		@Override
@@ -299,6 +306,8 @@ public class NbtMap extends Struct {
 			VarType keytype = NbtMap.myKeyType(self.type);
 			VarType valuetype = NbtMap.myValueType(self.type);
 			Loop loop = Loop.loop(Loop.ADD);
+			
+			//put if absent will still bring the entry to the top, but let it get overwritten by the value already there
 			if (this.condition == PutIf.IFABSENT) loop = Loop.loop(Loop.GET);
 			this.entrybuff = loop.getEntryBuff(NbtMap.getNbtCompoundType());
 			this.mapbuff1 = loop.getMapBuff1(self.type);
@@ -331,6 +340,8 @@ public class NbtMap extends Struct {
 			default:
 				
 			}
+			//TODO test this to see if terms ever duplicate or fail to add
+			//remove first element of 
 			
 			Variable.directSet(p, s, self, this.mapbuff2, stack);
 		}
@@ -338,6 +349,7 @@ public class NbtMap extends Struct {
 		@Override
 		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
 				throws CompileError {
+			//TODO allow ret value (bool) and allow optional arg for ref-value removed / old value
 		}
 
 		@Override
@@ -480,20 +492,30 @@ public class NbtMap extends Struct {
 		}
 		
 	}
+	/**
+	 * takes in map buffer 1 as input and removes the front elements (putting them into buffer 2)
+	 * until the first remaining element matches the key (then exit);
+	 * also sets a flag for if a key was detected;
+	 * any recombination or back copying is done by the caller;
+	 * @author jbarb_t8a3esk
+	 *
+	 */
 	private static final class Loop extends CodeGenerator {
-
+		//iterates over a list, splitting it into the front (buff 2) and the element of inter
 		private static final int HAS = 0; // == 0
 		private static final int ADD = 1; 
 		private static final int REMOVE = -1; 
 		private static final int GET = 2; //>0
-		private static Loop loop = new Loop(new ResourceLocation(CompileJob.STDLIB_NAMESPACE,"map/addremloop"),1);
+		private static Loop loopadd = new Loop(new ResourceLocation(CompileJob.STDLIB_NAMESPACE,"map/addloop"),ADD);
+		private static Loop loopremove = new Loop(new ResourceLocation(CompileJob.STDLIB_NAMESPACE,"map/remloop"),REMOVE);
 		private static Loop loophas = new Loop(new ResourceLocation(CompileJob.STDLIB_NAMESPACE,"map/testloop"),HAS);
 		private static Loop loopget = new Loop(new ResourceLocation(CompileJob.STDLIB_NAMESPACE,"map/getloop"),GET);
 		public static Loop loop(int add) {
 			switch(add) {
 			case HAS: return loophas;
 			case GET: return loopget;
-			default: return loop;
+			case REMOVE: return loopremove;
+			default: return loopadd;
 			}
 		}
 		private final int kind;
@@ -502,12 +524,18 @@ public class NbtMap extends Struct {
 			this.kind=kind;
 		}
 		public Variable getMapBuff1(VarType type) {
+			//this buffer will have the first elements removed until a match is found
+			//initially a copy of input
 			return new Variable("\"$mapbuff\"",type,null,this.res);
 		}
 		public Variable getMapBuff2(VarType type) {
+			//initially empty
+			//will have unused elements appended to it
 			return new Variable("\"$mapbuff2\"",type,null,this.res);
 		}
 		public Variable getEntryBuff(VarType type) {
+			//the entry input to test for
+			//the key to search for and possibly also a value to insert
 			return new Variable("\"$entry\"",type,null,this.res);
 		}
 		private Variable getTemp(VarType type) {
@@ -542,10 +570,12 @@ public class NbtMap extends Struct {
 			p.printf("execute store success score %s run data modify %s set from %s\n",testreg.inCMD(),temp.dataPhrase(), key.dataPhrase());
 			
 			p.printf("execute if score %s matches 0 run scoreboard players set %s 1\n",testreg.inCMD(),donereg.inCMD());
-			if(this.kind == GET | this.kind == HAS)p.printf("execute if score %s matches 0 run data modify %s set from %s\n",testreg.inCMD(),value.dataPhrase(),firstvalue.dataPhrase());
-
-			p.printf("execute unless score %s matches 0 run data modify %s append from %s\n",testreg.inCMD(),listbuff2.dataPhrase(), firstentry.dataPhrase());//remove first index tag
-			p.printf("data remove %s\n", firstentry.dataPhrase());//remove first index tag
+			//the below line back copies the entry value for reading
+			if(this.kind == GET | this.kind == HAS | this.kind == REMOVE)p.printf("execute if score %s matches 0 run data modify %s set from %s\n",testreg.inCMD(),value.dataPhrase(),firstvalue.dataPhrase());
+			
+			//now copy over UNLESS the key did match
+			p.printf("execute unless score %s matches 0 run data modify %s append from %s\n",testreg.inCMD(),listbuff2.dataPhrase(), firstentry.dataPhrase());//append first to buff2
+			p.printf("data remove %s\n", firstentry.dataPhrase());//remove first index tag from buff1
 			p.printf("execute if data %s run function %s\n",firstentry.dataPhrase(), this.res);//remove first index tag
 			stack.finish(job);
 			
@@ -574,6 +604,8 @@ public class NbtMap extends Struct {
 		}
 	}
 	public static class MapConstructor extends BuiltinConstructor{
+
+		
 		public MapConstructor(String name) {
 			super(name);
 		}
@@ -629,5 +661,153 @@ public class NbtMap extends Struct {
 			return null;
 		}
 		
+	}
+	public static class ThreadUuidLookupTable {
+		
+		
+		//will leak memory if entity dies unexpectedly but can occasionally clean the list by as @e[tag=threadtag]: if uuid matches; maintaing;; else remove
+		
+		private Variable lookupTable;
+		private Variable defaultVariables;
+		private Variable myEntry;
+		private Variable myUuid;//this.UUID
+		
+		private McThread thread;
+		
+		
+		public ThreadUuidLookupTable(McThread thread) throws CompileError {
+			String holder = thread.getStoragePath();
+			VarType compound = TagCompound.TAG_COMPOUND;
+			VarType uuid = Uuid.uuid.getType();
+			VarType lookupType = map.mapOf(uuid, compound);
+			this.lookupTable = new Variable("$lookup",lookupType,null,Mask.STORAGE, holder,"\"$lookup\"");
+			this.defaultVariables = new Variable("$default",compound,null,Mask.STORAGE, holder,"\"$defaults\"");
+			this.myEntry = new Variable("$running",compound,null,Mask.STORAGE, holder,"\"$running\"");
+			this.myUuid = new Variable("$uuid",uuid,null,thread.getBasePath());
+			thread.thisNbt(this.myUuid, NbtPath.UUID);
+			this.thread=thread;
+		}
+		
+		private Map<Integer,Variable> privateBlockAllocators = new HashMap<Integer,Variable>();
+		private List<Variable> varAllocators = new ArrayList<Variable>();
+		
+		public Variable editSubVar(Variable v, int block) throws CompileError {
+			if(v.access != Keyword.PRIVATE) block=-1;
+			VarType valuetype = NbtMap.myValueType(lookupTable.type);
+			String name = v.name;
+			VarType type = v.type;
+			Variable base = this.myEntry.fieldMyNBTPath(VALUE, valuetype);
+			Variable allocatorBase=this.defaultVariables;
+			if(block!=-1) {
+				String blocktag = "\"$%s\"".formatted(block);
+				base = base.fieldMyNBTPath(blocktag, valuetype);
+				allocatorBase = base.fieldMyNBTPath(blocktag, valuetype);
+				if (!privateBlockAllocators.containsKey(block)) 
+					privateBlockAllocators.put(block, allocatorBase);
+				
+			}
+			//add allocator
+			Variable allocator = allocatorBase.fieldMyNBTPath(name, type).makeStorageOfThreadRunner();
+			this.varAllocators.add(allocator);
+			
+			
+			return v.maskOtherVar(base.fieldMyNBTPath(name, type));
+		}
+		public Variable getBlockAllocator(int block) {
+			assert block!=-1;
+			//all with nonvolatile private vars
+			VarType valuetype = NbtMap.myValueType(lookupTable.type);
+			Variable base=this.defaultVariables.fieldMyNBTPath(String.valueOf(block), valuetype);
+			return base.makeStorageOfThreadRunner();
+		}
+		//internal
+		
+		public void onLoad(PrintStream p) throws CompileError {
+			//clean up any leaked entries from before the reload
+			this.lookupTable.allocateLoad(p, true);
+			this.defaultVariables.allocateLoad(p, true);
+			
+			//clean this as well by removing it
+			this.myEntry.deallocateLoad(p);
+			
+			//then call allocate for all allocator blocks and variables
+			for(Variable b:this.privateBlockAllocators.values()) b.allocateLoad(p, true);
+			for(Variable v:this.varAllocators) v.allocateLoad(p, true);
+			
+		}
+		public void initMyVars(Compiler c,Scope s,PrintStream p,RStack stack) throws CompileError {
+
+			VarType compound = TagCompound.TAG_COMPOUND;
+			VarType uuid = Uuid.uuid.getType();
+			Variable truestartUuid = new Variable("$uuidstart",uuid,null,thread.getBasePath());
+			thread.thisNbtTruestart(truestartUuid, NbtPath.UUID);
+			this.myEntry.deallocateLoad(p);
+			Variable key = this.myEntry.fieldMyNBTPath(KEY, uuid);
+			Variable val = this.myEntry.fieldMyNBTPath(VALUE, compound);
+			
+			this.myEntry.allocateLoad(p, true);
+			Variable.directSet(p, s, key, truestartUuid, stack);
+			Variable.directSet(p, s, val, this.defaultVariables, stack);
+			p.printf("data modify %s prepend from %s\n",this.lookupTable.dataPhrase(), this.myEntry.dataPhrase());
+			this.myEntry.deallocateLoad(p);
+		}
+		public void retrieve(Compiler c,Scope s,PrintStream p,RStack stack) throws CompileError {
+			
+			VarType keytype = NbtMap.myKeyType(lookupTable.type);
+			Loop loop = Loop.loop(Loop.REMOVE);//remove the value involved and copy it to entry buffer
+			Variable entrybuff = loop.getEntryBuff(NbtMap.getNbtCompoundType());
+			Variable keyBuff = entrybuff.fieldMyNBTPath(KEY, keytype);
+			Variable valueBuff = entrybuff.fieldMyNBTPath(VALUE, keytype);
+			Variable mapbuff1 = loop.getMapBuff1(lookupTable.type);
+			Variable mapbuff2 = loop.getMapBuff2(lookupTable.type);
+			Variable.directSet(p, s,mapbuff1, lookupTable, stack);
+
+			
+			mapbuff2.allocateLoad(p, true);
+			RuntimeError.printf(p, "execute if data %s run ".formatted(this.myEntry.dataPhrase()),
+					"error: thread failed to finish and push its local vars; values will be lost;");
+			
+			Variable.directSet(p, s,keyBuff, myUuid, stack);
+
+			 //Register sizebuff = stack.getRegister(stack.setNext(VarType.INT));
+			 //Size.lengthOf(p, sizebuff, mapbuff1);
+			 //RuntimeError.printf(p, "", "lookup length before: %s", sizebuff);
+			 //RuntimeError.printf(p, "", "lookup before: %s", mapbuff1);
+			
+			loop.call(p); 
+			
+			 //Size.lengthOf(p, sizebuff, mapbuff2);
+			 //RuntimeError.printf(p, "", "lookup length after: %s", sizebuff);
+			 //RuntimeError.printf(p, "", "lookup after: %s", mapbuff2);
+			 //RuntimeError.printf(p, "", "entry after: %s", entrybuff);
+			
+			
+			Register had = loop.getHasFlag();//was it found
+			//if not then throw exception
+			//RuntimeError.printf(p, "execute if score %s matches 0 run ".formatted(had.inCMD()), "made vars for %s",this.myUuid);
+			//if absent: allocate default vars:
+			p.printf("execute if score %s matches 0 run ", had.inCMD()); 
+				Variable.directSet(p, s, valueBuff, this.defaultVariables, stack);
+			
+			
+			
+			//back copy
+			Variable.directSet(p, s, this.myEntry, entrybuff, stack);
+			Variable.directSet(p, s, this.lookupTable, mapbuff2, stack);
+			//RuntimeError.printf(p,"", "finished pull");
+		}
+		public void reinsert(Compiler c,Scope s,PrintStream p,RStack stack) throws CompileError {
+			p.printf("data modify %s prepend from %s\n",this.lookupTable.dataPhrase(), this.myEntry.dataPhrase());
+			//RuntimeError.printf(p, "", "entry pushed: %s", this.myEntry);
+			this.myEntry.deallocateLoad(p);
+			//RuntimeError.printf(p,"", "finished push");
+		}
+		public void finalizeMe(Compiler c,Scope s,PrintStream p,RStack stack) throws CompileError {
+			//call this before calling kill command on executor
+			//prevents memory leaks
+			this.myEntry.deallocateLoad(p);
+			//RuntimeError.printf(p, "", "finalized %s",this.myUuid);
+		}
+		//thread might need to generate a clean event
 	}
 }

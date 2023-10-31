@@ -16,6 +16,7 @@ import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.struct.Entity;
+import net.mcppc.compiler.struct.NbtMap;
 import net.mcppc.compiler.tokens.Declaration;
 import net.mcppc.compiler.tokens.Execute;
 import net.mcppc.compiler.tokens.Execute.Subexecute;
@@ -81,6 +82,9 @@ public class McThread {
 	public static final String IS_THREADSELF = "is_threadself";
 	//TODO enable this and test again
 	public static final boolean DO_SELFIFY = true;
+	
+	
+	public static final boolean ALLOW_UUID_MAPPING = true;
 	private McThread() {}//construction is done post-init
 	Keyword access = null;
 	ResourceLocation path = null;
@@ -101,6 +105,8 @@ public class McThread {
 	ThreadStm firstControl=null;
 	
 	int numBlocks = 0;
+	
+	boolean killOnStop = false;
 	
 	//vars found in all blocks
 	private Map<String,Variable> varsPublic = new HashMap<String,Variable>();
@@ -163,7 +169,6 @@ public class McThread {
 		if(modify) {
 			var.isThreadLocalNonFlowNonVolatile=true;//could also allow true-selfification during make start
 			//System.err.printf("CHANGED: %s to mask this ::\n", var.name);
-			//TODO test this
 			if(var.type.isScoreEquivalent()) {
 				ResourceLocation prefix = c.resourcelocation;
 				String threadname = this.getName();
@@ -171,8 +176,17 @@ public class McThread {
 				Selector e=this.getSelf();
 				var.maskScore(e, objective).addSelfification(e.selfify()).makeScoreOfThreadRunner();
 			} else {
-				throw new CompileError("could not apply thread-local score mask to %s of type %s; shared vars should me marked as 'volatile'"
+				if(!ALLOW_UUID_MAPPING)throw new CompileError("could not apply thread-local score mask to %s of type %s; shared vars should me marked as 'volatile'"
 						.formatted(var.name,var.type.asString()));
+				else Warnings.warningf("a thread %s required a uuid lookup table; possible performance loss\n",this.name);
+				
+				//NOTE: alternatively could also use helmet nbt or something (if living)
+				
+				//ensure and then add to a lookup table
+				//TODO test this when disables, then enable and test again (missile)
+				this.makeLookup();
+				int lookBlock = var.access == Keyword.PRIVATE ? block: -1;
+				this.uuidLookups.editSubVar(var, lookBlock);//alters var
 			}
 		}else {
 			//assume volatile or local var;
@@ -240,6 +254,10 @@ public class McThread {
 		return null;
 	}
 	public void allocateMyLocalsLoad(PrintStream p) throws CompileError {
+		if(this.hasLookup()) {
+			this.uuidLookups.onLoad( p);
+		}
+		
 		for(Map<String,Variable> subBlock: this.varsPrivate.values())for(Variable v: subBlock.values()) 
 			if (v.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES)) v.allocateLoad(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
 		for(Variable v: this.varsPublic.values()) 
@@ -515,20 +533,20 @@ public class McThread {
 	}
 	public Variable myGoto(Selector e) throws CompileError {
 		if(e==null) {
-			return new Variable(GOTO,VarType.INT,null,Mask.SCORE,this.path + "/" + this.name,OBJ_GOTO);
+			return new Variable(GOTO,VarType.INT,null,Mask.SCORE,this.getStoragePath(),OBJ_GOTO);
 		}
 		return new Variable(GOTO,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_GOTO).addSelfification(e.selfify());
 	}
 	public Variable wait(Selector e) throws CompileError {
 		if(e==null) {
-			return new Variable(WAIT,VarType.INT,null,Mask.SCORE,this.path + "/" + this.name,OBJ_WAIT);
+			return new Variable(WAIT,VarType.INT,null,Mask.SCORE,this.getStoragePath(),OBJ_WAIT);
 		}
 		return waitStatic(e);
 		//return new Variable(WAIT,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_WAIT).addSelfification(e.selfify());
 	}
 	public Variable myBreakVar(Selector e, int block) throws CompileError {
 		if(e==null) {
-			return new Variable(getBreak(block),VarType.BOOL,null,Mask.SCORE,this.path + "/" + this.name,getObjBreak(block));
+			return new Variable(getBreak(block),VarType.BOOL,null,Mask.SCORE,this.getStoragePath(),getObjBreak(block));
 		}
 		return new Variable(getBreak(block),VarType.BOOL,null,Mask.SCORE,"","").maskEntityScore(e, getObjBreak(block)).addSelfification(e.selfify());
 	}
@@ -538,19 +556,31 @@ public class McThread {
 	}
 	public Variable exit(Selector e) throws CompileError {
 		if(e==null) {
-			return new Variable(EXIT,VarType.BOOL,null,Mask.SCORE,this.path + "/" + this.name,OBJ_EXIT);
+			return new Variable(EXIT,VarType.BOOL,null,Mask.SCORE,this.getStoragePath(),OBJ_EXIT);
 		}
 		return new Variable(EXIT,VarType.BOOL,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_EXIT).addSelfification(e.selfify());
 	}
-	
-	
+	public ResourceLocation getBasePath() {
+		return this.path;
+	} 
+	public String getStoragePath() {
+		return this.path + "/" + this.name;
+	}
 	public Variable thisNbt(Variable v, NbtPath path) throws CompileError {
 		Selector e = this.getSelf();
 		return v.maskEntity(e, path).addSelfification(e.selfify());
 	}
+	public Variable thisNbtTruestart(Variable v, NbtPath path) throws CompileError {
+		Selector e = this.truestartSelf();
+		return v.maskEntity(e, path);
+	}
 	public Variable thisScore(Variable v, String objective) throws CompileError {
 		Selector e = this.getSelf();
 		return v.maskEntityScore(e, objective).addSelfification(e.selfify());
+	}
+	public  boolean isSelectorMySelf(Selector s) {
+		return s.hasTag(TAG_CURRENT);
+		
 	}
 	//public Variable self;
 	public boolean doHdr() {
@@ -591,7 +621,7 @@ public class McThread {
 	private void truestart(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor,Object gotoCache,ThreadStm gotoStm, boolean start) throws CompileError {
 		//must be pass 2-version
 		boolean tagme = !this.isSynchronized || this.executeAs!=null;
-		if(tagme && start)p.printf("tag %s add %s\n", executor,this.getTag());
+		if(tagme && start)executor.addTag(p, this.getTag());
 		if(gotoCache==null) {
 			this.myGoto(executor).setMeToNumber(p, c, s, stack, 1);
 		}else if (gotoCache instanceof Integer){
@@ -605,6 +635,10 @@ public class McThread {
 		this.wait(executor).setMeToNumber(p, c, s, stack, (Integer)0);
 		this.exit(executor).setMeToBoolean(p, c, s, stack, false);
 		isCompilingStart = true;
+		
+		if(!this.isSynchronized && this.hasLookup()) {
+			this.uuidLookups.initMyVars(c, s, p, stack);
+		}
 		//ThreadStm gotoStm = this.firstControl;// if goto is null
 		if(gotoCache==null)for(ThreadBlock block: gotoStm.blockControls) {
 			//only do this if it is first
@@ -643,7 +677,7 @@ public class McThread {
 					this.myGoto(old).setMeToNumber(p, c, s, stack, 0);
 					this.wait(old).setMeToNumber(p, c, s, stack, (Integer)0);
 					this.exit(old).setMeToBoolean(p, c, s, stack, false);
-					old.removeTag(p, this.myTag);
+					old.removeTag(p, this.getTag());
 					
 					me = me.limited(1);
 				}
@@ -652,7 +686,7 @@ public class McThread {
 					me = SELFTEMP;
 				}
 			}
-			me.run(p, this.pathStart(block));
+			me.runAt(p, this.pathStart(block));
 			if(doGetMe) {
 				if(getMe.isStruct() && getMe.type.struct instanceof Entity) {
 					Entity clazz = (Entity) getMe.type.struct;
@@ -671,7 +705,7 @@ public class McThread {
 		//if(me!=null )me.addTag(p,McThread.TEMPTAG);
 		if(me!=null) {
 			if(!this.hasSelf()) throw new CompileError("bad call to %s for non-self thread".formatted(func.toString()));
-			me.run(p, func);
+			me.runAt(p, func);
 		}
 		else func.run(p);
 		//Selector out = this.truestartSelf();
@@ -680,13 +714,16 @@ public class McThread {
 	public void restart(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor) throws CompileError {
 		this.truestart(p, c, s, stack, executor,null,this.firstControl,false);
 	}
-	public void stop(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor) throws CompileError {
-		if(!this.isSynchronized && this.executeAs==null) {
+	public void stop(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor, boolean kill) throws CompileError {
+		if(!this.isSynchronized && this.hasLookup() && s.hasThread() && s.getThread() == this) {
+			this.uuidLookups.finalizeMe(c, s, p, stack);
+		}
+		if((!this.isSynchronized && this.executeAs==null )|| kill) {
 			executor.kill(p);
 		}else {
 			this.myGoto(executor).setMeToNumber(p, c, s, stack, 0);
 			this.wait(executor).setMeToNumber(p, c, s, stack, (Integer)0);
-			if(executor!=null)executor.removeTag(p, this.myTag);
+			if(executor!=null)executor.removeTag(p, this.getTag());
 		}
 	}
 	private ResourceLocation subpath(String suff) {
@@ -707,6 +744,8 @@ public class McThread {
 	public static final String STOP = "stop";
 	public static final String RESTART = "restart";
 	public static final String TICK = "tick";
+	public static final String PULL = "pull_vars";
+	public static final String PUSH = "push_vars";
 	private ResourceLocation pathStart(Integer block) {
 		return block ==null? this.subpath(START)
 				: this.subpath(ENTRYF.formatted(block));
@@ -732,6 +771,13 @@ public class McThread {
 	public ResourceLocation pathTick() {
 		return this.subpath(TICK);
 	}
+	
+	public ResourceLocation pathLookupPull() {
+		return this.subpath(PULL);
+	}
+	public ResourceLocation pathLookupPush() {
+		return this.subpath(PUSH);
+	}
 	public void createSubsBlocks(Compiler c) throws CompileError {
 		
 		Scope start = new Scope(this.firstControl.getOuterScope(),this,START,false,this.firstControl.getBlockNumber());
@@ -754,7 +800,7 @@ public class McThread {
 		try {
 			PrintStream p = stop.open(c.job);
 			RStack stack = stop.getStackFor();
-			this.stop(p, c, stop, stack, self);
+			this.stop(p, c, stop, stack, self,this.killOnStop);
 			stack.clear();stack.finish(c.job);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -785,6 +831,33 @@ public class McThread {
 			throw new CompileError("File not found for %s".formatted(restart.getSubRes().toString()));
 		}
 		tick.closeFiles();
+		
+		if (!this.isSynchronized && this.hasLookup()){
+			Scope pull = new Scope(this.firstControl.getOuterScope(),this,PULL,false,this.firstControl.getBlockNumber());
+			pull.addInheritedParameter(IS_THREADSELF, true);
+			try {
+				PrintStream p = pull.open(c.job);
+				RStack stack = pull.getStackFor();
+				this.uuidLookups.retrieve(c, pull, p, stack);
+				stack.clear();stack.finish(c.job);
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+				throw new CompileError("File not found for %s".formatted(restart.getSubRes().toString()));
+			}
+			pull.closeFiles();
+			Scope push = new Scope(this.firstControl.getOuterScope(),this,PUSH,false,this.firstControl.getBlockNumber());
+			push.addInheritedParameter(IS_THREADSELF, true);
+			try {
+				PrintStream p = push.open(c.job);
+				RStack stack = push.getStackFor();
+				this.uuidLookups.reinsert(c, push, p, stack);
+				stack.clear();stack.finish(c.job);
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+				throw new CompileError("File not found for %s".formatted(restart.getSubRes().toString()));
+			}
+			push.closeFiles();
+		}
 	}
 	//
 	public void decrementDelaySync(PrintStream p) throws CompileError {
@@ -815,11 +888,13 @@ public class McThread {
 		Selector self = isGlobal? null : Selector.AT_S;
 		Variable gotov = this.myGoto(self);
 		Variable waitv = this.wait(self);
+		
 		for(int i=1;i<=this.numBlocks;i++) {
 			p.printf("execute if score %s matches 0 if score %s matches %d run "
 					,waitv.scorePhrase(),gotov.scorePhrase(),i);
 				this.pathBlock(i).run(p);
 		}
+		
 		if(!isGlobal)p.printf("tag @s remove %s\n", McThread.TAG_CURRENT);
 	}
 	public static void onLoad(PrintStream p, CompileJob job,Namespace ns) {
@@ -862,7 +937,20 @@ public class McThread {
 			self.executeTick(p, job, ns);
 		}
 	}
+	
+	private NbtMap.ThreadUuidLookupTable uuidLookups = null;
+	public boolean hasLookup() {return this.uuidLookups!=null && !this.isSynchronized;}
+	private void makeLookup() throws CompileError {
+		if(this.uuidLookups==null) this.uuidLookups = new NbtMap.ThreadUuidLookupTable(this);
+	}
+	public void finalizeLookup(PrintStream p,Compiler c,Scope s,RStack stack) throws CompileError {
+		this.uuidLookups.finalizeMe(c,s,p,stack);
+	}
+	
 	public String getName() {
 		return name;
+	}
+	public void setToKill() {
+		this.killOnStop=true;
 	}
 }

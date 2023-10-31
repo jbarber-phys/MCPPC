@@ -447,6 +447,10 @@ public class Selector {
 		p.printf("execute as %s run ", this.toCMD());
 			fun.run(p);
 	}
+	public void runAt(PrintStream p,ResourceLocation fun) {
+		p.printf("execute as %s at @s run ", this.toCMD());
+			fun.run(p);
+	}
 	public static String mergeTypes(String type1,String type2) throws CompileError{
 		//returns null if none
 		String t1 = type1; String t2 = type2;
@@ -582,5 +586,8 @@ public class Selector {
 		Const.ConstType sl = Const.ConstType.SELECTOR;
 		Const.registerBiOp(sl, BiOperator.OpType.AND, sl, Selector::intersect);
 		
+	}
+	public boolean hasTag(String tag) {
+		return this.tag.contains(tag);
 	}
 }

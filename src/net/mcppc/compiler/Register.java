@@ -48,6 +48,9 @@ public class Register implements Comparable<Register>,PrintF.IPrintable{
 	public void setValue(PrintStream p,boolean value) {
 		p.printf("scoreboard players set %s %d\n", this.inCMD(),value?1:0);
 	}
+	public void getValueCmd(PrintStream p) {
+		p.printf("scoreboard players get %s\n", this.inCMD());
+	}
 	public String setValueStr(long value) {
 		return "scoreboard players set %s %d".formatted(this.inCMD(),value);
 	}

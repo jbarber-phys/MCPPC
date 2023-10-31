@@ -112,7 +112,14 @@ public final class Factories {
 			case NEXT:
 				return ThreadStm.makeMe(c, matcher, line, col, w);
 			case START: case STOP: case RESTART:{
+				//TODO kill could be or not be thread related 
 				return ThreadCall.make(c, matcher, line, col, w,false, true);
+			}
+			case KILL: {
+				//TODO
+				//builtin func: kill(target)
+				//thread func: kill thread(target)
+				break;
 			}
 			case GOTO:{
 				isThreadvar = true;

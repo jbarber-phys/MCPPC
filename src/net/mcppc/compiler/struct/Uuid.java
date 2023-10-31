@@ -42,7 +42,9 @@ public class Uuid extends Struct {
 	public Uuid(String name) {
 		super(name);
 	}
-
+	public VarType getType() {
+		return new VarType(this,new StructTypeParams.Blank());
+	}
 	@Override
 	public String getNBTTagType(VarType varType) {
 		return "tag_list";
@@ -129,7 +131,7 @@ public class Uuid extends Struct {
 		return super.getBuiltinMethodBasic(self, name, METHODS);
 	}
 	public Variable UuidOf(Selector s) throws CompileError {
-		VarType vt = new VarType(this,new StructTypeParams.Blank());
+		VarType vt = this.getType();
 		Variable v = new Variable("$anonuuidof",vt,null,new ResourceLocation("mcppc","uuid"));
 		return v.maskEntity(s, NbtPath.UUID);
 	}

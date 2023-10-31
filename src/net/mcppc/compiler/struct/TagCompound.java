@@ -6,12 +6,14 @@ import java.util.List;
 import net.mcppc.compiler.BuiltinFunction;
 import net.mcppc.compiler.RStack;
 import net.mcppc.compiler.Scope;
+import net.mcppc.compiler.StructTypeParams;
 import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.errors.CompileError;
 //internal only, dont register
 public class TagCompound extends Struct {
 	public static final TagCompound tag = new TagCompound("$tag");
+	public static final VarType TAG_COMPOUND = new VarType(tag,new StructTypeParams.Blank() );
 	public TagCompound(String name) {
 		super(name);
 	}

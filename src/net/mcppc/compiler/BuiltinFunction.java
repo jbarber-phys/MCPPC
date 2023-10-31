@@ -17,6 +17,7 @@ import net.mcppc.compiler.functions.AbstractCallToken;
 import net.mcppc.compiler.functions.PrintCode;
 import net.mcppc.compiler.functions.PrintF;
 import net.mcppc.compiler.functions.Tp;
+import net.mcppc.compiler.functions.UnsafeThreadCommand;
 import net.mcppc.compiler.struct.Struct;
 import net.mcppc.compiler.tokens.Bool;
 import net.mcppc.compiler.tokens.Equation;
@@ -45,6 +46,7 @@ public abstract class BuiltinFunction {
 		PrintF.registerAll();
 		Tp.registerAll();
 		PrintCode.registerAll();
+		UnsafeThreadCommand.registerAll();
 	}
 	private static void registerAll() {
 		register(SetScopeFlag.stopLongMult);
