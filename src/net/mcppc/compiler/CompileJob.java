@@ -5,6 +5,7 @@ import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.StringBufferInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,7 +31,6 @@ import net.mcppc.compiler.tokens.Import;
 
 /*list of language edition TODO ::
  * 
- * add ability to put vectors on scoreboard somehow
  * compile options for things like optimization and code safety; make it configurable in cmd
  * 
  * 
@@ -39,7 +39,8 @@ import net.mcppc.compiler.tokens.Import;
  * add Entity option to filter
  * add thread entity death handling mechanism
  * add bossbar tools like locks
- * add mass particle functions for shapes: line, sphere, cylinder
+ * add mass particle functions for shapes: line, sphere, cylinder, ring; 
+ * 			for sphere: see https://en.wikipedia.org/wiki/Geodesic_polyhedron
  * improve printf, add format functions for: color,formatting, click events
  * add stdlib for attacking entities / hitbox/raycast testing
  * maybe slap on a bunch of formatted command masks
@@ -540,10 +541,12 @@ public class CompileJob {
         	ns.srcFilesRel.add(rp);
         }
 	}
+	//StringBuffer compile1_errors;
 	public boolean genHeaders(Namespace ns) {
 		fileLog.println("genHeaders for namespace %s".formatted(ns.name));
 		fileLog.println("%d".formatted(ns.srcFilesRel.size()));
 		boolean success=true;
+		//compile1_errors = new StringBuffer();
         for(ResourceLocation res:this.compilers.keySet()) if (res.namespace.equals(ns.name)) {
         	fileLog.println("genHeaders %s".formatted(res));
         	Compiler c=this.compilers.get(res);
@@ -563,6 +566,9 @@ public class CompileJob {
         		System.gc();//induce garbage collection
         	}catch (CompileError  ce) {
         		compileHdrError.printf("Compile Error in %s : %s\n", res,ce.getMessage());
+        		//compile1_errors.append(
+        				 //String.format("Compile Error in %s : %s\n", res,ce.getMessage()));
+        		//TODO collect a copy of all errors and warnings at the end of output
         		//System.out.println(ce.getMessage());
         		ce.printStackTrace();
         		success=false;
@@ -601,6 +607,8 @@ public class CompileJob {
         		System.gc();//induce garbage collection
         	}catch (CompileError  ce) {
         		compileMcfError.printf("Compile Error in %s : %s\n", res,ce.getMessage());
+
+        		//TODO collect a copy of all errors and warnings at the end of output
         		//System.out.println(ce.getMessage());
         		ce.printStackTrace();
         		success=false;

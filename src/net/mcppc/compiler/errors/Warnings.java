@@ -2,6 +2,12 @@ package net.mcppc.compiler.errors;
 
 import java.io.PrintStream;
 
+/**
+ * indicate problems with the code that do not rise to the level of an error
+ * @author RadiumE13
+ *
+ */
+//TODO collect a copy of all errors and warnings at the end of output
 public class Warnings {
 	static PrintStream warn=System.err;
 	//eclipse shows all err output in red

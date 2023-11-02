@@ -22,7 +22,13 @@ import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
 
-//TODO list on data get returns its size
+//note list on data get returns its size
+/**
+ * Represents a variable in the code; has information about it's type, access, etc.
+ * Has lots of usefull methods for things like getting and setting.
+ * @author RadiumE13
+ *
+ */
 public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	public final String name;
 	public final VarType type;
@@ -285,7 +291,6 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		//equivalent to default (c.res,varname)
 		this.holder=ref.holder;
 		this.holderHeader = ref.holderHeader;
-		//TODO debug: should hdrholder be here? to test: have 2 public vars, one refing the other, which is @s:...
 		this.holderSelfified = ref.holderSelfified;
 		this.address=ref.address;
 		this.pointsTo=ref.pointsTo;
@@ -344,13 +349,19 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 					.formatted(this.holder,this.getAddressToGetset(),tagtype,CMath.getMultiplierFor(mult),reg.inCMD()));
 		}break;
 		case SCORE:{
-			mult=Math.pow(10, -regType.getPrecision(s)+this.type.getPrecision(s));
-			//TODO
-			String iholder = "mcppc:scoreholder__/dumps___";
-			f.println("execute store result storage %s \"$dumps\".%s %s %s run scoreboard players get %s"
-					.formatted(iholder,this.name,tagtype,CMath.getMultiplierFor(mult),reg.inCMD()));
-			f.println("execute store result score %s %s run data get storage %s \"$dumps\".%s"
-					.formatted(this.holder,this.getAddressToGetset(),iholder,this.name));
+			int ptot = -regType.getPrecision(s)+this.type.getPrecision(s);
+			if(ptot==0) {
+				f.printf("scoreboard players operation %s %s = %s\n", this.holder,this.getAddressToGetset(),reg.inCMD());
+			} else {
+
+				mult=Math.pow(10, ptot);
+				String iholder = "mcppc:scoreholder__/dumps___";
+				String ipath = "\"$dump\""; //do not base this on the address
+				f.println("execute store result storage %s %s %s %s run scoreboard players get %s"
+						.formatted(iholder,ipath,tagtype,CMath.getMultiplierFor(mult),reg.inCMD()));
+				f.println("execute store result score %s %s run data get storage %s %s"
+						.formatted(this.holder,this.getAddressToGetset(),iholder,ipath));
+			}
 			
 		}break;
 		}
@@ -760,6 +771,21 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	}
 	public String fieldMyNBTPathAddress(String field,VarType type) {
 		return "%s.%s".formatted(this.getAddressToGetset(),field);
+	}
+	/**
+	 * makes a new objective for a static number of elements (such as Vector or Uuid) and returns a variable that masks it
+	 * @param index
+	 * @param membtype
+	 * @return
+	 */
+	public Variable indexMyScoreBasic(int index,VarType membtype) {
+		return new Variable("%s[%s]".formatted(this.name,index),
+				membtype,
+				this.access,
+				this.pointsTo,
+				this.holder,
+				"%s+_%d".formatted(this.getAddressToGetset(),index)
+				);
 	}
 	public boolean isStruct() {
 		return this.type.isStruct();

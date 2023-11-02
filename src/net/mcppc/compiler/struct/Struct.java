@@ -474,6 +474,7 @@ public abstract class Struct {
 		else ;//do nothing
 		
 	}
+	//TODO allocate fixed array of scores
 	/**
 	 * execute to delete storage for this var
 	 * DO NOT CALL THIS FOR AN ARRAY MEMBER OR IT WILL CHANGE THE ARRAY SIZE

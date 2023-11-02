@@ -11,6 +11,7 @@ import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.BuiltinFunction.BFCallToken;
 import net.mcppc.compiler.StructTypeParams.MembType;
 import net.mcppc.compiler.VarType.Builtin;
+import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.RuntimeError;
 import net.mcppc.compiler.functions.EquationMask;
@@ -118,6 +119,11 @@ public class Vector extends Struct {
 		//should be unused
 		return "tag_list";//?
 	}
+	
+	public boolean canMask(VarType mytype, Mask mask) {
+		//return mask !=Mask.SCORE;
+		return true;
+	}
 	@Override
 	public StructTypeParams tokenizeTypeArgs(Compiler c,Scope s, Matcher matcher, int line, int col, List<Const> forbidden) throws CompileError {
 		if(this.defaulttype==null)
@@ -197,10 +203,18 @@ public class Vector extends Struct {
 	}
 	@Override
 	public void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
-		this.allocateArrayLoad(p, var, fillWithDefaultvalue, DIM, Vector.myMembType(var.type));
+		if(var.getMaskType() == Mask.SCORE) {
+			for(int i=0;i<DIM;i++) {
+				Variable vi = this.getComponent(var, i);
+				vi.allocateLoad(p, fillWithDefaultvalue);
+			}
+		} else {
+			this.allocateArrayLoad(p, var, fillWithDefaultvalue, DIM, Vector.myMembType(var.type));
+		}
 	}
 	@Override
 	public void allocateCall(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		//do not need to support scores; used in recursion only
 		this.allocateArrayCall(p, var, fillWithDefaultvalue, DIM, Vector.myMembType(var.type));
 	}
 	@Override
@@ -287,6 +301,30 @@ public class Vector extends Struct {
 			int hj=home+j*cpn.type.sizeOf();
 			cpn.setMe(p,s, stack, hj,cpn.type);
 		}
+	}
+	@Override
+	public void getMeDirect(PrintStream p,Scope s,RStack stack,Variable to, Variable me)throws CompileError{
+		this.directSet(p, s, stack, to, me);
+	}
+	@Override
+	public void setMeDirect(PrintStream p,Scope s,RStack stack,Variable me, Variable from)throws CompileError{
+		this.directSet(p, s, stack, me, from);
+	}
+	private static void directSet(PrintStream p,Scope s,RStack stack,Variable to, Variable from) throws CompileError{
+		if(    to.getMaskType() == Mask.SCORE
+			|| from.getMaskType() == Mask.SCORE
+			|| !Vector.myMembType(to.type).equals(Vector.myMembType(from.type))) {
+			//element-wise direct set
+			for(int i=0;i<DIM;i++) {
+				Variable fi=((Vector) from.type.struct).getComponent(from, i);
+				Variable ti=((Vector) to.type.struct).getComponent(to, i);
+				
+				Variable.directSet(p, s, ti, fi, stack);
+			}
+		} else {
+			Struct.basicSetDirect(p, to, from);//super
+		}
+		
 	}
 	public static final OpType CROSS=OpType.MOD;//use mod for cross product
 	@Override
@@ -392,8 +430,6 @@ public class Vector extends Struct {
 	@Override
 	public void doBiOpSecond(OpType op, VarType mytype, PrintStream p, Compiler c, Scope s, RStack stack, Integer home1,
 			Integer home2) throws CompileError {
-		//TODO bug: vec*num != num * vec
-		//yz componentz are lost
 		VarType other=stack.getVarType(home1);
 		boolean oIsVec=other.isStruct()?other.struct instanceof Vector:false;
 		if(oIsVec) {
@@ -598,6 +634,10 @@ public class Vector extends Struct {
 	}
 	protected Variable getComponent(Variable self, int i) throws CompileError {
 		if(i<0)throw new CompileError.VarNotFound(this, name);
+		
+		if(self.getMaskType() == Mask.SCORE) {
+			return self.indexMyScoreBasic(i, Vector.myMembType(self.type));//basic
+		}
 		return self.indexMyNBTPathBasic(i, Vector.myMembType(self.type));
 	}
 	protected static Variable componentOf(Variable self,int i)throws CompileError {
@@ -713,6 +753,12 @@ public class Vector extends Struct {
 	@Override
 	public BuiltinFunction getStaticBuiltinMethod(String name, VarType type) throws CompileError {
 		return super.getStaticBuiltinMethodBasic(name,type, this.STATICMETHODS);
+	}
+	@Override
+	public void deallocateLoad(PrintStream p, Variable var) {
+		if(var.getMaskType().isNbt)
+			super.deallocateLoad(p, var);
+		//else done
 	}
 
 }

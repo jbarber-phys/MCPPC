@@ -84,7 +84,7 @@ public class McThread {
 	public static final boolean DO_SELFIFY = true;
 	
 	
-	public static final boolean ALLOW_UUID_MAPPING = true;
+	public static final boolean ALLOW_UUID_MAPPING = false;//TODO compile setting for this
 	private McThread() {}//construction is done post-init
 	Keyword access = null;
 	ResourceLocation path = null;
