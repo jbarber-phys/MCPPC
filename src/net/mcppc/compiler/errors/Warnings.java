@@ -1,6 +1,7 @@
 package net.mcppc.compiler.errors;
 
 import java.io.PrintStream;
+import net.mcppc.compiler.Compiler;
 
 /**
  * indicate problems with the code that do not rise to the level of an error
@@ -28,14 +29,33 @@ public class Warnings {
 			}
 		}
 	}
-	public static void warning(String message) {
+	public static void warning(String message, Compiler c) throws CompileError{
 		warn.println(message);
+		if(c!=null) {
+			c.job.warn(message,c);
+		}
 	}
-	public static void warningf(String message,Object... args) {
+	public static void warningf(Compiler c,String message, Object... args) throws CompileError {
 		warn.println(message.formatted(args));
+		if(c!=null) {
+			c.job.warn(message.formatted(args),c);
+		}
 	}
-	public static void warn(OneTimeWarnings w) {
-		if(!w.done.value)warn.println(w.message);
+	public static void warn(OneTimeWarnings w,Compiler c)  throws CompileError{
+		if(!w.done.value) {
+			warn.println(w.message);
+			
+			if(c!=null) {
+				c.job.warn(w.message,c);
+			}
+		}
 		w.done.value=true;
+	}
+	
+	public static class WError extends CompileError {
+		public WError(String string) {
+			super("(upgraded warning) " +string);
+		}
+		
 	}
 }

@@ -13,6 +13,7 @@ import net.mcpp.util.Strings;
 import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Variable.Mask;
+import net.mcppc.compiler.errors.COption;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.struct.Entity;
@@ -84,7 +85,7 @@ public class McThread {
 	public static final boolean DO_SELFIFY = true;
 	
 	
-	public static final boolean ALLOW_UUID_MAPPING = false;//TODO compile setting for this
+	//public static final boolean ALLOW_UUID_MAPPING = false;//TODO compile setting for this
 	private McThread() {}//construction is done post-init
 	Keyword access = null;
 	ResourceLocation path = null;
@@ -176,14 +177,13 @@ public class McThread {
 				Selector e=this.getSelf();
 				var.maskScore(e, objective).addSelfification(e.selfify()).makeScoreOfThreadRunner();
 			} else {
-				if(!ALLOW_UUID_MAPPING)throw new CompileError("could not apply thread-local score mask to %s of type %s; shared vars should me marked as 'volatile'"
-						.formatted(var.name,var.type.asString()));
-				else Warnings.warningf("a thread %s required a uuid lookup table; possible performance loss\n",this.name);
+				if(!s.getOption(COption.ALLOW_THREAD_UUID_LOOKUP, c.job, c.cursor))throw new CompileError(
+						"could not apply thread-local score mask to %s of type %s;\n\t shared vars should me marked as 'volatile';\n\t if you need a local of this type, enable Uuid Lookup (see compiler options)".formatted(var.name,var.type.asString()));
+				else Warnings.warningf(c,"a thread %s required a uuid lookup table; possible performance loss or storage leak\n", this.name);
 				
 				//NOTE: alternatively could also use helmet nbt or something (if living)
 				
 				//ensure and then add to a lookup table
-				//TODO test this when disables, then enable and test again (missile)
 				this.makeLookup();
 				int lookBlock = var.access == Keyword.PRIVATE ? block: -1;
 				this.uuidLookups.editSubVar(var, lookBlock);//alters var
@@ -235,6 +235,7 @@ public class McThread {
 		if(!s.hasThread()) return;
 		if(this.isCompilingStart) {
 			throw new CompileError("thread-local non-volatile var %s cannot be used on the first thread control as it has not been initialized");
+			//TODO compiler options
 		}
 	}
 	public boolean hasConst(String name, Scope s) {
@@ -353,7 +354,7 @@ public class McThread {
 				//substitute self for registered thing
 				self = c.myInterface.identifyThread(self.name, c.currentScope);
 			}else {
-				c.myInterface.add(self);//by ref
+				c.myInterface.add(self,c);//by ref
 			}
 		} else {
 			//anonamous thread
@@ -391,7 +392,7 @@ public class McThread {
 			else {
 				this.isUnresolvedComp1=true;//try again later
 				//throw new CompileError("could not find all vars/funcs for thread declaration %s on compile-1 pass;");
-				Warnings.warningf("could not find all vars/funcs for thread declaration %s on compile-1 pass;".formatted(this.name)
+				Warnings.warningf(c, "could not find all vars/funcs for thread declaration %s on compile-1 pass;".formatted(this.name)
 						+ "will try again on pass compile-2;");
 			}
 		}else {

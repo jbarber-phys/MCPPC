@@ -755,7 +755,7 @@ public class Vector extends Struct {
 		return super.getStaticBuiltinMethodBasic(name,type, this.STATICMETHODS);
 	}
 	@Override
-	public void deallocateLoad(PrintStream p, Variable var) {
+	public void deallocateLoad(PrintStream p, Variable var) throws CompileError {
 		if(var.getMaskType().isNbt)
 			super.deallocateLoad(p, var);
 		//else done

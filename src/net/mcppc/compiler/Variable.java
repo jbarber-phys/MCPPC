@@ -21,11 +21,22 @@ import net.mcppc.compiler.tokens.MemberName;
 import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
+import net.mcppc.main.Main;
 
 //note list on data get returns its size
 /**
  * Represents a variable in the code; has information about it's type, access, etc.
- * Has lots of usefull methods for things like getting and setting.
+ * Has lots of usefull methods for things like getting and setting.<p>
+ * 
+ * Note that currently variable access is not scoped or ordered; 
+ * variables defined anywhere within a file are accessible anywhere else in it,
+ * with the following exceptions:
+ * <ul>
+ * 		<li>Function arguments and locals are not accessible outside the function;
+ * 		<li>Thread locals are only accessible inside the thread (not including the first block control); private restructs access to the block it is defined in;
+ * 
+ * </ul>	
+ * 
  * @author RadiumE13
  *
  */
@@ -45,7 +56,8 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	}
 	Mask pointsTo;
 	/**
-	 * below true if var is storage at namespace of parrent file with tag same as varname, or is param
+	 * Typically this is true if the variable's name matches its data path / objective without a custom mask;
+	 * used to control if this var will allocate its data;
 	 */
 	private boolean isbasic=true;
 	String holderHeader=null;
@@ -286,7 +298,10 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 				throw new CompileError("cannot mask type %s to a %s;".formatted(this.type.asString(),ref.pointsTo));
 			//else good
 		}
-		if(!this.type.getNBTTagType().equals(ref.type.getNBTTagType())) Warnings.warning("vars %s and %s have different tag types;".formatted(this.name,ref.name));
+		if(!this.type.getNBTTagType().equals(ref.type.getNBTTagType())) 
+			throw new CompileError("var (%s) %s cannot mask (%s) %s;"
+					.formatted(this.type.getNBTTagType(),this.name,ref.type.getNBTTagType(),ref.name));
+			//Warnings.warning("vars %s and %s have different tag types;".formatted(this.name,ref.name), c);
 		this.isbasic=false;
 		//equivalent to default (c.res,varname)
 		this.holder=ref.holder;
@@ -532,7 +547,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		case ENTITY:return "{\"entity\": \"%s\", \"nbt\": \"%s\"}".formatted(this.holder,edress);
 		case SCORE:
 			//TODO will need to change selector to not display multiplies value
-			Warnings.warning("getJsonText not yet valid for var with mask SCORE");
+			Warnings.warning("getJsonText not yet valid for var with mask SCORE", null);
 			String score="{\"score\": {\"name\": \"%s\", \"objective\": \"%s\"}}".formatted(this.holder,edress);
 			String meta="{\"translate\": \"%%se-%%s\",with: [%s,%s]}".formatted(score,this.type.getPrecisionStr());
 			return meta;
@@ -835,9 +850,23 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		else if (this.pointsTo==Mask.SCORE && this.isbasic) return true;
 		return this.isbasic  && fillWithDefaultvalue;
 	}
+	/**
+	 * returns true if this var should allocate itself before a function call it is local to; used for recursion;
+	 * @param fillWithDefaultvalue
+	 * @return
+	 */
 	public boolean willAllocateOnCall(boolean fillWithDefaultvalue) {
 		return this.isRecursive;
 	}
+	/**
+	 * Allocates this variable; behavior is controlled by type but typical behavior is as follows:
+	 * if it is a score, create the objective;
+	 * if it is storage, set a default value and make sure all parent tags are compound;
+	 * 
+	 * @param p
+	 * @param fillWithDefaultvalue
+	 * @throws CompileError
+	 */
 	public void allocateLoad(PrintStream p,boolean fillWithDefaultvalue) throws CompileError {
 		if(this.type.isStruct()) {
 			this.type.struct.allocateLoad(p, this, fillWithDefaultvalue);
@@ -849,7 +878,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	}
 	public void allocateLoadBasic(PrintStream p,boolean fillWithDefaultvalue,String defaultValue) throws CompileError  {
 		if(!this.isbasic) {
-			Warnings.warningf("attempted to allocate %s to non-basic %s;",this.name,this.pointsTo);
+			Warnings.warningf(null,"attempted to allocate %s to non-basic %s;",this.name, this.pointsTo);
 			return;
 		}
 		if(this.pointsTo == Mask.SCORE && this.isbasic) {
@@ -858,7 +887,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 			return;
 		}
 		if(this.pointsTo!=Mask.STORAGE) {
-			Warnings.warningf("attempted to allocate %s to non-storage %s;",this.name,this.pointsTo);
+			Warnings.warningf(null,"attempted to allocate %s to non-storage %s;",this.name, this.pointsTo);
 			return;
 		}
 		String data = this.isRecursive ?
@@ -869,6 +898,14 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 				:defaultValue; 
 		p.printf("data modify %s set value %s\n",data, value);
 	}
+	/**
+	 * allocates before a function call; typical behavior is as follows:
+	 * if the variable is recursive then prepend a default value to a virual NBT 'stack',
+	 * else do something similar to {@link Variable#allocateLoad};
+	 * @param p
+	 * @param fillWithDefaultvalue
+	 * @throws CompileError
+	 */
 	public void allocateCall(PrintStream p,boolean fillWithDefaultvalue) throws CompileError {
 		if(this.type.isStruct()) {
 			this.type.struct.allocateCall(p, this, fillWithDefaultvalue);
@@ -881,11 +918,11 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	}
 	public void allocateCallBasic(PrintStream p,boolean fillWithDefaultvalue,String defaultValue) throws CompileError {
 		if(!this.isbasic) {
-			Warnings.warningf("attempted to allocate %s to non-basic %s;",this.name,this.pointsTo);
+			Warnings.warningf(null,"attempted to allocate %s to non-basic %s;",this.name, this.pointsTo);
 			return;
 		}
 		if(this.pointsTo!=Mask.STORAGE) {
-			Warnings.warningf("attempted to allocate %s to non-storage %s;",this.name,this.pointsTo);
+			Warnings.warningf(null,"attempted to allocate %s to non-storage %s;",this.name, this.pointsTo);
 			return;
 		}
 		if(this.isRecursive) {
@@ -896,17 +933,17 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	}
 	public void makeObjective(PrintStream p) throws CompileError {
 		if(this.type.isStruct()) {
-			Warnings.warningf("attempted to make objective %s for struct %s;",this.name,this.type.asString());
+			Warnings.warningf(null,"attempted to make objective %s for struct %s;",this.name, this.type.asString());
 			return;
 		}
 		if(this.pointsTo!=Mask.SCORE) {
-			Warnings.warningf("attempted to make objective %s to non-score %s;",this.name,this.pointsTo);
+			Warnings.warningf(null,"attempted to make objective %s to non-score %s;",this.name, this.pointsTo);
 			return;
 		}
 		p.printf("scoreboard objectives add %s dummy\n",this.address);
 		
 	}
-	public void deallocateLoad(PrintStream p) {
+	public void deallocateLoad(PrintStream p) throws CompileError {
 		if(this.type.isStruct()) {
 			this.type.struct.deallocateLoad(p, this);
 			return;
@@ -914,7 +951,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		this.basicdeallocateBoth(p);
 		
 	}
-	public void deallocateAfterCall(PrintStream p) {
+	public void deallocateAfterCall(PrintStream p) throws CompileError {
 		if(this.type.isStruct()) {
 			this.type.struct.deallocateAfterCall(p, this);
 			return;
@@ -922,13 +959,13 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		this.basicdeallocateBoth(p);
 		
 	}
-	public void basicdeallocateBoth(PrintStream p) {
+	public void basicdeallocateBoth(PrintStream p) throws CompileError {
 		if(this.pointsTo!=Mask.STORAGE) {
-			Warnings.warningf("attempted to deallocate %s to non-storage %s;",this.name,this.pointsTo);
+			Warnings.warningf(null,"attempted to deallocate %s to non-storage %s;",this.name, this.pointsTo);
 			return;
 		}
 		if(!this.isbasic) {
-			Warnings.warningf("attempted to deallocate %s to non-basic %s;",this.name,this.pointsTo);
+			Warnings.warningf(null,"attempted to deallocate %s to non-basic %s;",this.name, this.pointsTo);
 			return;
 		}
 		//this should work for both recursive and nonrecursive vars

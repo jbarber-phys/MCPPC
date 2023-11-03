@@ -194,7 +194,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 
 		if(s.isInFunctionDefine()) {
 			if(this.access==Keyword.PUBLIC)
-				Warnings.warning("consts declared in functions cannot be public; converted var %s to local;".formatted(constv));
+				Warnings.warning("consts declared in functions cannot be public; converted var %s to local;".formatted(constv), c);
 			s.getFunction().addConst(this.constv);
 		}else if (this.isInThread ){
 			if(!s.getThread().add(this, c, s, s.getThreadBlock())) throw new CompileError.DoubleDeclaration(this);
@@ -206,7 +206,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		c.nextNonNullMatch(Factories.nextIsLineEnd);
 		
 	}
-	public void addVar(Compiler c,Scope s, boolean isReadingHeader, boolean isCompiling) throws CompileError {
+	private void addVar(Compiler c,Scope s, boolean isReadingHeader, boolean isCompiling) throws CompileError {
 		if(isCompiling) return ;//skip
 		
 		if(s.isInFunctionDefine()) {
@@ -371,7 +371,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			boolean isFuncLocal=c.currentScope.isInFunctionDefine();
 			;
 			if (isFuncLocal && d.access==Keyword.PUBLIC) {
-				Warnings.warning("vars declared in functions cannot be public; converted var %s to local;".formatted(varname.asString()));
+				Warnings.warning("vars declared in functions cannot be public; converted var %s to local;".formatted(varname.asString()), c);
 			}
 			d.variable=new Variable(varname.asString(),type.type, access, c);
 			Function localOf=null;

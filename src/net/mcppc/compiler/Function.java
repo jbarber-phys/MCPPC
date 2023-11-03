@@ -123,7 +123,7 @@ public class Function {
 			if(s.isInFunctionDefine() && s.function == this.func) {
 				isInSelf=true;
 				if(!this.func.canRecurr) {
-					Warnings.warningf("function %s is not recursive but was found in itself; possible bad behavior;",this.func.name);
+					Warnings.warningf(c,"function %s is not recursive but was found in itself; possible bad behavior;", this.func.name);
 					this.isInSelf=false;
 				}
 			}

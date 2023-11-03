@@ -438,10 +438,10 @@ public class BiOperator extends Token{
 		}
 		Register reg1=stack.getRegister(home1);
 		int exp=exponent.intValue();
-		if(Math.abs(exp-exponent.doubleValue())>0.1)Warnings.warning("Warning: rounded exponent %s to an integer;".formatted(exponent));
+		if(Math.abs(exp-exponent.doubleValue())>0.1)Warnings.warning("Warning: rounded exponent %s to an integer;".formatted(exponent), c);
 		if(stack.getEstimate(home1)!=null && Math.log(stack.getEstimate(home1).doubleValue())*exp>=(Register.SCORE_BITS-1-2)*Math.log(2)) {
 			//do divisions first
-			Warnings.warn(OneTimeWarnings.LIKELYOVERFLOW);
+			Warnings.warn(OneTimeWarnings.LIKELYOVERFLOW,c);
 		}
 		if(Math.abs(exp)<Register.SCORE_BITS) {
 			//repeat mult

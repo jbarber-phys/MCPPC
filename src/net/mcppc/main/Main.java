@@ -2,10 +2,13 @@ package net.mcppc.main;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.util.List;
 import java.util.regex.Matcher;
 
 import net.mcpp.vscode.MakeTmLanguage;
 import net.mcppc.compiler.CompileJob;
+import net.mcppc.compiler.errors.COption;
+import net.mcppc.compiler.errors.COption.OptionModifier;
 import net.mcppc.compiler.tokens.Regexes;
 
 /**
@@ -21,6 +24,7 @@ import net.mcppc.compiler.tokens.Regexes;
  * 		<li>-std : recompiles the standard library
  * 		<li>--std : recompiles the standard library and skips normal compilation
  * 		<li>-vscode [$path]: makes the tmLanguage used by the vscode extension and writes it to $path (defaults to in the generated folder); also stops normal compilation
+ * 		<li>(and also lots of extra options given in {@link Main#compileOptions})
  * </ul>	
  * everything but this file is usable as a library<br>
  * the class net.mcpp.compiler.CompileJob handles all actual compilation<br>
@@ -29,6 +33,18 @@ import net.mcppc.compiler.tokens.Regexes;
  *
  */
 public class Main {
+	public static final List<COption.OptionModifier> compileOptions = List.of(
+			new COption.SafetyFlag("-pedantic",10,"dis-allow anything unsafe"),
+			new COption.SafetyFlag("-unsafe",-10, "allows more unsafe operations"),
+			new COption.EffFlag("-frugal",10, "prevent operations that bloat the line count or strain minecraft"),
+			new COption.EffFlag("-intensive",-10, "allows more operations that tax the line count and minecraft"),
+			new COption.PriorityFlag("-override", "overrides any scope-specific flags with the global flag"),
+
+
+			new COption.OptionFlag<Boolean>("-uuidLookup", COption.ALLOW_THREAD_UUID_LOOKUP, true, "allows threads to use uuid lookup tables for non-score locals"),
+			new COption.OptionFlag<Boolean>("-werror", COption.ELEVATE_WARNINGS, true, "elevates all warnings to errors")
+
+			);
 	public static void regexTest() {
 		//success
 		String s="---+***%/-++";
@@ -180,6 +196,14 @@ public class Main {
 					
 				}
 				break;
+			}
+			
+			for(OptionModifier om : compileOptions) {
+				if(om.matches(job, args, i)) {
+					i=om.add(job, args, i);
+					i--;//undo the upcoming ++
+					break;
+				}
 			}
 		}
 		boolean stdSuccess=true;

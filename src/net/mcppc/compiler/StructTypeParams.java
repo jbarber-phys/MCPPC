@@ -7,7 +7,11 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.Type;
-
+/**
+ * the type arguments used by a struct type; the stuff inside the `<>`
+ * @author RadiumE13
+ *
+ */
 public interface StructTypeParams{
 
 	@Override public boolean equals(Object other) ;

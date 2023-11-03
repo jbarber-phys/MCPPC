@@ -110,6 +110,7 @@ public abstract class Struct {
 	}
 	/**
 	 * should be unused as long as no structs are direct set from /execute store statements
+	 * make a better system, such as enum for type and maybe a format code (normal = 0, ...)
 	 * @param varType
 	 * @return
 	 */
@@ -410,7 +411,7 @@ public abstract class Struct {
 		
 		
 		if(var.getMaskType()!=Mask.STORAGE) {
-			Warnings.warningf("attempted to deallocate %s to non-storage %s;",var.name,var.getMaskType());
+			Warnings.warningf(null,"attempted to deallocate %s to non-storage %s;",var.name, var.getMaskType());
 			return;
 		}
 		p.printf("data modify %s set value %s\n",var.dataPhrase(), DEFAULT_LIST);
@@ -453,7 +454,7 @@ public abstract class Struct {
 		//data modify <var> set value {}
 
 		if(var.getMaskType()!=Mask.STORAGE) {
-			Warnings.warningf("attempted to deallocate %s to non-storage %s;",var.name,var.getMaskType());
+			Warnings.warningf(null,"attempted to deallocate %s to non-storage %s;",var.name, var.getMaskType());
 			return;
 		}
 		p.printf("data modify %s set value %s\n",var.dataPhrase(), DEFAULT_COMPOUND);
@@ -467,7 +468,7 @@ public abstract class Struct {
 	@Deprecated private void allocateString(PrintStream p, Variable var, boolean fillWithDefaultvalue)  throws CompileError{
 		//data modify <var> set value ""
 		if(var.getMaskType()!=Mask.STORAGE) {
-			Warnings.warningf("attempted to deallocate %s to non-storage %s;",var.name,var.getMaskType());
+			Warnings.warningf(null,"attempted to deallocate %s to non-storage %s;",var.name, var.getMaskType());
 			return;
 		}
 		if(fillWithDefaultvalue)p.printf("data modify %s set value %s\n",var.dataPhrase(), DEFAULT_STRING);
@@ -481,12 +482,13 @@ public abstract class Struct {
 	 * ALSO DO NOT CALL THIS METHOD FOR SUB FIELDS, it is not needed
 	 * @param p
 	 * @param var
+	 * @throws CompileError 
 	 */
-	public void deallocateLoad(PrintStream p, Variable var) {
+	public void deallocateLoad(PrintStream p, Variable var) throws CompileError {
 		var.basicdeallocateBoth(p);
 		//data remove <var>
 	}
-	public void deallocateAfterCall(PrintStream p, Variable var) {
+	public void deallocateAfterCall(PrintStream p, Variable var) throws CompileError {
 		//this one is supposed to change the list size
 		var.basicdeallocateBoth(p);
 		//data remove <var>

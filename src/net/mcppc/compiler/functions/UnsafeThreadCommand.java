@@ -73,7 +73,7 @@ public abstract class UnsafeThreadCommand extends BuiltinFunction {
 
 		@Override
 		public void actualCall(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
-			Warnings.warning("Warning: function return(...) should not be used as mcpp might use '/return' it for its own thing");
+			Warnings.warning("Warning: function return(...) should not be used as mcpp might use '/return' it for its own thing", c);
 			BasicArgs args = (BasicArgs) token.getArgs();
 			if(args.nargs()<1) {
 				p.printf("return 1\n");

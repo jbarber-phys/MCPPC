@@ -24,18 +24,17 @@ import java.util.stream.Stream;
 
 import net.mcpp.vscode.JsonMaker;
 import net.mcppc.compiler.Variable.Mask;
+import net.mcppc.compiler.errors.COption;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.OutputDump;
+import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.tokens.Import;
 
 
 /*list of language edition TODO ::
- * 
- * compile options for things like optimization and code safety; make it configurable in cmd
- * 
- * 
+
  * consider switch statements: switch() case {} case {} ;
- * add math.random() function (ACTUALLY wait until targeting is added)
+ * add random() function (ACTUALLY wait until targeting is added)
  * add Entity option to filter
  * add thread entity death handling mechanism
  * add bossbar tools like locks
@@ -79,7 +78,7 @@ Example error: The type java.lang.Object cannot be resolved. It is indirectly re
  * but per project instead of system-wide;
  */
 /**
- * the class that handles all compilation;
+ * the class that handles all compilation; Compilation is done project-wide.
  * @author RadiumE13
  *
  */
@@ -425,6 +424,7 @@ public class CompileJob {
 		return true;
 	}
 	public boolean compileAll() {
+		this.initErrorCollectors();
 		addAllNamespaces();
 		for(Namespace ns: this.namespaces.values()) {
 			discoverSrc(ns);
@@ -457,6 +457,11 @@ public class CompileJob {
 		if(!this.checkForCircularRuns())return false;
 		this.linkAll();
 		this.genNamespaceFunctionsAndTags();
+		
+		printErrors() ;
+		//TODO print output
+		
+		this.finalizeErrorCollectors();
 		boolean success=true;
 		for(Compiler c:this.compilers.values()) if(!c.hasCompiled){
 			success=false;
@@ -541,12 +546,58 @@ public class CompileJob {
         	ns.srcFilesRel.add(rp);
         }
 	}
-	//StringBuffer compile1_errors;
+	StringBuffer compile1_errors = null;
+	StringBuffer compile1_warnings = null;
+	StringBuffer compile2_errors = null;
+	StringBuffer compile2_warnings = null;
+	StringBuffer warnings = new StringBuffer();
+	public void warn(String msg,Compiler c)  throws CompileError{
+		if(this.getOption(COption.ELEVATE_WARNINGS)) {
+			throw new Warnings.WError(msg);
+		}
+		if(warnings==null)return; 
+		warnings.append(String.format("Warning in %s : %s\n", c.resourcelocation,msg));
+	}
+	private void initErrorCollectors() {
+		if(compile1_errors==null)compile1_errors = new StringBuffer();
+		if(compile2_errors==null)compile2_errors = new StringBuffer();
+		if(compile1_warnings==null)compile1_warnings = new StringBuffer();
+		if(compile2_warnings==null)compile2_warnings= new StringBuffer();
+	}
+	private void printErrors() {
+		if(compile1_warnings!=null && !compile1_warnings.isEmpty()) {
+			System.err.printf(" ======== Warnings in phase 1: ============\n");
+			System.err.print(compile1_warnings.toString());
+			compile1_warnings=null;
+		}if(compile2_warnings!=null && !compile2_warnings.isEmpty()) {
+			System.err.printf(" ======== Warnings in phase 2: ============\n");
+			System.err.print(compile2_warnings.toString());
+			compile2_warnings=null;
+		}
+		if(compile1_errors!=null && !compile1_errors.isEmpty()) {
+			System.err.printf(" ======== Errors in phase 1: ============\n");
+			System.err.print(compile1_errors.toString());
+			compile1_errors=null;
+		}if(compile2_errors!=null && !compile2_errors.isEmpty()) {
+			System.err.printf(" ======== Errors in phase 2: ============\n");
+			System.err.print(compile2_errors.toString());
+			compile2_errors=null;
+		}
+	}
+	private void finalizeErrorCollectors() {
+		compile1_errors = null;
+		compile2_errors = null;
+		compile1_warnings = null;
+		compile2_warnings= null;
+		warnings=null;
+	}
+	
 	public boolean genHeaders(Namespace ns) {
 		fileLog.println("genHeaders for namespace %s".formatted(ns.name));
 		fileLog.println("%d".formatted(ns.srcFilesRel.size()));
 		boolean success=true;
-		//compile1_errors = new StringBuffer();
+		this.initErrorCollectors();
+		warnings = this.compile1_warnings;
         for(ResourceLocation res:this.compilers.keySet()) if (res.namespace.equals(ns.name)) {
         	fileLog.println("genHeaders %s".formatted(res));
         	Compiler c=this.compilers.get(res);
@@ -566,9 +617,9 @@ public class CompileJob {
         		System.gc();//induce garbage collection
         	}catch (CompileError  ce) {
         		compileHdrError.printf("Compile Error in %s : %s\n", res,ce.getMessage());
-        		//compile1_errors.append(
-        				 //String.format("Compile Error in %s : %s\n", res,ce.getMessage()));
-        		//TODO collect a copy of all errors and warnings at the end of output
+        		compile1_errors.append(
+        				 String.format("Compile Error in %s : %s\n", res,ce.getMessage()));
+        		//compileHdrError.print(compile1_errors.toString());
         		//System.out.println(ce.getMessage());
         		ce.printStackTrace();
         		success=false;
@@ -582,12 +633,15 @@ public class CompileJob {
         	}
         	
         }
+
+		warnings = null;
         return success;
 		
 	}
 	public boolean genMcf(Namespace ns) {
 		fileLog.println("compiling namespace %s".formatted(ns.name));
 		fileLog.println("%d".formatted(ns.srcFilesRel.size()));
+		this.warnings = this.compile2_warnings;
 		boolean success=true;
         for(ResourceLocation res:this.compilers.keySet()) if (res.namespace.equals(ns.name)) {
         	fileLog.println("genHeaders %s".formatted(res));
@@ -607,13 +661,14 @@ public class CompileJob {
         		System.gc();//induce garbage collection
         	}catch (CompileError  ce) {
         		compileMcfError.printf("Compile Error in %s : %s\n", res,ce.getMessage());
-
-        		//TODO collect a copy of all errors and warnings at the end of output
+        		compile2_errors.append(
+          				 String.format("Compile Error in %s : %s\n", res,ce.getMessage()));
         		//System.out.println(ce.getMessage());
         		ce.printStackTrace();
         		success=false;
         	}catch(FileNotFoundException ce){
         		ce.printStackTrace();
+        		
         		success=false;
         		//break;//keep going for now
         	}	finally {
@@ -622,6 +677,7 @@ public class CompileJob {
         	}
         	
         }
+        this.warnings=null;
         return success;
 		
 	}
@@ -1017,5 +1073,30 @@ public class CompileJob {
 		}
 		return true;
 		
+	}
+	
+	//TODO target:
+	//...
+	
+	//compiler options TODO test =================
+	//does not include target; that is above
+	//the int grid has 10 as a large parameter
+	public int safety = 0;
+	public int efficiency = 0;
+	public boolean takePriority = false;
+	
+	
+	private Map<COption,Object> options = new HashMap<COption,Object>();
+	
+	@SuppressWarnings("unchecked")
+	public <V> V setOption (COption<V> option, V value){
+		return (V) this.options.put(option,value);
+	}
+	@SuppressWarnings("unchecked")
+	public <V> V getOption (COption<V> option){
+		if(this.options.containsKey(option)) {
+			return (V) this.options.get(option);
+		}
+		else return option.defaultValue(this);
 	}
 }

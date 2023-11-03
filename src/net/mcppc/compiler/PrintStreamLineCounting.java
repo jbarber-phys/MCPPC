@@ -9,6 +9,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.Locale;
 
+import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 
 public class PrintStreamLineCounting extends PrintStream {
@@ -165,7 +166,11 @@ public class PrintStreamLineCounting extends PrintStream {
 
 	@Override
 	public PrintStream printf(Locale l, String format, Object... args) {
-		Warnings.warning("PrintStreamLineCounter called printf(Locale,...); number of lines cannot be determined;");
+		try {
+			Warnings.warning("PrintStreamLineCounter called printf(Locale,...); number of lines cannot be determined;", null);
+		} catch (CompileError e) {
+			e.printStackTrace();
+		}
 		return super.printf(l, format, args);
 	}
 	

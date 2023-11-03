@@ -8,7 +8,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
+import net.mcppc.compiler.errors.COption;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Statement;
@@ -45,9 +47,10 @@ public class Scope {
 	public PrintStream out=null;
 	boolean isOpen=false;
 	
-	//===SETTABLE SCOPE PARAMETERS
+	//===COMPILER SCOPE PARAMETERS
 	//parameters set by the compiler about this scope that are inherited by subs unless they override them
-	//example TODO: thread-selfness is overridden by execute as blocks (and etc
+	//example: thread-selfness is overridden by execute as blocks (and etc
+	//note that these are not OPTIONAL as they prevent the compiler from breaking
 	private Map<String,Object> inheritedParams = new HashMap<String,Object>();
 	public Object getInheritedParameter(String key) {
 		Object o=this.inheritedParams.get(key);
@@ -57,6 +60,32 @@ public class Scope {
 	}
 	public boolean addInheritedParameter(String key,Object o) {
 		return this.inheritedParams.put(key, o)==null;
+	}
+	//====RUNTIME SCOPE PARAMETERS
+	//can be set in the middle of a block
+	private Map<COption,TreeMap<Integer,Object>> optionsByCursor = new HashMap<COption,TreeMap<Integer,Object>>();
+	
+	@SuppressWarnings("unchecked")
+	public <V> V getOption(COption<V> option, CompileJob job,int cursor) {
+		
+		if(!option.doesCompilerGetPriority(job)) {
+			TreeMap<Integer,Object> tree = this.optionsByCursor.get(option);
+			if(tree!=null) {
+				V o =(V) tree.floorEntry(cursor);
+				if(o!=null)return o;
+			}
+			if(this.parent!=null) {
+				return this.parent.getOption(option, job, cursor);
+			}
+		}
+		
+		return job.getOption(option);
+	}
+	@SuppressWarnings("unchecked")
+	public <V> V setOption(COption<V> option, V value,int cursor) {
+		this.optionsByCursor.putIfAbsent(option, new TreeMap<Integer,Object>());
+		TreeMap<Integer,Object> tree = this.optionsByCursor.get(option);
+		return (V)tree.put(cursor, value);
 	}
 	//sequence flag applied after command for this scope only but no others (not even subs)
 	//maybe put these in some sort of registry in the future, but be carefull to make it so that the sequence is preserved

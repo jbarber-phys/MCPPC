@@ -19,11 +19,11 @@ import net.mcppc.compiler.tokens.Token.Factory;
 public class UnaryOp extends Token {
 	public static enum UOType{
 		UMINUS("-",OperationOrder.UNARYMINUS) {
-			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home) {
+			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home) throws CompileError {
 				UnaryOp.unaryNegatize(p, c, s, stack, home);
 			}}
 		,NOT("!",OperationOrder.UNARYNOT) {
-			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home) {
+			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home) throws CompileError {
 				UnaryOp.unaryNot(p, c, s, stack, home);
 			}};
 		static final Map<String,UOType> MAP = new HashMap<String,UOType>();
@@ -33,7 +33,7 @@ public class UnaryOp extends Token {
 		
 		final OperationOrder order;
 		public final String s;
-		public abstract void perform(PrintStream p,Compiler c,Scope s, RStack stack,Integer home);
+		public abstract void perform(PrintStream p,Compiler c,Scope s, RStack stack,Integer home) throws CompileError;
 		UOType(String s,OperationOrder order){
 			this.s=s;
 			this.order=order;
@@ -83,18 +83,18 @@ public class UnaryOp extends Token {
 	public UOType getOpType() {
 		return this.op;
 	}
-	public static void unaryNegatize(PrintStream p,Compiler c,Scope s, RStack stack,Integer home) {
+	public static void unaryNegatize(PrintStream p,Compiler c,Scope s, RStack stack,Integer home) throws CompileError {
 		VarType type=stack.getVarType(home);
-		if(!type.isNumeric())Warnings.warning("tried to negatize non-numeric type");
+		if(!type.isNumeric())Warnings.warning("tried to negatize non-numeric type", c);
 		int free=stack.reserve(1);
 		Register hr=stack.getRegister(home);
 		Register fr=stack.getRegister(free);
 		fr.setValue(p, -1);
 		hr.operation(p, "*=", fr);
 	}
-	public static void unaryNot(PrintStream p,Compiler c,Scope s, RStack stack,Integer home) {
+	public static void unaryNot(PrintStream p,Compiler c,Scope s, RStack stack,Integer home) throws CompileError {
 		VarType type=stack.getVarType(home);
-		if(!type.isLogical())Warnings.warning("tried to not non-logical type");
+		if(!type.isLogical())Warnings.warning("tried to not non-logical type", c);
 		//int free=stack.reserve(1);
 		Register hr=stack.getRegister(home);
 		//Register fr=stack.getRegister(free);

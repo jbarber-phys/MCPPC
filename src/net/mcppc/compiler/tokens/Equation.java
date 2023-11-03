@@ -320,7 +320,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	 * @throws CompileError
 	 */
 	public Equation populate(Compiler c,Scope s,Matcher m, int recurrs) throws CompileError {
-		if(recurrs==10)Warnings.warning("equation recurred 10 times; warning");
+		if(recurrs==10)Warnings.warning("equation recurred 10 times; warning", c);
 		if(recurrs==20)throw new CompileError("equation recurred 20 times; overflow for debug purposes;");
 		while(true) {
 			//look for value / unary

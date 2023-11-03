@@ -19,7 +19,8 @@ import net.mcppc.compiler.tokens.MemberName;
 
 /**
  * contains all of the interface for an mcpp file: all variables, functions, imports, consts, and threads;
- * private members are included here but not given to any other mcpp files;
+ * private members are included here but not given to any other mcpp files; <p>
+ * 
  * 
  * 
  * @author RadiumE13
@@ -121,14 +122,14 @@ public class FileInterface {
 		this.importsStrict.putIfAbsent(imp.getAlias(), imp.isStrict);
 		return this.imports.putIfAbsent(imp.getAlias(), imp.getLib())==null;
 	}
-	public boolean add(McThread th){
+	public boolean add(McThread th,Compiler c) throws CompileError{
 		switch(th.access) {
 		case PUBLIC:
 			return this.threadsPublic.putIfAbsent(th.name, th)==null;
 		case PRIVATE:
 			return this.threadsPrivate.putIfAbsent(th.name, th)==null;
 		default:
-			Warnings.warningf("Warning: attempted to define thread %s with invalid access %s", th.name,th.access.name);
+			Warnings.warningf(c, "Warning: attempted to define thread %s with invalid access %s",th.name, th.access.name);
 			return false;
 		
 		}

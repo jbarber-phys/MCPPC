@@ -332,7 +332,7 @@ public class FloatpN extends Struct {
 	public void doUnaryMin( VarType mytype, PrintStream p, Compiler c, Scope s, RStack stack, Integer home)
 			throws CompileError {
 		VarType type=stack.getVarType(home);
-		if(!type.isNumeric())Warnings.warning("tried to negatize non-numeric type");
+		if(!type.isNumeric())Warnings.warning("tried to negatize non-numeric type", c);
 		int free=stack.reserve(1);
 		Register hr=stack.getRegister(home);
 		Register fr=stack.getRegister(free);

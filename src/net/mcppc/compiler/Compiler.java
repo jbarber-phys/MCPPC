@@ -23,6 +23,11 @@ import net.mcppc.compiler.tokens.Statement.Domment;
 import net.mcppc.compiler.tokens.Statement.Headerable;
 import net.mcppc.compiler.tokens.Statement.MultiFlow;
 
+/**
+ * Handles all phases of compilation for a single .mcpp or .mch file.
+ * @author RadiumE13
+ *
+ */
 public class Compiler{
 	private File src;
 	private File hdr;
@@ -188,6 +193,7 @@ public class Compiler{
 	/**
 	 * fast-tokenizes (does not full tokenizes) and generates header for file
 	 * also generates variable information (FileInterface)
+	 * will sometimes output a lib-like file (mch)
 	 * @throws FileNotFoundException 
 	 */
 	public void compile1(boolean genHeader) throws CompileError, FileNotFoundException {
@@ -462,7 +468,7 @@ public class Compiler{
 	public void compile2() throws CompileError, FileNotFoundException  {
 		if (this.hasCompiled)return;
 		if (this.isHeaderOnly) {
-			Warnings.warning("attempted to true-compile header-only %s; skipped compilation;".formatted(this.resourcelocation));
+			Warnings.warning("attempted to true-compile header-only %s; skipped compilation;".formatted(this.resourcelocation), this);
 			return;
 		}
 		if(!this.areLocalsLoaded)throw new CompileError("attempted to comp2 file %s before locals were loaded.".formatted(this.resourcelocation));

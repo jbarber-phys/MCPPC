@@ -219,7 +219,7 @@ public class Selector {
 							break loop2;
 						}
 					}
-					if(buff.length()==0) Warnings.warningf("empty %s value {} found in selector",key);
+					if(buff.length()==0) Warnings.warningf(c,"empty %s value {} found in selector", key);
 					else switch (key) {
 					case "scores": this.scores= buff.toString(); break;
 					case "advancements":this.advancements= buff.toString(); break;
