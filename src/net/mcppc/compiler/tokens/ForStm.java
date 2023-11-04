@@ -11,6 +11,16 @@ import net.mcppc.compiler.*;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Equation.End;
 
+/**
+ * Iterates over a range of values; sets a variable to each value followed by inlined code<br>
+ * 
+ * syntax: for(var,start,end,step) {...}<br>
+ * syntax: for(var,start,end) {...}<br>
+ * syntax: for(int newvar,start,end,step) {...}<br>
+ * Note that iterating over collections has similar syntax but is handeled by a seperate class: ForIterate
+ * @author RadiumE13
+ *
+ */
 public class ForStm extends Statement implements Statement.CodeBlockOpener,Statement.Flow{
 	private static final MemberName name=new MemberName(-1, -1, "$for");
 	public static ForStm skipMe(Compiler c, Matcher matcher, int line, int col,Keyword w) throws CompileError {

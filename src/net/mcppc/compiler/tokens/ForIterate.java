@@ -17,7 +17,19 @@ import net.mcppc.compiler.struct.NbtCollection;
 import net.mcppc.compiler.struct.NbtMap;
 import net.mcppc.compiler.struct.Struct;
 import net.mcppc.compiler.tokens.Equation.End;
+import net.mcppc.main.Main;
 
+/**
+ * a for loop over a collection ; use the final keyword before the collection to ignore back-copying;<p>
+ * syntaxes: 
+ * <ul>
+ * 		<li> for([type] element : collection) {...}
+ * 		<li> for([type] element : final collection) {...}
+ * 		<li> for([type] key,[type] key : map) {...}
+ * </ul>
+ * @author RadiumE13
+ *
+ */
 public class ForIterate extends Statement implements Statement.CodeBlockOpener,Statement.Flow {
 	public static ForIterate makeMe(Compiler c,Scope subscope, Matcher matcher, int line, int col,RStack stack,
 			List<Token> args, List<Type> types,boolean isRef) throws CompileError {

@@ -118,5 +118,11 @@ public class ResourceLocation {
 	public void run(PrintStream p) {
 		p.printf("function %s\n",this.toString());
 	}
+	public void runIf(PrintStream p,Register r) {
+		p.printf("execute if %s run function %s\n", r.testMeInCMD(),this.toString());
+	}
+	public void runUnless(PrintStream p,Register r) {
+		p.printf("execute unless %s run function %s\n", r.testMeInCMD(),this.toString());
+	}
 	
 }

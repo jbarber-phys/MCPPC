@@ -378,8 +378,12 @@ public class Scope {
 	}
 	public Scope subscope(Compiler c,Statement.Flow flow, boolean isPass1) throws CompileError{
 		Scope s =new Scope(this,flow);
+		//TODO edit
 		//System.err.printf("made flow subscope %s; break: %s, done: %s;\n",flow.getFlowType(),s.isBreakable,s.isDoneable);
-		if(s.isBreakable) s.initializeBreakVarInMe(c,isPass1);
+		if(s.isBreakable) {
+			//TODO this wont work yet; set later in setPredicessor
+			s.initializeBreakVarInMe(c,isPass1);
+		}
 		if(s.isDoneable) {
 			if (((Statement.MultiFlow)flow).makeDoneVar())
 				s.initializeIfelseDoneVarExMe(c,isPass1);
@@ -447,6 +451,9 @@ public class Scope {
 			
 			return this.myBreakVar;
 		}return null;
+	}
+	public Variable reInitialzeBreakVarInMe(Statement.Flow f,Variable v) throws CompileError {
+		return this.myBreakVar = v;
 	}
 	private Variable getBreakVarInMe(Compiler c, int depth) throws CompileError {
 		return this.getBreakVarInMe(c, depth, this);

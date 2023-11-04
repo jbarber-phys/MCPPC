@@ -663,7 +663,12 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 			return prevVar.getType().struct.doBiOpSecondDirect(op,newVar.getType(), p, c, s, stack, prevVar, newVar);
 		}
 		if(mustBeDirect)throw new CompileError.UnsupportedOperation(prevVar.getType(), op, newVar.getType());
-		throw new CompileError.UnsupportedOperation(prevVar.getType(), op, newVar.getType());
+		//throw new CompileError.UnsupportedOperation(prevVar.getType(), op, newVar.getType());
+		Token t1 = prevVar instanceof Variable? ((Variable) prevVar).basicMemberName(s) : (Token) prevVar;
+		Token t2 = newVar instanceof Variable? ((Variable) newVar).basicMemberName(s) : (Token) newVar;
+		Equation eq=Equation.toAssignHusk(stack, t1,op,t2);
+		eq.compileOps(p, c, s, null);
+		return eq.setReg(p, c, s, eq.retype);
 		
 	}
 	public MemberName basicMemberName(Scope s) {

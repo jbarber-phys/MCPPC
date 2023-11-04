@@ -33,7 +33,6 @@ import net.mcppc.compiler.tokens.Import;
 
 /*list of language edition TODO ::
 
- * consider switch statements: switch() case {} case {} ;
  * add random() function (ACTUALLY wait until targeting is added)
  * add Entity option to filter
  * add thread entity death handling mechanism

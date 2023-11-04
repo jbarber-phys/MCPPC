@@ -17,15 +17,19 @@ import net.mcppc.compiler.tokens.*;
 import net.mcppc.compiler.tokens.Equation.End;
 
 /**
- * declaration of a function;
- * 
- * TODO allow args to be declared "ref" to back-copy after function call is over
- * 
- * TODO allow func-local vars
- * TODO add option recursive to switch vars to stacks (on call, prepend the value, then access [0] to read/write; when finished,remove [0])
- * TODO add inline option; compiles to a .mcfunction.inline file and contains fstrings
+ * represents an mcpp function.
  * @author RadiumE13
  *
+ */
+/*
+ * TODO (for 1.20.3) overhaul the extern keyword: allow it after a public / private;
+ * 		use it to indicate that this function is natively-callable (with possible /return ... return), target at 1.20.3:
+ * new use:
+ * private double afunc(double a) -> other:funcs; //old extern-use; mcpp
+ * public extern int amcf() -> datapack:a_mcfunction_with_return; //import an mcf
+ * public extern int amcf() {...}; //export an mcf with /return
+ * 
+ * TODO add inline option; compiles to a .mcfunction.inline file and contains fstrings
  */
 public class Function {
 	//this no longer applies with functions being recursive now

@@ -47,7 +47,9 @@ public enum Keyword {
 	TAG("tag"),
 	TICK("tick"),
 	LOAD("load"),
-	
+	SWITCH("switch"),
+	CASE("case"),
+	DEFAULT("default")//case statement
 	;
 	
 	public static final Map<String,Keyword> VALUES = new HashMap<String, Keyword>();

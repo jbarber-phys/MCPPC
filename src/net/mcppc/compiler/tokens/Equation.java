@@ -313,7 +313,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	 * fills the equation with members from the matcher.
 	 * Also identifies any variables or functions it finds
 	 * @param c
-	 * @param s TODO
+	 * @param s 
 	 * @param m
 	 * @param recurrs
 	 * @return
@@ -671,7 +671,8 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		int regnum;
 		if (in instanceof Equation) {
 			((Equation) in).compileOps(p, c, s, typeWanted);
-			regnum=((Equation) in).setReg(p, c, s, typeWanted);
+			//regnum=((Equation) in).setReg(p, c, s, typeWanted);
+			regnum=((Equation) in).setReg(p, c, s, ((Equation) in).retype);
 		}else if (in instanceof MemberName) {
 			regnum=stack.setNext(((MemberName) in).var.type);
 			((MemberName) in).var.getMe(p,s, stack,regnum);
@@ -871,11 +872,6 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 				Number prevNum=null;if(first instanceof Num) prevNum=((Num) first).value;
 				//prevNum and nextnum are nonnull if there are const nums in the Equation;
 				
-				//TODO: allow other const values to exist in equation
-				/*
-				 * generalize to other const types, not just num
-				 * change what function handels const ops
-				 */
 				INbtValueProvider prevVar = this.getConstVarRef(first); prevVar = (prevVar==null) ?
 						((first instanceof INbtValueProvider && ((INbtValueProvider) first).hasData())
 						? (INbtValueProvider) first : null) : prevVar;
@@ -919,6 +915,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 							//already done
 						}
 						else if((newnum==null && prevNum==null) | (!op.canLiteralMult())) {
+							//TODO wrong token type to register
 							int nextreg=this.putTokenToRegister(p, c, s, typeWanted, nextval);
 							//stack.debugOut(System.err);
 							op.perform(p, c, s, stack, this.homeReg, nextreg);
@@ -1036,7 +1033,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			//already done
 		}else {
 			//this case will also add a register to the stack
-			this.homeReg=this.stack.setNext(typeWanted);
+			this.homeReg=this.stack.setNext(typeWanted==null? this.retype:typeWanted);
 			if (this.elements.size()==0)throw new CompileError("unexpected empty equation asked to set to reg");
 			if(this.elements.size()>1)throw new CompileError("eq mistaken for a does no ops eq.");
 			Token e=this.elements.get(0);

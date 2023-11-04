@@ -71,6 +71,13 @@ public class RStack {
 		this.vartypes.put(max+s2, v);
 		return max+s2;
 	}
+	public int pop(int number) throws CompileError {
+		int ret = 0;
+		for(int i=0;i<number;i++) {
+			ret= this.pop();
+		}
+		return ret;
+	}
 	public int pop() throws CompileError {
 		if(this.vartypes.isEmpty())throw new CompileError("tried to pop from empty stack");
 		VarType v=this.vartypes.remove(this.vartypes.lastKey());
