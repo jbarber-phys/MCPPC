@@ -20,12 +20,10 @@ import net.mcppc.compiler.tokens.Token.Assignlike.Kind;
  *
  */
 public class Import extends Statement implements Statement.Headerable,DommentCollector {
-	static final Token.Factory[] look = {
-			ResourceLocation.ResourceToken.factory,Token.BasicName.factory,
-			Factories.space,Factories.newline,Factories.comment,Factories.domment,
+	static final Token.Factory[] look = Factories.genericLookPriority(new Token.Factory[] 
+			{ResourceLocation.ResourceToken.factory,Token.BasicName.factory}, 
 			Token.Assignlike.factoryMask,
-			Token.LineEnd.factory
-	};
+			Token.LineEnd.factory);
 
 	public static Import header(Compiler c, Matcher matcher, int line, int col, boolean isHeaderOnly) throws CompileError {
 		return interperet(c, matcher, line, col, isHeaderOnly,false);
@@ -71,7 +69,7 @@ public class Import extends Statement implements Statement.Headerable,DommentCol
 		if (!(r instanceof ResourceLocation.ResourceToken))throw new CompileError.UnexpectedToken(a, "resourcelocation");
 		ResourceLocation res=((ResourceLocation.ResourceToken) r).res;
 		if(alias==null)alias=res.end;
-		Import i=new Import(line,col,res,alias,dms.list,run,isStrict);
+		Import i=new Import(line,col,c.cursor,res,alias,dms.list,run, isStrict);
 		Token end=c.nextNonNullMatch(look);
 		if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(a, "';'");
 		if(isMcfCompiling)return i;
@@ -89,19 +87,19 @@ public class Import extends Statement implements Statement.Headerable,DommentCol
 	final String alias;public String getAlias() {return this.alias;}
 	final boolean run;
 	public final boolean isStrict;
-	public Import(int line, int col,ResourceLocation lib, String alias,List<Domment> d, boolean run,boolean isStrict) {
-		super(line, col);
+	public Import(int line, int col,int cursor, ResourceLocation lib,String alias, List<Domment> d,boolean run, boolean isStrict) {
+		super(line, col, cursor);
 		this.lib=lib;
 		this.alias=alias;
 		this.dms=d;
 		this.run=run;
 		this.isStrict=isStrict;
 	}
-	public Import(int line, int col,ResourceLocation lib, String alias) {
-		this(line, col,lib,alias,new ArrayList<Domment>(),false,false);
+	public Import(int line, int col,ResourceLocation lib, String alias, int cursor) {
+		this(line, col,cursor,lib,alias,new ArrayList<Domment>(),false, false);
 	}
-	public Import(int line, int col,ResourceLocation lib) {
-		this(line, col,lib,lib.end);
+	public Import(int line, int col,ResourceLocation lib, int cursor) {
+		this(line, col,lib,lib.end, cursor);
 	}
 
 	@Override

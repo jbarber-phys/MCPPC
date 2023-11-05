@@ -160,17 +160,17 @@ public abstract class Token {
 		public static final boolean ARE_TYPEARGS_PARENS=false;
 		public static final String TYPEOPEN = ARE_TYPEARGS_PARENS? "(":"<";
 		public static final String TYPECLOSE = ARE_TYPEARGS_PARENS? ")":">";
-		public static final Token.Factory[] checkForTypeargBracket = 
-			{Factories.newline,Factories.comment,Factories.domment,Factories.space,
-					Statement.Domment.factory,
-					ARE_TYPEARGS_PARENS?Token.Paren.factory:TypeArgBracket.factory,
-					Token.WildChar.dontPassFactory};
-		public static final Token.Factory[] checkForTypeargSep = 
-			{Factories.newline,Factories.comment,Factories.domment,Factories.space,
-					Statement.Domment.factory,
-					ARE_TYPEARGS_PARENS?Token.Paren.factory:TypeArgBracket.factory,
-							Token.ArgEnd.factory,
-					Token.WildChar.dontPassFactory};
+		public static final Token.Factory[] checkForTypeargBracket = Factories.genericLook(
+				//Statement.Domment.factory,//unreachable
+				ARE_TYPEARGS_PARENS?Token.Paren.factory:TypeArgBracket.factory,
+				Token.WildChar.dontPassFactory
+				);
+		public static final Token.Factory[] checkForTypeargSep = Factories.genericLook(
+				//Statement.Domment.factory,//unreachable
+				ARE_TYPEARGS_PARENS?Token.Paren.factory:TypeArgBracket.factory,
+						Token.ArgEnd.factory,
+				Token.WildChar.dontPassFactory
+				);
 
 
 		public static  boolean isArgTypeArg(Token t) {

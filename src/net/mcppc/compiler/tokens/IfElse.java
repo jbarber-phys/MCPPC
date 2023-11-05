@@ -32,7 +32,7 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 			if (!(t instanceof Token.Paren) || !((Token.Paren)t).forward)throw new CompileError.UnexpectedToken(t, "'('");
 			
 		}
-		IfElse me=new IfElse(line,col,open,null,null);
+		IfElse me=new IfElse(line,col,c.cursor,open,null, null);
 		me.mySubscope = c.currentScope.subscope(c,me,true);
 		Token term=Factories.carefullSkipStm(c, matcher, line, col);
 		if((!(term instanceof Token.CodeBlockBrace)) || (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{");
@@ -64,7 +64,7 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 			eq=call.args.get(0);
 		}
 		
-		IfElse me=new IfElse(line,col,open,stack,eq);
+		IfElse me=new IfElse(line,col,c.cursor,open,stack, eq);
 		me.mySubscope = c.currentScope.subscope(c,me,false);
 		Token term=c.nextNonNullMatch(Factories.nextIsLineEnd);
 		if((!(term instanceof Token.CodeBlockBrace)) || (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{");
@@ -75,8 +75,8 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 	private final RStack mystack;
 	Scope mySubscope;
 	IfElse predicessor=null;
-	public IfElse(int line, int col,Keyword kw,RStack stack,Equation test) {
-		super(line, col);
+	public IfElse(int line, int col,int cursor,Keyword kw,RStack stack, Equation test) {
+		super(line, col, cursor);
 		this.role=kw;
 		this.mystack=stack;
 		this.test = test;

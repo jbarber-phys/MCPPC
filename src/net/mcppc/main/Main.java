@@ -185,7 +185,7 @@ public class Main {
 			}
 
 			if(arg.equals("-g")) {
-				job.debugMode();
+				job.addLineInfo();
 			}
 			if(arg.equals("--vscode")) {
 				makevscode=true;
@@ -212,6 +212,7 @@ public class Main {
 		if(skipMainCompile)return;
 		job.compileAll();
 		if(!stdSuccess)System.err.println("note: compilation of stdlib failed; see log above;");
+		//System.out.println("#asdfasd\nasdfasdf\nasdfasdf".replace("\n", "\n#"));//replaceAll() uses regex);
 		//floatFormatTest();
 		
 		//C:\Users\jbarb_t8a3esk\AppData\Roaming\.minecraft\saves\Mcpp_test_world\datapacks\

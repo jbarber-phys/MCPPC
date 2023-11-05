@@ -40,7 +40,7 @@ public class Switch extends Statement implements MultiFlow,Statement.CodeBlockOp
 		}
 
 		RStack stack=c.currentScope.getStackFor();
-		Switch me=new Switch(line,col,open,stack);
+		Switch me=new Switch(line,col,c.cursor,open, stack);
 		me.mySubscope = c.currentScope.subscope(c,me,true);
 		me.breakv = me.mySubscope.getBreakVarInMe(c);
 		Token term=Factories.carefullSkipStm(c, matcher, line, col);
@@ -54,7 +54,7 @@ public class Switch extends Statement implements MultiFlow,Statement.CodeBlockOp
 		Token t;
 		Keyword open=opener;
 		RStack stack=c.currentScope.getStackFor();
-		Switch me=new Switch(line,col,opener,stack);
+		Switch me=new Switch(line,col,c.cursor,opener, stack);
 		me.mySubscope = c.currentScope.subscope(c,me,false);
 		me.breakv = me.mySubscope.getBreakVarInMe(c);
 		if(opener==Keyword.SWITCH) {
@@ -90,8 +90,8 @@ public class Switch extends Statement implements MultiFlow,Statement.CodeBlockOp
 	
 	Equation switchEq = null;
 	BasicArgs caseEqs = null;
-	public Switch(int line, int col,Keyword role,RStack stack) {
-		super(line, col);
+	public Switch(int line, int col,int cursor,Keyword role, RStack stack) {
+		super(line, col, cursor);
 		this.role = role;
 		this.myStack=stack;
 	}

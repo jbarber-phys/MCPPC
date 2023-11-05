@@ -147,8 +147,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	public String asString() {
 		return "(+-*/%...)";
 	}
-	static final Token.Factory[] lookForValue= {
-			Factories.newline,Factories.comment,Factories.domment,Factories.space,
+	static final Token.Factory[] lookForValue= Factories.genericLook(
 			UnaryOp.factory,
 			Bool.factory,
 			Selector.SelectorToken.factory,//new edition; may interfere with indexing
@@ -156,17 +155,16 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			Token.Paren.factory,//sub-eq or caste
 			Token.LineEnd.factory, Token.CodeBlockBrace.factory,Token.ArgEnd.factory, //possible terminators; unexpected
 			Token.StringToken.factory//just in case of trivial equations
-	};
-	static final Token.Factory[] lookForOperation= {
-			Factories.newline,Factories.comment,Factories.domment,Factories.space,
+			);
+	
+	static final Token.Factory[] lookForOperation= Factories.genericLook(
 			Token.Member.factory,
 			Token.Paren.factory,//func call
 			Token.IndexBrace.factory, //index of list-struct
 			Token.ForInSep.factory,
 			BiOperator.factory,
 			Token.LineEnd.factory, Token.CodeBlockBrace.factory,Token.ArgEnd.factory //possible terminators
-			
-	};
+			);
 	public List<Token> elements=new ArrayList<Token>();
 	private boolean claimedSubEnd = false;
 	

@@ -91,7 +91,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 	public static ThreadStm skipMe(Compiler c, Matcher matcher, int line, int col,Keyword w) throws CompileError {
 		//test for else if
 		
-		ThreadStm me=new ThreadStm(line,col,w,null);
+		ThreadStm me=new ThreadStm(line,col,c.cursor,w, null);
 		me.startCursor=c.cursor;
 		c.cursor=matcher.end();
 		me.outerScope = c.currentScope;
@@ -121,7 +121,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		//CompileJob.compileMcfLog.printf("flow ifElse %s;\n", opener);
 		//Equation eq=null;
 		RStack stack=c.currentScope.getStackFor();
-		ThreadStm me=new ThreadStm(line,col,opener,stack);
+		ThreadStm me=new ThreadStm(line,col,c.cursor,opener, stack);
 		me.startCursor=c.cursor;
 		c.cursor=matcher.end();
 		me.outerScope = c.currentScope;
@@ -221,8 +221,8 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 	
 	
 	private String loopIf = null;
-	public ThreadStm(int line, int col,Keyword opener,RStack stack) {
-		super(line, col);
+	public ThreadStm(int line, int col,int cursor,Keyword opener, RStack stack) {
+		super(line, col, cursor);
 		this.mystack=stack;
 		this.isFirst = opener == Keyword.THREAD;
 	}

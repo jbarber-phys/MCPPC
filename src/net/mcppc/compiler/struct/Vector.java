@@ -12,6 +12,7 @@ import net.mcppc.compiler.BuiltinFunction.BFCallToken;
 import net.mcppc.compiler.StructTypeParams.MembType;
 import net.mcppc.compiler.VarType.Builtin;
 import net.mcppc.compiler.Variable.Mask;
+import net.mcppc.compiler.errors.COption;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.RuntimeError;
 import net.mcppc.compiler.functions.EquationMask;
@@ -393,14 +394,14 @@ public class Vector extends Struct {
 			}
 			//next script should cap this properly
 		}else {
-			if(s.isDebugMode()) {
+			if(s.<Boolean>getOption(COption.DEBUG_MODE, c.job, c.getFlagCursor())) { //.isDebugMode()
 				RuntimeError.printf(p,"", "scores, v = (%s,%s,%s) %s num %s"
 						, stack.getRegister(home1), stack.getRegister(home1+1), stack.getRegister(home1+2),
 						  PrintF.IPrintable.string(op.s),
 						 stack.getRegister(home2));
 			}
 			this.elementwizeHalf(op, p, c, s, stack, home1, home2);
-			if(s.isDebugMode()) {
+			if(s.<Boolean>getOption(COption.DEBUG_MODE, c.job, c.getFlagCursor())) { //.isDebugMode()
 				RuntimeError.printf(p,"", "  = (%s,%s,%s)"
 						, stack.getRegister(home1), stack.getRegister(home1+1), stack.getRegister(home1+2));
 			}

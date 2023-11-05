@@ -118,21 +118,28 @@ public class Const {
 
 		
 	public static Const.ConstExprToken checkForExpression(Compiler c,Scope s, Matcher matcher, int line, int col, List<Const> forbidden,ConstType... types) throws CompileError{
-		Token.Factory[] look = new Token.Factory[4+types.length+1];
-		look[0]=Factories.newline;
-		look[1]=Factories.space;
-		look[2]=Factories.domment;
-		look[3]=Factories.comment;
+		Token.Factory[] look ;//= new Token.Factory[4+types.length+1];
+		//look[0]=Factories.newline;
+		//look[1]=Factories.space;
+		//look[2]=Factories.domment;
+		//look[3]=Factories.comment;
 		int itype=-1;
 		Token.Factory[] look2=null;
+		Token.Factory[] extraLook1 = new Token.Factory[types.length+1];
 		for(int i=0;i<types.length;i++) {
-			if(types[i]!=ConstType.TYPE)look[4+i]=types[i].factory;
+			if(types[i]!=ConstType.TYPE)
+				//look[4+i]=types[i].factory;
+				extraLook1[i]=types[i].factory;
 			else {
 				itype=i;
-				look[4+i]=Token.WildChar.dontPassFactory;
+				//look[4+i]=Token.WildChar.dontPassFactory;
+				extraLook1[i]=Token.WildChar.dontPassFactory;
 			}
 		}
-		look[4+types.length]=Token.WildChar.dontPassFactory;
+		//look[4+types.length]=Token.WildChar.dontPassFactory;
+		extraLook1[types.length]=Token.WildChar.dontPassFactory;
+		look = Factories.genericLook((Token.Factory[])extraLook1);
+		
 		if (itype>=0){
 			look2=new Token.Factory[types.length-itype-1];
 			for(int i=itype+1;i<types.length;i++) {

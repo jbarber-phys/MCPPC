@@ -16,8 +16,8 @@ public class CodeBlock extends Statement {
 	
 	final List<Statement> statements=new ArrayList<Statement>();
 
-	public CodeBlock(int line, int col,Scope s,CodeBlockOpener opener) {
-		super(line, col);
+	public CodeBlock(int line, int col,int cursor,Scope s,CodeBlockOpener opener) {
+		super(line, col, cursor);
 		this.scope=s;
 		this.opener= opener;
 	}

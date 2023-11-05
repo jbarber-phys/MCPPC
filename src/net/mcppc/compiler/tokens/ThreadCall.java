@@ -69,7 +69,7 @@ public class ThreadCall extends Statement {
 	public static final ThreadCall make(Compiler c, Matcher matcher, int line, int col,Keyword w,boolean isPass1,boolean lineEnd,ThreadStm define) throws CompileError {
 		//pass 2 only
 		c.cursor=matcher.end();
-		ThreadCall me = new ThreadCall(line,col,w);
+		ThreadCall me = new ThreadCall(line,col,w, c.cursor);
 		if(isPass1) {
 			Token term=Factories.carefullSkipStm(c, matcher, line, col);
 			if((!(term instanceof Token.LineEnd)))throw new CompileError.UnexpectedToken(term,";");
@@ -149,8 +149,8 @@ public class ThreadCall extends Statement {
 	Integer block = null;
 	Variable toset = null;
 	Selector me = null;
-	public ThreadCall(int line, int col,Keyword init) {
-		super(line, col);
+	public ThreadCall(int line, int col,Keyword init, int cursor) {
+		super(line, col, cursor);
 		this.init=init;
 	}
 

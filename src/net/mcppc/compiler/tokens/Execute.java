@@ -95,7 +95,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 	public static Execute skipMe(Compiler c, Matcher matcher, int line, int col,Keyword w) throws CompileError {
 		//test for else if
 		c.cursor=matcher.end();
-		Execute me=new Execute(line,col,null);
+		Execute me=new Execute(line,col,c.cursor, null);
 		me.mySubscope = c.currentScope.subscope(c,me,true);
 		Token term=Factories.carefullSkipStm(c, matcher, line, col);
 		if((!(term instanceof Token.CodeBlockBrace)) || (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{");
@@ -109,7 +109,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		Token t;
 		//Equation eq=null;
 		RStack stack=c.currentScope.getStackFor();
-		Execute me=new Execute(line,col,stack);
+		Execute me=new Execute(line,col,c.cursor, stack);
 		me.mySubscope = c.currentScope.subscope(c,me,false);
 		final Token.Factory[] lookForSubs = Factories.genericLook(Token.BasicName.factory,Token.LineEnd.factory,Token.CodeBlockBrace.factory);
 		while(true) {
@@ -139,8 +139,8 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 	private final RStack mystack;
 	Scope mySubscope;
 	final List<Subexecute> terms = new ArrayList<Subexecute>();
-	public Execute(int line, int col,RStack stack) {
-		super(line, col);
+	public Execute(int line, int col,int cursor, RStack stack) {
+		super(line, col, cursor);
 		this.mystack=stack;
 	}
 

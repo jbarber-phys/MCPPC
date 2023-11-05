@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import net.mcppc.compiler.errors.COption;
@@ -71,27 +72,47 @@ public class Scope {
 		if(!option.doesCompilerGetPriority(job)) {
 			TreeMap<Integer,Object> tree = this.optionsByCursor.get(option);
 			if(tree!=null) {
-				V o =(V) tree.floorEntry(cursor);
-				if(o!=null)return o;
+				Entry<Integer,Object> entry = tree.floorEntry(cursor);
+				if(entry!=null) {
+					V o =(V) entry.getValue();
+					if(o!=null)return o;
+				}
 			}
 			if(this.parent!=null) {
-				return this.parent.getOption(option, job, cursor);
+				return this.parent.<V>getOption(option, job, cursor);
 			}
 		}
 		
 		return job.getOption(option);
 	}
 	@SuppressWarnings("unchecked")
-	public <V> V setOption(COption<V> option, V value,int cursor) {
+	public <V> V setOption(COption<V> option, V value,int cursor) throws CompileError {
+		if(!option.canBeScopeLevel) throw new CompileError("option '%s' cannot be scope level".formatted(option.name));
 		this.optionsByCursor.putIfAbsent(option, new TreeMap<Integer,Object>());
 		TreeMap<Integer,Object> tree = this.optionsByCursor.get(option);
 		return (V)tree.put(cursor, value);
 	}
 	//sequence flag applied after command for this scope only but no others (not even subs)
 	//maybe put these in some sort of registry in the future, but be carefull to make it so that the sequence is preserved
-	private boolean prohibitLongMult = false;
-	private boolean debugMode=false;
-	
+	//private boolean prohibitLongMult = false;
+	//private boolean debugMode=false;
+	//does not affect any subscopes
+	@Deprecated private boolean isProhibitLongMult() {
+		//boolean up=this.parent!=null ? this.parent.isProhibitLongMult()//parrent scope may not exist anymore
+		return false;//this.prohibitLongMult;
+	}
+	@Deprecated private void setProhibitLongMult(boolean prohibitLongMult) {
+		//this.prohibitLongMult = prohibitLongMult;
+	}
+	@Deprecated private void setDebugMode(boolean b) {
+		//this.debugMode = b;
+	} 
+	@Deprecated private boolean isDebugMode() {return false;//this.debugMode;
+	}
+	public boolean hasThread() {
+		return this.thread!=null;
+		
+	}
 	//==============
 	private final Map<String,Variable> loopLocals = new HashMap<String,Variable>();
 	public boolean hasLoopLocal(String name) {
@@ -131,7 +152,7 @@ public class Scope {
 	}
 	public PrintStream open(CompileJob cj) throws FileNotFoundException {
 		this.isOpen=true;
-		setProhibitLongMult(false);
+		//setProhibitLongMult(false);
 		File f=cj.pathForMcf(this.getSubRes(this.resBase)).toFile();
 		try {
 			f.getParentFile().mkdirs();
@@ -522,21 +543,7 @@ public class Scope {
 		if(this.function!=null)all.addAll(this.function.popRequestedTemplateBinds());
 		return all;
 	}
-	//does not affect any subscopes
-	public boolean isProhibitLongMult() {
-		//boolean up=this.parent!=null ? this.parent.isProhibitLongMult()//parrent scope may not exist anymore
-		return this.prohibitLongMult;
-	}
-	public void setProhibitLongMult(boolean prohibitLongMult) {
-		this.prohibitLongMult = prohibitLongMult;
-	}
-	public void setDebugMode(boolean b) {
-		this.debugMode = b;
-	} public boolean isDebugMode() {return this.debugMode;}
-	public boolean hasThread() {
-		return this.thread!=null;
-		
-	}
+	
 	public McThread getThread() {
 		return this.thread;
 		

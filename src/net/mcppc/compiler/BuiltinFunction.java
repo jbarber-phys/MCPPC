@@ -12,6 +12,7 @@ import net.mcppc.compiler.BuiltinFunction.BFCallToken;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Function.FuncCallToken;
+import net.mcppc.compiler.errors.COption;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.AbstractCallToken;
 import net.mcppc.compiler.functions.PrintCode;
@@ -50,6 +51,7 @@ public abstract class BuiltinFunction {
 	}
 	private static void registerAll() {
 		register(SetScopeFlag.stopLongMult);
+		register(SetScopeFlag.doLongMult);
 		register(SetScopeFlag.debug);
 	}
 	
@@ -269,7 +271,7 @@ public abstract class BuiltinFunction {
 			Token t=look!=null?
 					c.nextNonNullMatch(look)
 					:
-					Equation.toArgue(c.line, c.column(), c, matcher, s);//.populate(c, matcher);
+					Equation.toArgue(c.line(), c.column(), c, matcher, s);//.populate(c, matcher);
 			args.add(t);
 			if(t instanceof Equation) {
 				switch (((Equation)t).end) {
@@ -279,7 +281,6 @@ public abstract class BuiltinFunction {
 					throw new CompileError("unexpected equation end paren in builtin function (not enough args);");
 				default:
 					throw new CompileError("unexpected equation end in builtin function;");
-				
 				}
 			}else {
 				Token sep=c.nextNonNullMatch(Factories.argsepOrParen);
@@ -389,21 +390,23 @@ public abstract class BuiltinFunction {
 		p.printf("%s... %s(...);\n",s.toString(), this.name);
 	}
 	public static class SetScopeFlag extends BuiltinFunction {
-		@FunctionalInterface
+		/*@FunctionalInterface
+		@Deprecated
 		private static interface ScopeFlagSet {
 			public void set(Scope s,boolean flag);
-		}
-		public static final SetScopeFlag stopLongMult = new SetScopeFlag("stopLongMult", (s,b)->s.setProhibitLongMult(b),true);
-		public static final SetScopeFlag debug = new SetScopeFlag("debug", (s,b)->s.setDebugMode(b),true);
-		private final ScopeFlagSet setter;
+		}*/
+		public static final SetScopeFlag stopLongMult = new SetScopeFlag("stopLongMult", COption.DO_LONG_MULT,true,true);
+		public static final SetScopeFlag doLongMult = new SetScopeFlag("doLongMult", COption.DO_LONG_MULT,true,false);
+		public static final SetScopeFlag debug = new SetScopeFlag("debug", COption.DEBUG_MODE,true,false);
+		//private final ScopeFlagSet setter;
+		private final COption<Boolean> myOption;
 		private final boolean defaultFlag;
-		public SetScopeFlag(String name,ScopeFlagSet setter,boolean defaultFlag) {
+		private boolean invert = false;
+		public SetScopeFlag(String name,COption<Boolean> myOption,boolean defaultFlag,boolean invert) {
 			super(name);
-			this.setter=setter;
 			this.defaultFlag=defaultFlag;
-		}
-		public SetScopeFlag(String name,ScopeFlagSet setter) {
-			this(name,setter,true);
+			this.myOption=myOption;
+			this.invert=invert;
 		}
 
 		@Override
@@ -424,13 +427,15 @@ public abstract class BuiltinFunction {
 		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 			boolean b;
 			 Args args = token.args;
-			if(((BasicArgs)args).isEmpty() || ((BasicArgs)args).arg(0)==null )b=true;
+			if(((BasicArgs)args).isEmpty() || ((BasicArgs)args).arg(0)==null )b=this.defaultFlag;
 			else{
 				Bool t = (Bool) ((BasicArgs)args).arg(0);
 				b=t.val;
 			}
+			if(this.invert)b=!b;
 			//s.setProhibitLongMult(b);//edit the scope
-			this.setter.set(s, b);
+			s.<Boolean>setOption(this.myOption,b ,c.getFlagCursor());
+			//this.setter.set(s, b);
 		}
 
 		@Override

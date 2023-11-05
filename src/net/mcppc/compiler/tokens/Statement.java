@@ -26,6 +26,24 @@ import net.mcppc.compiler.tokens.Token.Assignlike.Kind;
  *
  */
 public abstract class Statement extends Token implements TreePrintable{
+	//TODO add cursor parameter
+	
+	protected final int myCursor;//could point anywhere inside the statement
+	public Statement(Compiler c) {
+		super(c.line(),c.column());
+		this.myCursor=c.cursor;
+	}
+	public Statement(int line, int col, int cursor) {
+		super(line, col);
+		this.myCursor=cursor;
+	}
+	public int getMyCursor() {
+		return this.myCursor;
+	}
+	
+	
+	
+	
 	public static interface Headerable {
 		public boolean doHeader();
 		public void headerMe(PrintStream f) throws CompileError;
@@ -71,9 +89,6 @@ public abstract class Statement extends Token implements TreePrintable{
 		}
 		
 	}
-	public Statement(int line, int col) {
-		super(line, col);
-	}
 	@Override public void printStatementTree(PrintStream p,int tabs) {
 		//for debuging
 		StringBuffer s=new StringBuffer();while(s.length()<tabs)s.append('\t');
@@ -102,7 +117,6 @@ public abstract class Statement extends Token implements TreePrintable{
 			if(openBlock)throw new CompileError.UnexpectedToken(term,"{");
 			return false;
 		}
-
 	}
 	/**
 	 * comment that will show in both headers and mcfunctions
@@ -110,29 +124,63 @@ public abstract class Statement extends Token implements TreePrintable{
 	 *
 	 */
 	public static class Domment extends Statement implements Headerable{
+		//TODO block-domments
 		public static final Statement.Factory factory=new Statement.Factory(Regexes.DOMMENT) {
 			@Override public Statement createStatement(Compiler c, Matcher matcher, int line, int col) {
 				if(CompileJob.dommentLog!=null)CompileJob.dommentLog.printf("///%s\n", matcher.group(1));
-				c.cursor=matcher.end(); return new Domment(line,col,matcher.group(1));
+				c.cursor=matcher.end(); return new Domment(line,col,c.cursor,matcher.group(1), false);
 			}
 		};
-		String message;
-		public Domment(int line, int col,String message) {
-			super(line, col);
+		public static final Statement.Factory factory_block=new Statement.Factory(Regexes.DOMMENT_BLOCK) {
+			@Override public Statement createStatement(Compiler c, Matcher matcher, int line, int col) {
+				if(CompileJob.dommentLog!=null)
+					CompileJob.dommentLog.printf("/**%s*/\n", matcher.group(1));
+				String match = matcher.group();
+				int nnl = 0;
+				int index=0;
+				int nindex=0;
+				int pindex = 0;
+				while((nindex = match.indexOf("\n", index)) > pindex) {
+					//System.err.printf("newlines: %d -> %d\n", index , nindex);
+					index=nindex+1;
+					pindex = nindex;
+					nnl++;
+				}
+				if(nnl>0) {
+					c.newLines(matcher.start()+index+1, nnl);
+					//System.err.printf("domment newlines: %d\n", nnl);
+				}
+				c.cursor=matcher.end(); return new Domment(line,col,c.cursor,matcher.group(1), true);
+			}
+		};
+		private String message;
+		boolean isMultiLine ;
+		public Domment(int line, int col,int cursor,String message, boolean isMultiLine) {
+			super(line, col, cursor);
 			this.message=message;
+			this.isMultiLine=isMultiLine;
 		}
 		@Override public void compileMe(PrintStream f,Compiler c,Scope s) {
-			f.println("#%s".formatted(this.message));
+			f.println(this.inCMD());
 		}
 		@Override
 		public String asString() {
-			return "///...";
+			return this.isMultiLine?
+					"/**...*/"
+					:"///...";
 		}
 		public String inHeader() {
-			return "///%s".formatted(this.message);
+			return (this.isMultiLine?
+					"/**%s*/"
+					:"///%s"
+					).formatted(this.message);
 		}
 		public String inCMD() {
-			return "#%s".formatted(this.message);
+			String msg = this.message;
+			if(this.isMultiLine) {
+				msg = msg.replace("\n", "\n#");//replaceAll() uses regex
+			}
+			return "#%s".formatted(msg);
 		}
 		@Override
 		public boolean doHeader() {
@@ -157,12 +205,12 @@ public abstract class Statement extends Token implements TreePrintable{
 				if(c.nextNonNullMatch(Factories.nextIsLineEnd) instanceof Token.LineEnd)
 					c.cursor=matcher.end();
 				else throw new CompileError.UnexpectedToken(t, ";");
-				return new CommandStatement(line,col,t);
+				return new CommandStatement(line,col,c.cursor,t);
 			}
 		};
 		final CommandToken command;
-		public CommandStatement(int line, int col,CommandToken command) {
-			super(line, col);
+		public CommandStatement(int line, int col,int cursor,CommandToken command) {
+			super(line, col, cursor);
 			this.command=command;
 		}
 		@Override public void compileMe(PrintStream f,Compiler c,Scope s) throws CompileError {
@@ -183,8 +231,8 @@ public abstract class Statement extends Token implements TreePrintable{
 	public static class Assignment extends Statement{
 		final Variable var;
 		final Equation eq;
-		public Assignment(int line, int col,Variable var,Equation eq) {
-			super(line, col);
+		public Assignment(int line, int col,int cursor,Variable var,Equation eq) {
+			super(line, col, cursor);
 			this.eq=eq;
 			this.var=var;
 		}
@@ -217,7 +265,7 @@ public abstract class Statement extends Token implements TreePrintable{
 				Equation eq=Equation.toAssign(line, col, c, c.currentScope, m);
 				//equation finds the semicolon;
 				if(eq.end !=End.STMTEND) throw new CompileError("assignment ended with a non-';'");
-				return new Statement.Assignment(line, col, ret, eq);
+				return new Statement.Assignment(line, col,c.cursor, ret, eq);
 			}else
 				throw new CompileError.UnexpectedToken(asn, "'=' or '~~' or '('","return statements must be assignlike as they do not affect flow; example: return = 23;");
 			
@@ -247,7 +295,7 @@ public abstract class Statement extends Token implements TreePrintable{
 				Equation eq=Equation.toAssign(line, col, c, c.currentScope, m);
 				//equation finds the semicolon;
 				if(eq.end !=End.STMTEND) throw new CompileError("assignment ended with a non-';'");
-				return new Statement.Assignment(line, col, brk, eq);
+				return new Statement.Assignment(line, col,c.cursor, brk, eq);
 			}else
 				throw new CompileError.UnexpectedToken(asn, "'=' or '~~' or '('","return statements must be assignlike as they do not affect flow; example: return = 23;");
 			
@@ -258,8 +306,8 @@ public abstract class Statement extends Token implements TreePrintable{
 	public static class Estimate extends Statement{
 		final Variable var;
 		final Number estimate;
-		public Estimate(int line, int col,Variable var,Number num) {
-			super(line, col);
+		public Estimate(int line, int col,int cursor,Variable var,Number num) {
+			super(line, col, cursor);
 			this.var=var;
 			this.estimate=num;
 		}
@@ -275,8 +323,8 @@ public abstract class Statement extends Token implements TreePrintable{
 	}
 	public static class CallStatement extends Statement{
 		final AbstractCallToken token;
-		public CallStatement(int line, int col,AbstractCallToken f,Compiler c) {
-			super(line, col);
+		public CallStatement(int line, int col,int cursor,AbstractCallToken f,Compiler c) {
+			super(line, col, cursor);
 			this.token=f;
 		}
 		@Override

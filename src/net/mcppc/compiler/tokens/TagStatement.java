@@ -43,7 +43,7 @@ public class TagStatement extends Statement implements Flow, CodeBlockOpener {
 		if(tag==null) {
 			tag = ResourceLocation.getNext(c).res;
 		}
-		TagStatement me=new TagStatement(line,col,tag);
+		TagStatement me=new TagStatement(line,col,tag, c.cursor);
 		Token term=Factories.carefullSkipStm(c, matcher, line, col);
 		if(term instanceof Token.CodeBlockBrace) {
 			if((!((Token.CodeBlockBrace)term).forward)) throw new CompileError.UnexpectedToken(term,"{ or ;");
@@ -58,8 +58,8 @@ public class TagStatement extends Statement implements Flow, CodeBlockOpener {
 	public final ResourceLocation tag;
 	Scope taggedScope;
 	boolean openedBlock=false;
-	public TagStatement(int line, int col,ResourceLocation tag) {
-		super(line, col);
+	public TagStatement(int line, int col,ResourceLocation tag, int cursor) {
+		super(line, col, cursor);
 		this.tag=tag;
 	}
 	private static ResourceLocation getNamedRes(Keyword opener) {

@@ -148,6 +148,8 @@ public class MakeTmLanguage extends Regexes.Strs{
 		//comments + domments
 		addToRepo("domments",namedMatch(domment,DOMMENT_LINE,italic));
 		addToRepo("comments",namedMatch(comment,COMMENT_LINE));
+		addToRepo("domments_block",namedMatch(domment,DOMMENT_BLOCK,italic));//TODO test this; also edit the language-configuration.json: uncomment the block comments
+		addToRepo("comments_block",namedMatch(comment,COMMENT_BLOCK));
 		
 		//estimate operator must be escaped
 		addToRepo("operators",namedMatch(operator,ESTIMATE));

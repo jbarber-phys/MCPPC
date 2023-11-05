@@ -33,7 +33,7 @@ import net.mcppc.main.Main;
 public class ForIterate extends Statement implements Statement.CodeBlockOpener,Statement.Flow {
 	public static ForIterate makeMe(Compiler c,Scope subscope, Matcher matcher, int line, int col,RStack stack,
 			List<Token> args, List<Type> types,boolean isRef) throws CompileError {
-		ForIterate me = new ForIterate(line,col,stack);me.isByRef = isRef;
+		ForIterate me = new ForIterate(line,col,c.cursor,stack);me.isByRef = isRef;
 		me.mySubscope=subscope;//let for smt supply it
 		//TODO allow to pass by value
 		int index;
@@ -117,8 +117,8 @@ public class ForIterate extends Statement implements Statement.CodeBlockOpener,S
 	private Variable structbuff2 = null;
 	Scope mySubscope;
 	List<Number> span;
-	public ForIterate(int line, int col,RStack stack) {
-		super(line, col);
+	public ForIterate(int line, int col,int cursor,RStack stack) {
+		super(line, col, cursor);
 		this.mystack=stack;
 	}
 	

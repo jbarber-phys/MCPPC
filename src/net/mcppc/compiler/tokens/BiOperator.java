@@ -13,6 +13,7 @@ import net.mcppc.compiler.RStack;
 import net.mcppc.compiler.Register;
 import net.mcppc.compiler.Scope;
 import net.mcppc.compiler.VarType;
+import net.mcppc.compiler.errors.COption;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.CompileError.UnsupportedOperation;
 import net.mcppc.compiler.errors.Warnings.OneTimeWarnings;
@@ -186,7 +187,8 @@ public class BiOperator extends Token{
 				&&stack.getEstimate(home1).doubleValue()*stack.getEstimate(home2).doubleValue()*mult<Register.score_max(2) 
 				)
 				||!hasafloat);
-		if(s.isProhibitLongMult())doShortMult=true;
+		if(!s.<Boolean>getOption(COption.DO_LONG_MULT, c.job, c.getFlagCursor()))//.isProhibitLongMult()
+			doShortMult=true;
 		if( doShortMult) {
 			this.shortmult(p, c, s, stack, home1, home2);
 		}else {

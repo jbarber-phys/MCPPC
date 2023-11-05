@@ -21,6 +21,8 @@ public final class Regexes {
 		public static final String NAME = "[A-Za-z]\\w*";// [A-Za-z]\w*;
 		public static final String COMMENT_LINE=("\\/\\/([^\\n\\/][^\\n]*)(?=\\n|$)");// \/\/([^\n\/][^\n]*)(?=\n|$)
 		public static final String DOMMENT_LINE=("\\/\\/\\/([^\\n]*)(?=\\n|$)");// \/\/\/([^\n]*)(?=\n|$)
+		public static final String COMMENT_BLOCK=("/\\*(?!\\*)(([^\\*]|\\*(?!(/)))*)\\*/");// /\*(?!\*)(([^\*]|\*(?!(/)))*)\*/
+		public static final String DOMMENT_BLOCK=("/\\*\\*(([^\\*]|\\*(?!(/)))*)\\*/");// /\*\*(([^\*]|\*(?!(/)))*)\*/
 		
 		public static final String CMDGROUP = "(?<cmd>((%s)|[^\\\"';\\\\\\n])*)".formatted(Strs.STRLITSTRING); 
 		// (?<cmd>((%s)|[^\"';\\\n])*)
@@ -99,6 +101,8 @@ public final class Regexes {
 	public static final Pattern INDEXBRACE=Pattern.compile("(\\[)|(\\])");// (\[)|(\])
 	public static final Pattern COMMENT=Pattern.compile(Strs.COMMENT_LINE);
 	public static final Pattern DOMMENT=Pattern.compile(Strs.DOMMENT_LINE);
+	public static final Pattern COMMENT_BLOCK=Pattern.compile(Strs.COMMENT_BLOCK);
+	public static final Pattern DOMMENT_BLOCK=Pattern.compile(Strs.DOMMENT_BLOCK);
 	
 	public static final Pattern SKIPLINE_MID=Pattern.compile("((%s)|[^;\\n])*\\n".formatted(Strs.STRLITSTRING)); // ((%s)|[^;\n])*\n
 	public static final Pattern SKIPLINE_END=Pattern.compile("((%s)|[^;\\n])*;".formatted(Strs.STRLITSTRING)); // ((%s)|[^;\n])*;

@@ -31,7 +31,7 @@ public class ForStm extends Statement implements Statement.CodeBlockOpener,State
 		t=c.nextNonNullMatch(Factories.checkForParen);
 		//CompileJob.compileMcfLog.println(t.getClass().getName());
 		if (!(t instanceof Token.Paren) || !((Token.Paren)t).forward)throw new CompileError.UnexpectedToken(t, "'('");
-		ForStm me=new ForStm(line,col,null);
+		ForStm me=new ForStm(line,col,c.cursor, null);
 		me.mySubscope = c.currentScope.subscope(c,me,true);
 		Token term=Factories.carefullSkipStm(c, matcher, line, col);
 		if((!(term instanceof Token.CodeBlockBrace)) || (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{");
@@ -46,7 +46,7 @@ public class ForStm extends Statement implements Statement.CodeBlockOpener,State
 		
 		RStack stack=c.currentScope.getStackFor();
 
-		ForStm me=new ForStm(line,col,stack);
+		ForStm me=new ForStm(line,col,c.cursor, stack);
 		me.mySubscope = c.currentScope.subscope(c,me,false);
 		t=c.nextNonNullMatch(Factories.checkForParen);
 		if (!(t instanceof Token.Paren) || !((Token.Paren)t).forward)throw new CompileError.UnexpectedToken(t, "'('");
@@ -165,8 +165,8 @@ public class ForStm extends Statement implements Statement.CodeBlockOpener,State
 	private boolean isRangeInt=true;
 	Scope mySubscope;
 	List<Number> span;
-	public ForStm(int line, int col,RStack stack) {
-		super(line, col);
+	public ForStm(int line, int col,int cursor, RStack stack) {
+		super(line, col, cursor);
 		this.mystack=stack;
 	}
 	public void makeSpan(Compiler c,Number startI,Number stopE,Number step) throws CompileError {

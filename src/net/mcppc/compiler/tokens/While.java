@@ -18,7 +18,7 @@ public class While extends Statement implements Statement.CodeBlockOpener,Statem
 		t=c.nextNonNullMatch(Factories.checkForParen);
 		//CompileJob.compileMcfLog.println(t.getClass().getName());
 		if (!(t instanceof Token.Paren) || !((Token.Paren)t).forward)throw new CompileError.UnexpectedToken(t, "'('");
-		While me=new While(line,col,null,null);
+		While me=new While(line,col,c.cursor,null, null);
 		me.mySubscope = c.currentScope.subscope(c,me,true);
 		Token term=Factories.carefullSkipStm(c, matcher, line, col);
 		if((!(term instanceof Token.CodeBlockBrace)) || (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{");
@@ -36,7 +36,7 @@ public class While extends Statement implements Statement.CodeBlockOpener,Statem
 		Function.FuncCallToken call=Function.FuncCallToken.make(c, c.currentScope, line, col, matcher, While.name, stack);
 		if(call.args.size()!=1)throw new CompileError("wrong number of args in while statement; expected 1;");
 		eq=call.args.get(0);
-		While me=new While(line,col,stack,eq);
+		While me=new While(line,col,c.cursor,stack, eq);
 		me.mySubscope = c.currentScope.subscope(c,me,false);
 		Token term=c.nextNonNullMatch(Factories.nextIsLineEnd);
 		if((!(term instanceof Token.CodeBlockBrace)) || (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{");
@@ -47,8 +47,8 @@ public class While extends Statement implements Statement.CodeBlockOpener,Statem
 	private final RStack mystack;
 	Scope mySubscope;
 	//IfElse predicessor=null;
-	public While(int line, int col,RStack stack,Equation test) {
-		super(line, col);
+	public While(int line, int col,int cursor,RStack stack, Equation test) {
+		super(line, col, cursor);
 		this.mystack=stack;
 		this.test = test;
 	}

@@ -2,24 +2,31 @@ package net.mcppc.compiler.errors;
 
 import net.mcppc.compiler.CompileJob;
 
-//TODO CompileJob give it a hashmap<COption,Object>
-//but let compile job have a hashmap<COption,Treemap<int,Object>> for cursor position info
-//give code block a param for cursor start;
+/**
+ * represents a compile-time flag variable that influences compilation;  are settable at the job and scope level according to the fields inside;<p>
+ * also contains default behavior capability; generally by default each option is determined by where the job is on the safety-efficiency space 
+ * (see {@link CompileJob#safety} and {@link CompileJob#efficiency}) of which both generally range from -10 to 10;
+ * @author RadiumE13
+ *
+ * @param <V> the value-type that the option will have
+ */
 public class COption<V> {
 	//list all options here:
 	public static final COption<Boolean> ALLOW_THREAD_UUID_LOOKUP = new SafeEfficient("allow_uuid_lookup", 3, null, null, -3, false);
-	public static final COption<Boolean> ELEVATE_WARNINGS = new SafeEfficient("elevate_warnings", 9, null, null, null, false);
+	public static final COption<Boolean> ELEVATE_WARNINGS = new SafeEfficient("elevate_warnings", null, null, 9, null, false);
 	
 	//TODO longmult, ...
+	public static final COption<Boolean> DO_LONG_MULT = new SafeEfficient("do_long_mult", null, 9, null, null, false);
 	//TODO debug mode
+	public static final COption<Boolean> DEBUG_MODE = new Basic<Boolean>("debug_mode",false);
 	
 	//
 	public final String name;
 	
-	public final boolean canBeCompileLevel;
+	@Deprecated
+	private final boolean canBeCompileLevel; // will always be true basically
 	public final boolean canBeScopeLevel;
 	
-	//TODO priority
 	private final boolean compilerPriority;
 	
 	public COption(String name) {
@@ -96,7 +103,11 @@ public class COption<V> {
 		}
 		
 	}
-	//reads command line for option
+	/**
+	 * represents a class that reads command line argments and modifies COption values accordingly
+	 * @author RadiumE13
+	 *
+	 */
 	public static interface OptionModifier{
 		public boolean matches(CompileJob job,String[] args, int start);
 		public int add(CompileJob job,String[] args, int start) ;

@@ -116,11 +116,9 @@ public final class Factories {
 			case NEXT:
 				return ThreadStm.makeMe(c, matcher, line, col, w);
 			case START: case STOP: case RESTART:{
-				//TODO kill could be or not be thread related 
 				return ThreadCall.make(c, matcher, line, col, w,false, true);
 			}
 			case KILL: {
-				//TODO
 				//builtin func: kill(target)
 				//thread func: kill thread(target)
 				break;
@@ -162,18 +160,18 @@ public final class Factories {
 						Token ft=sub.convert(c, c.currentScope, stack);
 						if(!(ft instanceof Function.FuncCallToken)) {
 							throw new CompileError("function converted to non-call token in statement start context; not yet supported;");
-							//TODO
+							//TODO if this is allowed: (... + ...).doSomething(); is done
 						}else {
 							((FuncCallToken) ft).linkMeByForce(c, c.currentScope);
 							Token end=c.nextNonNullMatch(Factories.nextIsLineEnd);
 							if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(end, ";","code block after builtin func not yet supported");
-							return new Statement.CallStatement(line,col,((FuncCallToken) ft),c);
+							return new Statement.CallStatement(line,col,c.cursor,((FuncCallToken) ft),c);
 							
 						}
 					}
 					Token end=c.nextNonNullMatch(Factories.nextIsLineEnd);
 					if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(end, ";","code block after builtin func not yet supported");
-					return new Statement.CallStatement(line, col, sub,c);
+					return new Statement.CallStatement(line, col,c.cursor, sub,c);
 
 				}else {
 					//a normal function
@@ -181,7 +179,7 @@ public final class Factories {
 					ft.identify(c,c.currentScope);
 					Token end=c.nextNonNullMatch(Factories.nextIsLineEnd);
 					if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(end, ";","code block after builtin func not yet supported");
-					return new Statement.CallStatement(line,col,ft,c);
+					return new Statement.CallStatement(line,col,c.cursor,ft,c);
 				}
 				
 			}
@@ -219,7 +217,7 @@ public final class Factories {
 					}
 					asn = c.nextNonNullMatch(Factories.nextIsLineEnd);
 					if(!(asn instanceof Token.LineEnd))new CompileError.UnexpectedToken(asn, ";");
-					Statement.Estimate stm= new Statement.Estimate(line, col, nm.var,((Num)est).value);
+					Statement.Estimate stm= new Statement.Estimate(line, col,c.cursor, nm.var,((Num)est).value);
 					c.currentScope.addEstimate(stm.var, stm.estimate);
 					return stm;
 				}
@@ -234,7 +232,7 @@ public final class Factories {
 						else nm = (MemberName) v;
 					}
 					//if(isThreadvar)nm.var = nm.var.attemptSelfify(c.currentScope);//fileInterface did this already
-					return new Statement.Assignment(line, col, nm.var, eq);
+					return new Statement.Assignment(line, col,c.cursor, nm.var, eq);
 				}else
 					throw new CompileError.UnexpectedToken(asn, "'=' or '~~' or '('");
 			}
@@ -282,25 +280,63 @@ public final class Factories {
 			return null;
 		}
 	}
+	static class MultiNewLine extends Token.Factory{
+		public MultiNewLine(Pattern pattern) {
+			super(pattern);
+		}
+		@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) {
+			String match = matcher.group();
+			int nnl = 0;
+			int index=0;
+			int nindex=0;
+			int pindex = 0;
+			while((nindex = match.indexOf("\n", index)) > pindex) {
+				//System.err.printf("newlines: %d -> %d\n", index , nindex);
+				index=nindex+1;
+				pindex = nindex;
+				nnl++;
+			}
+			if(nnl>0) {
+				c.newLines(matcher.start()+index, nnl);
+			}
+			c.cursor= matcher.end();
+			return null;
+		}
+	}
 	public static final Token.Factory space = new LazySkip(Regexes.SPACE," ");
-	public static final Token.Factory comment = new LazySkip(Regexes.COMMENT,"//...");
-	public static final Token.Factory skipDomment = new LazySkip(Regexes.DOMMENT,"///...");
-	public static final Token.Factory domment = Statement.Domment.factory;
+	private static final Token.Factory comment = new LazySkip(Regexes.COMMENT,"//...");
+	private static final Token.Factory skipDomment = new LazySkip(Regexes.DOMMENT,"///...");
+	private static final Token.Factory domment = Statement.Domment.factory;
 	public static final Token.Factory skiplineEnd = new LazySkip(Regexes.SKIPLINE_END,"<...skipped line>",true);
 	public static final Token.Factory skiplineMid = new LazySkip(Regexes.SKIPLINE_MID,"<..skip line>");
 	public static final Token.Factory newline = new LazyNewLine(Regexes.SPACE_NEWLINE);
-	public static final Token.Factory skipDoubleBlockBrace = new LazyNewLine(Regexes.CODEBLOCKBRACEDOUBLED);
-	public static final Token.Factory skipMscChar = new LazyNewLine(Regexes.STM_SKIP_MSCCHAR);
+	
+	public static final Token.Factory commentBlock = new MultiNewLine(Regexes.COMMENT_BLOCK);
+	public static final Token.Factory dommentBlock = Statement.Domment.factory_block;
+	public static final Token.Factory dommentSkipBlock = new MultiNewLine(Regexes.DOMMENT_BLOCK);
+	
+	//these are compile-1 only and used to be newline for some reason
+	private static final Token.Factory skipDoubleBlockBrace = new LazySkip(Regexes.CODEBLOCKBRACEDOUBLED,"{{|}}");
+	private static final Token.Factory skipMscChar = new LazySkip(Regexes.STM_SKIP_MSCCHAR,"[.]");
+	
+	
 	public static final Token.Factory skipWildchar = new LazySkip(Regexes.ANY_CHAR,"[.]");
 	public static final Token.Factory skipFslash = new LazySkip(Regexes.FSLASH,"<..skip line>");
 	//public static final Token.Factory skipFslash = new LazyNewLine(Regexes.FSLASH);
 	
-	public static final Token.Factory[] headerLnStart = {headerName,space,newline,comment,domment,Statement.Domment.factory,Token.CodeBlockBrace.unscopeFactory,skiplineEnd,skiplineMid};
-	public static final Token.Factory[] headerSkipline = {comment,skipDomment,newline,skiplineEnd,skiplineMid,domment,space};
-	public static final Token.Factory[] closeParen = {newline,comment,domment,space,Statement.Domment.factory,Token.Paren.factory};
+	public static final Token.Factory[] headerLnStart = Factories.genericLookPriority(new Token.Factory[] {headerName},
+			//Statement.Domment.factory,//redundant
+			Token.CodeBlockBrace.unscopeFactory,
+			skiplineEnd,skiplineMid);
+	
+	public static final Token.Factory[] headerSkipline = {comment,commentBlock,skipDomment,dommentSkipBlock,newline,skiplineEnd,skiplineMid
+			//,domment//covered
+			,space};
+	
+	public static final Token.Factory[] closeParen = Factories.genericLook(Statement.Domment.factory,Token.Paren.factory);
 	public static final Token.Factory[] checkForParen = Factories.genericCheck(Token.Paren.factory);
 	public static final Token.Factory[] checkForParenOrIndexBracket = Factories.genericCheck(Token.Paren.factory,Token.IndexBrace.factory);
-	public static final Token.Factory[] checkForMinus = {newline,comment,domment,space,Statement.Domment.factory,UnaryOp.uminusfactory,Token.WildChar.dontPassFactory};
+	public static final Token.Factory[] checkForMinus =Factories.genericLook(UnaryOp.uminusfactory,Token.WildChar.dontPassFactory);
 	public static final Token.Factory[] checkForKeyword = Factories.genericCheck(Factories.basicNameKeyword);
 		//{newline,comment,domment,space,Statement.Domment.factory,Factories.basicNameKeyword,Token.WildChar.dontPassFactory};
 	public static final Token.Factory[] checkForMembName = Factories.genericCheck(MemberName.factory);
@@ -315,49 +351,71 @@ public final class Factories {
 	public static final Token.Factory[] nextNum = Factories.genericLook(Num.factory);//{newline,comment,domment,space,Num.factory};
 	public static final Token.Factory[] checkForNullableNumber = Factories.genericCheck(Num.factory,Num.nullfactory);//{newline,comment,domment,space,Num.factory,Num.nullfactory,Token.WildChar.dontPassFactory};	
 	//returns a nonnull WildChar after space; does this without moving past the wildchar
-	public static final Token.Factory[] skipSpace = {newline,comment,domment,space,Token.WildChar.dontPassFactory};
+	public static final Token.Factory[] skipSpace =Factories.genericLook(Token.WildChar.dontPassFactory); 
 	
-	static final Token.Factory[] nextIsLineEnd = {Factories.space,Factories.newline,Factories.comment,Factories.domment,
+	static final Token.Factory[] nextIsLineEnd =Factories.genericLook(
 			//Token.BasicName.factory,
 			Token.LineEnd.factory,Token.CodeBlockBrace.factory
-	};
+			);
 
-	public static final Token.Factory[] compileLnStart = {srcStartName,space,newline,comment, Statement.Domment.factory,
-			Token.LineEnd.factory,Token.CodeBlockBrace.unscopeFactory,Statement.CommandStatement.factory};
+	public static final Token.Factory[] compileLnStart = Factories.genericLookPriority(new Token.Factory[] {srcStartName},
+			Token.LineEnd.factory,Token.CodeBlockBrace.unscopeFactory,Statement.CommandStatement.factory
+			);
 	//should be complete for now
 	
-	public static final Token.Factory[] argsepOrParen = {newline,comment,domment,space,Token.ArgEnd.factory,Token.Paren.factory};
-	public static final Token.Factory[] argsepOrTypeBracket = {newline,comment,domment,space,Token.ArgEnd.factory,Token.TypeArgBracket.factory};
-
+	public static final Token.Factory[] argsepOrParen = Factories.genericLook(Token.ArgEnd.factory,Token.Paren.factory); 
+	public static final Token.Factory[] argsepOrTypeBracket = Factories.genericLook(Token.ArgEnd.factory,Token.TypeArgBracket.factory);
+	
+	
+	private static final int GNLSZ = 6;
 	public static Token.Factory[] genericLook(Token.Factory f){
-		return new Token.Factory[]{newline,comment,domment,space,f};
+		return new Token.Factory[]{newline,comment,commentBlock,domment,dommentBlock,space,f};
 		
 	}
 	public static Token.Factory[] genericLook(Token.Factory... f){
-		Token.Factory[] looks= new Token.Factory[4+f.length];
+		Token.Factory[] looks= new Token.Factory[GNLSZ+f.length];
 		looks[0]=newline;
 		looks[1]=space;
 		looks[2]=domment;
-		looks[3]=comment;
-		for(int i=0;i<f.length;i++)looks[4+i]=f[i];
+		looks[3]=dommentBlock;
+		looks[4]=comment;
+		looks[5]=commentBlock;
+		for(int i=0;i<f.length;i++)looks[GNLSZ+i]=f[i];
 		return looks;
 		
 	}
+	public static Token.Factory[] genericLookPriority(Token.Factory[] overrides,Token.Factory... f){
+		int ol = overrides.length;
+		Token.Factory[] looks= new Token.Factory[GNLSZ+f.length + overrides.length];
+		for(int i=0;i<ol;i++)looks[i]=overrides[i];
+		looks[0+ol]=newline;
+		looks[1+ol]=space;
+		looks[2+ol]=domment;
+		looks[3+ol]=dommentBlock;
+		looks[4+ol]=comment;
+		looks[5+ol]=commentBlock;
+		for(int i=0;i<f.length;i++)looks[GNLSZ+ol+i]=f[i];
+		return looks;
+	}
+	
+	
 	public static Token.Factory[] genericCheck(Token.Factory f){
-		return new Token.Factory[]{newline,comment,domment,space,f,Token.WildChar.dontPassFactory};
+		return new Token.Factory[]{newline,comment,commentBlock,domment,dommentBlock,space,f,Token.WildChar.dontPassFactory};
 	}
 
 	public static Token.Factory[] genericCheck(Token.Factory... f){
-		Token.Factory[] looks= new Token.Factory[5+f.length];
+		Token.Factory[] looks= new Token.Factory[GNLSZ+1+f.length];
 		looks[0]=newline;
 		looks[1]=space;
 		looks[2]=domment;
 		looks[3]=comment;
-		for(int i=0;i<f.length;i++)looks[4+i]=f[i];
-		looks[4+f.length]=Token.WildChar.dontPassFactory;
+		looks[4]=dommentBlock;
+		looks[5]=commentBlock;
+		for(int i=0;i<f.length;i++)looks[GNLSZ+i]=f[i];
+		looks[GNLSZ+f.length]=Token.WildChar.dontPassFactory;
 		return looks;
 	}
-	private static final Token.Factory[] carefullSkip = {newline,comment,domment,space
+	private static final Token.Factory[] carefullSkip = {newline,comment,commentBlock,domment,dommentBlock,space
 		,CommandToken.factorySafeSkip
 		,Token.StringToken.factory
 		,Selector.SelectorToken.factory

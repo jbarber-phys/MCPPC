@@ -35,7 +35,7 @@ import net.mcppc.compiler.tokens.Import;
 
  * add random() function (ACTUALLY wait until targeting is added)
  * add Entity option to filter
- * add thread entity death handling mechanism
+ * add thread entity death handling mechanism (for synchronized as(...) threads only)
  * add bossbar tools like locks
  * add mass particle functions for shapes: line, sphere, cylinder, ring; 
  * 			for sphere: see https://en.wikipedia.org/wiki/Geodesic_polyhedron
@@ -50,6 +50,7 @@ import net.mcppc.compiler.tokens.Import;
  * add true return / breaks (optional); use return # to give the depth to return back to, and if retype = int / bool / long: do a /return as well as $return
  * 
  * add true-classes: warning, may involve heavy reworking of the compiler
+ * add documentation and maybe put test code in the repo
  */
 
 /** if the eclipse bug happens that fails to load java:
@@ -204,7 +205,10 @@ public class CompileJob {
 	public boolean CHECK_INCLUDES_FOR_CIRCULAR_RUNS=false;
 	public final int MAX_NUM_CMDS=(int) Math.round(Math.pow(2, 15)-1);
 	private boolean isBuildingStdLib=false; public void stdLib() {this.isBuildingStdLib=true;}
-	private boolean debugDomment=false; public void debugMode() {this.debugDomment=true;} public boolean isDebug() {return this.debugDomment;}
+	
+	//this below is different from debug mode; debug mode is a runtime thing;
+	private boolean addLineNumberDomments=false; public void addLineInfo() {this.addLineNumberDomments=true;} 
+	public boolean hasLineInfo() {return this.addLineNumberDomments;}
 	
 	final Map<String,Namespace> namespaces=new HashMap<String,Namespace>();
 	

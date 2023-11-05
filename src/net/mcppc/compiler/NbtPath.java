@@ -79,11 +79,11 @@ public class NbtPath {
 		
 		@SuppressWarnings("unused") Token wc=c.nextNonNullMatch(Factories.skipSpace);
 		int braces=0;
-		int line=c.line;
+		int line=c.line();
 		int col=c.column();
 		while (true) {
 			matcher.region(c.cursor, matcher.regionEnd());
-			if(c.cursor>=matcher.regionEnd())throw new CompileError.UnexpectedFileEnd(c.line);
+			if(c.cursor>=matcher.regionEnd())throw new CompileError.UnexpectedFileEnd(c.line());
 			if (matcher.usePattern(Regexes.NBT_OPEN)
 			.lookingAt()) {
 				buff.append(matcher.group());
@@ -99,7 +99,7 @@ public class NbtPath {
 				continue;
 			}else if (matcher.usePattern(Regexes.NBT_CLOSE)
 			.lookingAt()) {
-				if(braces<=0)throw new CompileError("unexpected close brace '}' in nbttag on line %d;".formatted(c.line));
+				if(braces<=0)throw new CompileError("unexpected close brace '}' in nbttag on line %d;".formatted(c.line()));
 				buff.append(matcher.group());
 				braces--;
 				c.cursor=matcher.end();
@@ -119,7 +119,7 @@ public class NbtPath {
 				continue;
 			}else {
 				//end
-				if(braces!=0) throw new CompileError("unexpected brace count (extra opens %d) in nbttag on line %d;".formatted(braces,c.line));
+				if(braces!=0) throw new CompileError("unexpected brace count (extra opens %d) in nbttag on line %d;".formatted(braces,c.line()));
 				return new NbtPathToken(line,col,buff.toString());
 			}
 		}

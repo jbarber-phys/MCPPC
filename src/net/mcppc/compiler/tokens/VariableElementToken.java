@@ -84,7 +84,7 @@ public class VariableElementToken extends Token{
 				Token set = v.type.struct.convertIndexSet(v, this.indexeq, to);
 				if(set instanceof BFCallToken && ((BFCallToken) set).canConvert()) set = ((BFCallToken) set).convert(c, s, this.stack);
 				
-				return new Statement.CallStatement(line, col, (AbstractCallToken) set, c);
+				return new Statement.CallStatement(line, col,c.cursor, (AbstractCallToken) set, c);
 			}
 		} throw new CompileError ("cannot assign index of %s".formatted(this.var));
 		

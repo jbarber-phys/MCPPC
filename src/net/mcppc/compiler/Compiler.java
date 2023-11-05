@@ -33,8 +33,8 @@ public class Compiler{
 	private File hdr;
 	private File mcf;
 	public int cursor=0;
-	int lineStart=0;
-	int line=1;
+	private int lineStart=0;
+	private int line=1;
 	public int line() {return line;}
 	public int column() {return cursor-lineStart;}
 	/**
@@ -89,6 +89,10 @@ public class Compiler{
 	public void newLine(int index) {
 		this.lineStart=index;
 		this.line++;
+	}
+	public void newLines(int index,int newlines) {
+		this.lineStart=index;
+		this.line+=newlines;
 	}
 	public Compiler (CompileJob job,ResourceLocation res,CompileJob.Namespace n) {
 		this(job,res,n,false);
@@ -442,7 +446,7 @@ public class Compiler{
 			if(sm instanceof Statement.CodeBlockOpener && ((Statement.CodeBlockOpener) sm).didOpenCodeBlock()) {
 				
 				this.currentScope=((Statement.CodeBlockOpener) sm).getNewScope();
-				CodeBlock subblock=new CodeBlock(this.line,this.column(),this.currentScope,(CodeBlockOpener) sm);
+				CodeBlock subblock=new CodeBlock(this.line,this.column(),this.cursor,this.currentScope,(CodeBlockOpener) sm);
 				this.BuildCodeBlock(subblock);
 				this.dommentCollector=dc;
 				if(isInCodeBlock)block.addStatement(subblock);
@@ -453,10 +457,11 @@ public class Compiler{
 	}
 	public void compileLine(PrintStream p,Scope s,Statement stm) throws CompileError {
 
-		if(this.job.isDebug()) {
+		if(this.job.hasLineInfo()) {
 			int line = stm.line;
 			p.printf("### %s :: %d \n", this.resourcelocation,line);
 		}
+		this.setFlagCursor(stm.getMyCursor()); 
 		stm.compileMe(p, this, s);
 	}
 	/**
@@ -529,6 +534,12 @@ public class Compiler{
 	}
 	private Map<String,Set<String>> crosscalls = new HashMap<String,Set<String>>();
 	private Map<String,Boolean> funcsRecursive = new HashMap<String,Boolean>();
+	/**
+	 * adds data for which functions call each other; this is done to check for unallowed recursion; 
+	 * @param caller
+	 * @param called
+	 * @param s
+	 */
 	public void addCrossCall(Function caller, Function called,Scope s) {
 		if(!this.myInterface.hasTheFunc(caller))return;
 		if(!this.myInterface.hasTheFunc(called))return;
@@ -584,5 +595,15 @@ public class Compiler{
 		String s=(this.content.length()-10>this.cursor)?this.content.substring(this.cursor, this.cursor+10)
 				: this.content.substring(this.cursor)+"<EOF>";
 		return s;
+	}
+	
+	//used while writing mcf; could substutute for other var
+	//used to determine which compile flags to use
+	//ony updates per statement and is only accurate to within any statement
+	private void setFlagCursor(int cursor) {
+		this.cursor=cursor;
+	}
+	public int getFlagCursor() {
+		return this.cursor;
 	}
 }

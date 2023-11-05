@@ -39,33 +39,32 @@ import java.util.regex.Matcher;
  */
 public class Declaration extends Statement implements Statement.Headerable,DommentCollector,Statement.CodeBlockOpener{
 	
-	static final Token.Factory[] look = {Token.BasicName.factory,Factories.space,Factories.newline,Factories.comment,Factories.domment,Token.Paren.factory,
+	static final Token.Factory[] look = Factories.genericLookPriority(new Token.Factory[]{Token.BasicName.factory}, 
+			Token.Paren.factory,
 			Token.Assignlike.factoryMask,Token.Assignlike.factoryAssign,Token.Assignlike.factoryEstimate,
 			Token.ArgEnd.factory,Token.LineEnd.factory,Token.CodeBlockBrace.factory
-	};
+			);
 
-	static final Token.Factory[] lookMaskHolder = {Factories.space,Factories.newline,Factories.comment,Factories.domment,
-			Coordinates.CoordToken.factory,Selector.SelectorToken.factory,ResourceLocation.ResourceToken.factory,Token.WildChar.dontPassFactory
-	};
-	static final Token.Factory[] lookMaskOp = {Factories.space,Factories.newline,Factories.comment,Factories.domment,
-			Token.TagOf.factory,Token.ScoreOf.factory,Token.LineEnd.factory,Token.CodeBlockBrace.factory
-	};
-	static final Token.Factory[] lookMaskScore = {Factories.space,Factories.newline,Factories.comment,Factories.domment,
-			Token.BasicName.factory
-	};
-	static final Token.Factory[] lookMaskNbt = {Factories.space,Factories.newline,Factories.comment,Factories.domment,
-			NbtPath.NbtPathToken.factory
-	};
+	static final Token.Factory[] lookMaskHolder = Factories.genericLook(
+			Coordinates.CoordToken.factory,Selector.SelectorToken.factory,ResourceLocation.ResourceToken.factory,Token.WildChar.dontPassFactory);
+	static final Token.Factory[] lookMaskOp =  Factories.genericLook(
+			Token.TagOf.factory,Token.ScoreOf.factory,Token.LineEnd.factory,Token.CodeBlockBrace.factory);
+
+	static final Token.Factory[] lookMaskScore = Factories.genericLook(Token.BasicName.factory);
+	
+	static final Token.Factory[] lookMaskNbt = Factories.genericLook(NbtPath.NbtPathToken.factory);
 	
 	
-	static final Token.Factory[] lookCompiletime = {Token.BasicName.factory,Factories.space,Factories.newline,Factories.comment,Factories.domment,Token.Paren.factory,
+	static final Token.Factory[] lookCompiletime = Factories.genericLookPriority(new Token.Factory[]{Token.BasicName.factory}, 
+			Token.Paren.factory,
 			Token.Assignlike.factoryMask,Token.Assignlike.factoryAssign,Token.Assignlike.factoryEstimate,
 			Token.ArgEnd.factory,Token.LineEnd.factory,Token.CodeBlockBrace.factory,Num.factory
-	};
+			);
 	
-	static final Token.Factory[] checkForRef = {Factories.space,Factories.newline,Factories.comment,Factories.domment,
-			Token.RefArg.factory,Token.WildChar.dontPassFactory
-	};
+	static final Token.Factory[] checkForRef = Factories.genericLook(
+			Token.RefArg.factory,Token.WildChar.dontPassFactory 
+			);
+	
 	private boolean isArgRef(Compiler c, Matcher matcher, int line, int col) throws CompileError {
 		Token t=c.nextNonNullMatch(checkForRef);
 		if (t instanceof Token.RefArg) {
@@ -228,7 +227,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		return header(c, matcher, line, col, access, true);
 	}
 	public static Declaration header(Compiler c, Matcher matcher, int line, int col,Keyword access,boolean isReadingHeader) throws CompileError {
-		Declaration d = new Declaration(line,col,access);
+		Declaration d = new Declaration(line,col,c.cursor,access);
 		c.dommentCollector=d;
 		//typename
 		c.cursor=matcher.end();
@@ -417,7 +416,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			c.nextNonNullMatch(Factories.headerSkipline);
 			return null;//ignore if in header file
 		}
-		Declaration d = new Declaration(line,col,access);
+		Declaration d = new Declaration(line,col,c.cursor,access);
 		c.dommentCollector=DommentCollector.Dump.INSTANCE;
 		//typename
 		c.cursor=matcher.end();
@@ -632,8 +631,8 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	final ArrayList<Domment> domments=new ArrayList<Domment>(); @Override public void addDomment(Domment dom) {
 		if(this.willTakeDomments)domments.add(dom);
 	}
-	public Declaration(int line, int col,Keyword type) {
-		super(line, col);
+	public Declaration(int line, int col,int cursor,Keyword type) {
+		super(line, col, cursor);
 		this.access=type;
 	}
 
@@ -642,7 +641,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		//do nothing
 		if(this.objType==DeclareObjType.VAR && this.assignment!=null) {
 			for(Domment d:this.domments) f.println(d.inCMD());//only if it is assigned on define
-			Assignment t=new Assignment(this.line,this.col,this.variable,this.assignment);
+			Assignment t=new Assignment(this.line,this.col,this.myCursor,this.variable,this.assignment);
 			t.compileMe(f, c, s);
 		}
 		//estimate does nothing
