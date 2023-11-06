@@ -176,6 +176,11 @@ public class BiOperator extends Token{
 			stack.estmiate(home1, stack.getEstimate(home1).doubleValue()+stack.getEstimate(home2).doubleValue());
 		else stack.estmiate(home1, null);
 	}
+	private Boolean overrideLongMult = null;
+	public BiOperator forceLongMult(boolean override) {
+		this.overrideLongMult=override;
+		return this;
+	}
 	private void mult(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2) throws CompileError {
 		VarType type1=stack.getVarType(home1);
 		VarType type2=stack.getVarType(home2);
@@ -189,6 +194,7 @@ public class BiOperator extends Token{
 				||!hasafloat);
 		if(!s.<Boolean>getOption(COption.DO_LONG_MULT, c.job, c.getFlagCursor()))//.isProhibitLongMult()
 			doShortMult=true;
+		if(this.overrideLongMult!=null ) doShortMult=!this.overrideLongMult;
 		if( doShortMult) {
 			this.shortmult(p, c, s, stack, home1, home2);
 		}else {

@@ -177,6 +177,7 @@ public final class Factories {
 					//a normal function
 					Function.FuncCallToken ft=Function.FuncCallToken.make(c, c.currentScope, nm.line, nm.col, matcher, nm, new RStack(c.resourcelocation,c.currentScope));
 					ft.identify(c,c.currentScope);
+					ft.linkMe(c, c.currentScope);
 					Token end=c.nextNonNullMatch(Factories.nextIsLineEnd);
 					if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(end, ";","code block after builtin func not yet supported");
 					return new Statement.CallStatement(line,col,c.cursor,ft,c);

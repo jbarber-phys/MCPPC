@@ -1,5 +1,7 @@
 //standard math library
-
+/** a square root function that uses bitshift plus newtons method;
+* will use somewhere between 100 and 1000 commands;
+*/
 public<num n= 1 .. 6 > double<n> sqrt(double<n> x) {
 	//implimentation uses newtons method
 	//note: do not use if it can be avoided; uses ~100 to 1000 cmds
@@ -31,4 +33,104 @@ public<num n= 1 .. 6 > double<n> sqrt(double<n> x) {
 	return = mult * r;
 }
 
+public const coords forward = ^ ^ ^1 ;
+private const coords resetpos = ^ ^ ^ ;
+private const coords zeropos = 0.0 0.0 0.0 ;
+/**
+* sine function that uses execute as statments
+*/
+public<num n= 1 .. 6 > double<n> sin(double<n> x) {
+	private Entity e;
+	e.summon(zeropos);
+	execute asat(e) rotated (@s) {
+		private float<n> asention -> @s.Rotation[0];
+		private float<n> declination -> @s.Rotation[1];
+		private double<n> sine -> @s.Pos[0];
+		declination = 0;
+		asention = -x;
+		execute rotated(@s) {
+			tp(@s[],forward);
+			return = sine;
+		}
+	}
+	e.kill();
+}
+/**
+* cosine function that uses execute as statments
+*/
+public<num n= 1 .. 6 > double<n> cos(double<n> x) {
+	private Entity e;
+	e.summon(zeropos);
+	execute asat(e) rotated (@s) {
+		private float<n> asention -> @s.Rotation[0];
+		private float<n> declination -> @s.Rotation[1];
+		private double<n> cosine -> @s.Pos[2];
+		declination = 0;
+		asention = x;
+		execute rotated(@s) {
+			tp(@s[],forward);
+			return = cosine;
+		}
+	}
+	e.kill();
+}
+/**
+* atan2 function that uses execute as statments
+*/
+public<num n= 1 .. 6 > float<n> atan2(double<n> x,double<n> y) {
+	private Entity e;
+	private Entity e2;
+	e.summon(zeropos);
+	e2.summon(zeropos);
+	execute asat(e2) {
+		private double<n> rz -> @s.Pos[2] = x;
+		private double<n> rx -> @s.Pos[0] =-y;
+	}
+	execute asat(e) facing (e2) {
+		tp(@s,resetpos,~ ~);
+		private float<n> asention -> @s.Rotation[0];
+		execute rotated(@s) {return = asention;}
+		kill(@s);
+	}
+	//e.kill(); //done above
+	e2.kill();
+}
 
+
+private int rand = 5;
+private const num MOD = 134456;
+private const num MULT = 8121;
+private const num SHIFT = 28411; // random0 (https://en.wikipedia.org/wiki/Linear_congruential_generator#Period_length)
+/**
+* an implementation of a linear congruential generator with the parameters of random0
+* (see https://en.wikipedia.org/wiki/Linear_congruential_generator#Period_length)
+*/
+public int random0(int max) {
+    stopLongMult();//TODO this one is broken
+    rand = (rand*MULT + SHIFT) % MOD;
+    return = rand * max / MOD; 
+}
+/**
+* an implementation of a linear congruential generator with the parameters of random0
+* (see https://en.wikipedia.org/wiki/Linear_congruential_generator#Period_length)
+*/
+public <num n= 1 .. 6 > double<n> random0d(double<n> max) {
+    stopLongMult();
+    rand = (rand*MULT + SHIFT) % MOD;
+    return = rand * max / MOD;
+}
+/**
+* set the seed of the random0 generator
+*/
+public void seed0(int seed) {
+    stopLongMult();
+    rand = seed % MOD;
+}
+/**
+* randomizes the random0 generator
+*/
+public void reset0() {
+    stopLongMult();
+	private int uuidi -> @e[limit=1,sort=random].UUID[3];
+    rand = (rand + uuidi) % MOD;
+}

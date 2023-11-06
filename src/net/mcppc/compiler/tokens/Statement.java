@@ -326,6 +326,7 @@ public abstract class Statement extends Token implements TreePrintable{
 		public CallStatement(int line, int col,int cursor,AbstractCallToken f,Compiler c) {
 			super(line, col, cursor);
 			this.token=f;
+			//TODO link my function (by force if builtin)
 		}
 		@Override
 		public String asString() {

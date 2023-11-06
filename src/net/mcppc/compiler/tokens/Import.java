@@ -13,7 +13,7 @@ import net.mcppc.compiler.tokens.Token.Assignlike.Kind;
 /**
  * imports stuff from another file; optionally specify an alias for it; will not run function unless specified
  * syntax:
- * import [run] [<alias> ->] <resourcelocation>;
+ * import [if] [run] [<alias> ->] <resourcelocation>;
  * 
  * default alias is the file-name part of path:  name -> ns:folder/dir/name
  * @author RadiumE13

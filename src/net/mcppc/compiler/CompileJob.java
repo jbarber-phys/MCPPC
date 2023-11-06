@@ -14,10 +14,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -33,7 +35,7 @@ import net.mcppc.compiler.tokens.Import;
 
 /*list of language edition TODO ::
 
- * add random() function (ACTUALLY wait until targeting is added)
+ * add log, exp, pow functions in stdlib
  * add Entity option to filter
  * add thread entity death handling mechanism (for synchronized as(...) threads only)
  * add bossbar tools like locks
@@ -159,6 +161,7 @@ public class CompileJob {
 		final Map<String, Variable> objectives = new HashMap<String,Variable>();
 
 		final List<McThread> threads = new ArrayList<McThread>();
+		final Set<BuiltinFunction> bfLoads = new HashSet<BuiltinFunction>();
 		public Namespace(File data) {
 			this(data.getName(),false);
 			//this.dataDir=data;
@@ -694,6 +697,9 @@ public class CompileJob {
 		}
 		for(Variable v:ns.objectives.values()) {
 			v.makeObjective(p);
+		}
+		for(BuiltinFunction fc:ns.bfLoads) {
+			fc.onLoad(p, this, ns);
 		}
 		
 	}

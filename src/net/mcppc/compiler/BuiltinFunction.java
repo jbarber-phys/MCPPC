@@ -9,6 +9,7 @@ import java.util.regex.Matcher;
 
 import net.mcppc.compiler.BuiltinFunction.Args;
 import net.mcppc.compiler.BuiltinFunction.BFCallToken;
+import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Function.FuncCallToken;
@@ -125,6 +126,9 @@ public abstract class BuiltinFunction {
 		@Override
 		public void call(PrintStream p, Compiler c, Scope s,RStack stack) throws CompileError {
 			this.f.call(p, c, s, this,stack);
+			if(this.f.hasLoad()) {
+				c.namespace.bfLoads.add(this.f);
+			}
 		}
 		@Override
 		public void getRet(PrintStream p, Compiler c, Scope s,RStack stack,int stackstart) throws CompileError {
@@ -388,6 +392,11 @@ public abstract class BuiltinFunction {
 		//for debuging
 		StringBuffer s=new StringBuffer();while(s.length()<tabs)s.append('\t');
 		p.printf("%s... %s(...);\n",s.toString(), this.name);
+	}
+	
+	public boolean hasLoad() {return false;}
+	public void onLoad(PrintStream p,CompileJob job,Namespace ns) throws CompileError{
+		//do nothing
 	}
 	public static class SetScopeFlag extends BuiltinFunction {
 		/*@FunctionalInterface

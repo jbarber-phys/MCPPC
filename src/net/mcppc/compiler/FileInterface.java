@@ -339,7 +339,7 @@ public class FileInterface {
 		if(isSelf)for(Const cv:this.template)if(cv.name.equals(name))return cv;
 		if(this.constsPublic.containsKey(name)) return this.constsPublic.get(name);
 		if(isSelf && this.constsPrivate.containsKey(name)) return this.constsPrivate.get(name);
-		//TODO if in thread, attempt to find THIS keyword
+		
 		if(isSelf &&  name.equals(Keyword.THIS.name) && s.hasThread() && s.getThread().hasSelf()) {
 			Const thiss = s.getThread().getThis(s);
 			return thiss;
@@ -383,14 +383,17 @@ public class FileInterface {
 		this.linkFunction(t, c, s, false);
 	}
 	public  void linkFunction(Function.FuncCallToken t,Compiler c, Scope s,boolean forceStrict) throws CompileError {
-		if(!t.func.hasTemplate())return;
+		//System.err.printf("deciding if to link %s:\n", t.func.name);
+		//if(!t.func.hasTemplate())return;//this line should not have been here;
 		//add link request
 		List<String> names = t.names;
 		String name=names.get(0);
 		boolean isSelf=this.isSelf(s);
+		//System.err.printf("\t isSelf = %s\n",isSelf);
 		boolean isLibStrict=this.libs.containsKey(name) && this.importsStrict.get(name) && isSelf;
 		isLibStrict= isLibStrict || forceStrict;
 		if(isLibStrict) {
+			//System.err.printf("\tdecided to link;\n", t.func.name);
 			ResourceLocation res=t.getMyMCF();
 			c.job.externalImportsStrict.add(res);
 		}
