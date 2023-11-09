@@ -56,6 +56,15 @@ public class Bool extends Const.ConstLiteralToken implements INbtValueProvider{
 	public VarType getType() {
 		return this.type;
 	}
+	@Override
+	public boolean canCast(VarType type) {
+		return type.isLogical();
+	}
+	@Override
+	public ConstExprToken constCast(VarType type) throws CompileError {
+		if(!type.isLogical())throw new CompileError.UnsupportedCast( this.constType(),type);
+		return this;
+	}
 	public static Bool and(ConstExprToken a,ConstExprToken b) { return new Bool(a.line,a.col,((Bool) a).val && ((Bool) b).val); }
 	public static Bool or(ConstExprToken a,ConstExprToken b) {  return new Bool(a.line,a.col,((Bool) a).val || ((Bool) b).val); }
 	public static Bool xor(ConstExprToken a,ConstExprToken b) { return new Bool(a.line,a.col,((Bool) a).val  ^ ((Bool) b).val); }

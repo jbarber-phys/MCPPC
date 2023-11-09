@@ -205,7 +205,7 @@ public class Const {
 		return cvt;
 	}
 	public static abstract class ConstExprToken extends Token{
-		public abstract ConstType constType() ;
+		public abstract ConstType constType();
 		public boolean refsTemplate() {return false;}
 		public abstract String textInHdr();
 		public abstract String resSuffix() ;//used in streams: cannot throw
@@ -228,6 +228,9 @@ public class Const {
 		 * @throws CompileError 
 		 */
 		public abstract String textInMcf() throws CompileError;
+
+		public abstract boolean canCast(VarType type);
+		public abstract ConstExprToken constCast(VarType type) throws CompileError;
 		
 	}
 	/**
@@ -315,6 +318,12 @@ public class Const {
 		}
 		@Override public String textInMcf() throws CompileError {
 			return this.constv.getValue().textInMcf();
+		}
+		@Override public boolean canCast(VarType type) {
+			return this.constv.value.canCast(type);
+		}
+		@Override public ConstExprToken constCast(VarType type) throws CompileError{
+			return this.constv.value.constCast(type);
 		}
 	}
 	public enum ConstType{

@@ -9,6 +9,7 @@ import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Const;
 import net.mcppc.compiler.StructTypeParams;
 import net.mcppc.compiler.VarType;
+import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Scope;
 import net.mcppc.compiler.errors.CompileError;
@@ -185,7 +186,14 @@ public class Type extends Const.ConstLiteralToken {
 		//must be identified to work
 		return this.type.getNBTTagType();
 	}
-
+	@Override
+	public boolean canCast(VarType type) {
+		return false;
+	}
+	@Override
+	public ConstExprToken constCast(VarType type) throws CompileError {
+		throw new CompileError.UnsupportedCast( this.constType(),type);
+	}
 	@Override
 	public int valueHash() {
 		return this.type.asString().hashCode();

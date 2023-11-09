@@ -3,6 +3,7 @@ package net.mcppc.compiler;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Num;
@@ -68,6 +69,14 @@ public class Coordinates {
 		@Override
 		public String resSuffix() {
 			return "coords_%s".formatted(this.resCase());
+		}
+
+		@Override public boolean canCast(VarType type) {
+			return false;
+		}
+		@Override
+		public ConstExprToken constCast(VarType type) throws CompileError {
+			throw new CompileError.UnsupportedCast( this.constType(),type);
 		}
 		
 	}

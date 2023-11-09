@@ -97,6 +97,9 @@ public class CompileError extends Exception {
 		public UnsupportedCast(VarType from,  ConstType to) {
 			super("Unsupported cast from const %s to %s;".formatted(from.asString(),to));
 		}
+		public UnsupportedCast(ConstType from, VarType  to) {
+			super("Unsupported cast from const %s to %s;".formatted(from,to.asString()));
+		}
 		public UnsupportedCast(ConstType ctype, ConstType... types) {
 			super("Cannot cast a const %s to one of %s;".formatted(ctype.name,
 					List.of(types).stream().map(f->f.name)));

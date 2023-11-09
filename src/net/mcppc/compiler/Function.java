@@ -94,7 +94,7 @@ public class Function {
 			//c.myInterface.linkFunction(this,c,s);
 			//TODO recursion warnings
 			if(this.func.args.size()!=this.args.size())throw new CompileError("wrong number of args, %d,  in function %s which takes %d args"
-					.formatted(this.args.size(),this.func.args.size(),this.func.name));
+					.formatted(this.args.size(),this.func.name,this.func.args.size()));
 			if(s.isInFunctionDefine()) c.addCrossCall(s.function, this.func,s);
 			this.isIdentified=true;
 			return 0;

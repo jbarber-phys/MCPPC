@@ -13,6 +13,7 @@ import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Function.FuncCallToken;
+import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.struct.*;
@@ -169,6 +170,11 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	private boolean claimedSubEnd = false;
 	
 	private Number getNegativeNumberLiteral() {
+		if(this.elements.size()==1) {
+			Token n =this.elements.get(0);
+			if(n instanceof Num)
+			return ((Num)n).value;//new with consify
+		}
 		if(this.elements.size()!=2)return null;
 		if(!(this.elements.get(0) instanceof UnaryOp))return null;
 		UnaryOp op=(UnaryOp) this.elements.get(0);
@@ -699,6 +705,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		}else if (in instanceof CommandToken) {
 			regnum=this.storeCMD(p, c, s, typeWanted, in);
 		}else if (in instanceof Const.ConstExprToken) {
+			this.printTree(System.err);
 			throw new CompileError.CannotStack((Const.ConstExprToken)in);
 		}
 		else {
@@ -717,7 +724,10 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		return regnum;
 	}
 	private ConstExprToken attemptConstConvert(Token in) throws CompileError {
-		if(in instanceof Equation && ((Equation) in).isConstable()) in = ((Equation) in).getConst();
+		if(in instanceof Equation && ((Equation) in).isConstable()) {
+			Equation eq = (Equation) in;
+			return eq.getConst();
+		}
 		if(in instanceof MemberName ) {
 			Variable v = ((MemberName) in).var;
 			VarType t = v.type;
@@ -726,16 +736,40 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		if(in instanceof ConstExprToken) return (ConstExprToken) in;
 		return null;
 	}
+	
 	/**
 	 * determines if it is possible to collapse this Equation into a const expression, and does so if true
 	 * @return weather this equation is now a const
 	 * @throws CompileError
 	 */
 	public boolean constify (Compiler c,Scope s) throws CompileError {
-		if(this.isConstable()) return true;
-		if(this.isCast) return false;
-		for (Token t:this.elements) if(t instanceof Equation){
-			((Equation) t).constify(c, s);
+		if(this.isConstable()) {
+			this.doesAnyOps=false;
+			return true;
+		}
+		if(this.elements.get(0) instanceof Equation &&  ((Equation)this.elements.get(0)).isCast) {
+			Type cast=(Type) ((Equation)this.elements.get(0)).elements.get(0);
+			//this.printTree(System.err);
+			Token in=this.elements.get(1);
+			if(in instanceof Equation) {
+				if(((Equation) in).constify(c,s))
+					in=((Equation) in).getConst();
+			}
+			if(in instanceof ConstExprToken && ((ConstExprToken) in).canCast(cast.type)) {
+				//System.err.printf("const casting to %s\n", cast.type.asString());
+				this.retype = cast.type;
+				this.elements.clear();
+				this.elements.add(((ConstExprToken) in).constCast(cast.type));
+				return true;
+			}
+			//TODO examine comparisons and ops; todo add casts to ops in ln
+			return false;
+		}
+		for(int i=0;i<this.elements.size();i++) {
+			Token t = this.elements.get(i);
+			if(t instanceof Equation && ((Equation) t).constify(c, s))
+				this.elements.set(i, ((Equation) t).getConst());
+			//TODO test old stuff; make sure it didn't break
 		}
 		if(this.elements.get(0) instanceof UnaryOp) {
 			UnaryOp op=(UnaryOp) this.elements.get(0);
@@ -750,12 +784,12 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 				//do nothing
 			}
 		}
-		else if(this.elements.get(0) instanceof Equation &&  ((Equation)this.elements.get(0)).isCast) {
-			Type cast=(Type) ((Equation)this.elements.get(0)).elements.get(0);
-			Token in=this.elements.get(1);
-			//TODO see if a const cast is possible
-		}else if (this.elements.size()==1){
+		else if (this.elements.size()==1){
 			Token in=this.elements.get(0);
+			if(in instanceof ConstExprToken) {
+				this.doesAnyOps = false;
+				return true;
+			}
 			if(in instanceof Equation && ((Equation) in).isConstable()) {
 				in =  ((Equation) in).elements.get(0);//get element directly to not break ref
 				this.elements.set(0, in);
@@ -776,6 +810,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 				BiOperator op=(BiOperator) opt;
 				Token nextval=this.elements.get(i+1);
 				if(op.op==BiOperator.OpType.EXP) {
+					
 					Number e;
 					if(nextval instanceof Equation) {
 						e=((Equation)nextval).getNegativeNumberLiteral();
@@ -786,7 +821,9 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 					exponents.add(e);
 					this.elements.remove(1);//op
 					this.elements.remove(1);//right
+					//set doesnoOps later
 				}else {
+					if(nextval instanceof Equation);
 					ConstExprToken right = this.attemptConstConvert(nextval);
 					if(right == null) return false;
 					if(!Const.hasBiOp(left.constType(), op.op, right.constType())) return false;
@@ -795,6 +832,10 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 					this.elements.set(0, left);
 					this.elements.remove(1);//op
 					this.elements.remove(1);//right
+					if(this.elements.size()==1) {
+						this.doesAnyOps = false;
+						return true;
+					}
 				}
 				//System.err.printf("i=%d, len=%d", i,this.elements.size());
 				
@@ -877,6 +918,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 					Token opt=this.elements.get(i);if(!(opt instanceof BiOperator))throw new CompileError.UnexpectedToken(opt, "bi-operator");
 					BiOperator op=(BiOperator) opt;
 					Token nextval=this.elements.get(i+1);
+					boolean isLast = this.elements.size() == i+2;
 					if(op.op==BiOperator.OpType.EXP) {
 						Number e;
 						if(nextval instanceof Equation) {
@@ -913,7 +955,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 							//already done
 						}
 						else if((newnum==null && prevNum==null) | (!op.canLiteralMult())) {
-							//TODO wrong token type to register
+							
 							int nextreg=this.putTokenToRegister(p, c, s, typeWanted, nextval);
 							//stack.debugOut(System.err);
 							op.perform(p, c, s, stack, this.homeReg, nextreg);
@@ -921,6 +963,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 							stack.cap(this.homeReg);//remove unused register IF it was created
 						}else if (prevNum!=null && newnum==null ) {
 							//first term is number
+							//TODO intercept this and avoid 
 							//TODO move some of this into op functions
 							int nextreg=this.putTokenToRegister(p, c, s, typeWanted, nextval);
 							if(op.op==OpType.MULT)op.literalMultOrDiv(p, c, s, stack, nextreg,this.homeReg, (Num)first);

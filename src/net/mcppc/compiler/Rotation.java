@@ -3,6 +3,7 @@ package net.mcppc.compiler;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Coordinates.CoordToken;
 import net.mcppc.compiler.errors.CompileError;
@@ -53,6 +54,14 @@ public class Rotation {
 		@Override
 		public String textInMcf() {
 			return this.rot.inCMD();
+		}
+		@Override
+		public boolean canCast(VarType type) {
+			return false;
+		}
+		@Override
+		public ConstExprToken constCast(VarType type) throws CompileError {
+			throw new CompileError.UnsupportedCast( this.constType(),type);
 		}
 		
 	}

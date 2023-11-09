@@ -32,7 +32,103 @@ public<num n= 1 .. 6 > double<n> sqrt(double<n> x) {
 	}
 	return = mult * r;
 }
+public const num E = 2.7183;
+public const num PI = 3.1416;
+public const num INFTY_D = 1.7976931348623157E308;
+public const num INFTY_F = 3.4028235E38;
 
+
+private const num SQRT_E = 1.6487;
+/**
+* exponential function; 
+* uses taylor series and const-multiplication to support large output values
+*/
+public<num n= 1 .. 6 > double<n> exp(double<n> x) {
+	if(x>=32 ) {return = INFTY_D;}
+	else if( x<-32) {return = 0.;}
+	else {
+	stopLongMult();//nothing here will need this
+	private int pow = 0;
+	private bool neg = false;
+	if( x<0) {x = x+32;neg=true;}
+	if(x >= 16) {x = x-16;pow = pow+16;}
+	if(x >= 8) {x = x-8;pow = pow+8;}
+	if(x >= 4) {x = x-4;pow = pow+4;}
+	if(x >= 2) {x = x-2;pow = pow+2;}
+	if(x >= 1) {x = x-1;pow = pow+1;}
+	
+	private double<n> expp = 1.;
+	private double<n> ifc = x;
+	private int i=1;
+	// e^x = sum_i=0 ^ infty (x^i/i!)
+	while(ifc>(double<n>)0){
+		//x< 1 and ifc < E
+		expp = expp + ifc;
+		ifc = ifc * x / i;
+		i = i+1;
+	}
+	if(neg){
+		pow = pow-32;
+		if(pow<=-16){expp = expp / E^16;pow=pow+16;}
+		if(pow<=-8){expp = expp / E^8;pow=pow+8;}
+		if(pow<=-4){expp = expp / E^4;pow=pow+4;}
+		if(pow<=-2){expp = expp / E^2;pow=pow+2;}
+		if(pow<=-1){expp = expp / E^1;pow=pow+1;}
+	}else {
+		if(pow>=16){expp = expp * E^16;pow=pow-16;}
+		if(pow>=8){expp = expp * E^8;pow=pow-8;}
+		if(pow>=4){expp = expp * E^4;pow=pow-4;}
+		if(pow>=2){expp = expp * E^2;pow=pow-2;}
+		if(pow>=1){expp = expp * E^1;pow=pow-1;}
+	}
+	
+	return = expp;
+}}
+/**
+* natural logarithm function; 
+* uses taylor series and const-multiplication to support large output values
+*/
+public<num n= 1 .. 6 > double<n> ln(double<n> x) {
+	if((double<-6>)x >= (double<-6>)E^32){
+		return = 32;
+	} else if(x < (double<n>)10^-6) {
+		return=-13.81855;
+	} else {
+	private double<n> pow = 0;
+	private bool high = (x >= 1.);//this wont work
+	stopLongMult();
+	//alter precision for comparisons
+	// e^N * 10 ^ p ~~ 2 ^ 24
+	if(high){
+		if((double<0>)x >= (double<0>)E^16) {x = (double<0>)x/E^16;pow = pow+16;}
+		if((double<3>)x >= (double<3>)E^8) {x = (double<3>)x/E^8;pow = pow+8;}
+		if((double<4>)x >= (double<4>)E^4) {x = (double<4>)x/E^4;pow = pow+4;}
+		if((double<6>)x >= (double<6>)E^2) {x = (double<6>)x/E^2;pow = pow+2;}
+		if((double<6>)x >= (double<6>)E^1) {x = (double<6>)x/E^1;pow = pow+1;}
+	} else {
+		if(x <= (double<n>)E^-8) {x = x*E^8;pow = pow-8;}
+		if((double<9>)x <= (double<9>)E^-4) {x = (double<9>)x*E^4;pow = pow-4;}
+		if((double<8>)x <= (double<8>)E^-2) {x = (double<8>)x*E^2;pow = pow-2;}
+		if((double<7>)x <= (double<7>)E^-1) {x = (double<7>)x*E^1;pow = pow-1;}
+	}
+	if((double<6>)x >= (double<6>)SQRT_E) {x = (double<6>)x/SQRT_E;pow = pow+0.5;}
+	if((double<6>)x <= (double<6>)SQRT_E^-1) {x = (double<6>)x*SQRT_E;pow = pow-0.5;}
+	//is now within e^-0.5 to e^0.5
+	private double<n> a = 1.000-x;
+	if(a>0.7) {a=0.7;}if(a<-0.7) {a=-0.7;}
+	private double<n> ai=a;
+	private int i=1;
+	//TODO loop below is imprecise
+	 // it gave ln2  = 0.713; all the rest were better
+	while(ai/i!=(double<n>)0){
+		pow = pow - ai/i;
+		ai = ai * a;
+		i = i+1;
+	}
+	return = pow;
+}}
+
+// ===== trig functions =======
 public const coords forward = ^ ^ ^1 ;
 private const coords resetpos = ^ ^ ^ ;
 private const coords zeropos = 0.0 0.0 0.0 ;
@@ -95,8 +191,64 @@ public<num n= 1 .. 6 > float<n> atan2(double<n> x,double<n> y) {
 	//e.kill(); //done above
 	e2.kill();
 }
+/**
+* hypot function that uses execute as statments
+*/
+public<num n= 1 .. 6 > double<n> hypot(double<n> x,double<n> y) {
+	private Entity e;
+	private Entity e2;
+	e.summon(zeropos);
+	e2.summon(zeropos);
+	execute asat(e2) {
+		private double<n> rz -> @s.Pos[2] = x;
+		private double<n> rx -> @s.Pos[0] =y;
+	}
+	execute asat(e) facing (e2) {
+		tp(@s,forward);
+		private Vec3d pos -> @s.Pos;
+		private double<n> rx2 -> @s.Pos[0];
+		private double<n> rz2 -> @s.Pos[2];
+		execute positioned(@s) {
+			private double<n> ax=x;if(x<0) {ax=-x;}
+			private double<n> ay=y;if(y<0) {ay=-y;}
+			if(ax>=ay) {return = x/rz2;}
+			else {return = y/rx2;}
+		}
+		kill(@s);
+	}
+	//e.kill(); //done above
+	e2.kill();
+}
+/**
+* hypot function taking 3 arguments that uses execute as statments
+*/
+public<num n= 1 .. 6 > double<n> hypot3(double<n> x,double<n> y,double<n> z) {
+	private Entity e;
+	private Entity e2;
+	e.summon(zeropos);
+	e2.summon(zeropos);
+	execute asat(e2) {
+		private Vec3d<n> r -> @s.Pos = Vec3d<n>(x,y,z);
+	}
+	execute asat(e) facing (e2) {
+		tp(@s,forward);
+		private Vec3d<n> pos -> @s.Pos;
+		execute positioned(@s) {
+			private double<n> ax=x;if(x<0) {ax=-x;}
+			private double<n> ay=y;if(y<0) {ay=-y;}
+			private double<n> az=z;if(z<0) {az=-z;}
+			if(ax>=ay & ax >=az) {return = x/pos.x;}
+			else if(ay>=az) {return = y/pos.y;}
+			else {return = z/pos.z;}
+		}
+		kill(@s);
+	}
+	//e.kill(); //done above
+	e2.kill();
+}
 
 
+// ===== random0 =======
 private int rand = 5;
 private const num MOD = 134456;
 private const num MULT = 8121;

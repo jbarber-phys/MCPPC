@@ -36,8 +36,8 @@ import net.mcppc.compiler.tokens.Import;
 /*list of language edition TODO ::
 
  * add log, exp, pow functions in stdlib
- * add Entity option to filter
- * add thread entity death handling mechanism (for synchronized as(...) threads only)
+ * add Entity option to be player only
+ * add thread entity death handling mechanism (for synchronized as(...) threads only); have it follow an end statement
  * add bossbar tools like locks
  * add mass particle functions for shapes: line, sphere, cylinder, ring; 
  * 			for sphere: see https://en.wikipedia.org/wiki/Geodesic_polyhedron

@@ -129,6 +129,14 @@ public class Selector {
 		public String textInMcf() {
 			return this.selector().toCMD();
 		}
+		@Override
+		public boolean canCast(VarType type) {
+			return false;
+		}
+		@Override
+		public ConstExprToken constCast(VarType type) throws CompileError {
+			throw new CompileError.UnsupportedCast( this.constType(),type);
+		}
 	}
 	String player;
 	//ready to be added to cmd
@@ -432,6 +440,12 @@ public class Selector {
 		if(this.isSelf())return this;
 		Selector l = new Selector(this);
 		l.argmap.put("limit", Integer.toString(i));
+		return l;
+	}
+	public Selector unlimited() {
+		if(this.isSelf())return this;
+		Selector l = new Selector(this);
+		l.argmap.remove("limit");
 		return l;
 	}
 	public void kill(PrintStream p) {

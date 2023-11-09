@@ -3,6 +3,7 @@ package net.mcppc.compiler;
 import java.io.PrintStream;
 import java.util.regex.Matcher;
 
+import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;

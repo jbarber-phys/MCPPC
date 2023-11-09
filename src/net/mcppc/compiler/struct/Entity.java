@@ -159,7 +159,8 @@ public class Entity extends Struct {
 		this.add(p, self, t.selector());
 	}
 	private void clear(PrintStream p,Variable self) throws CompileError {
-		p.printf("tag @e[] remove %s\n", this.getScoreTag(self));
+		
+		p.printf("tag %s remove %s\n",this.getSelectorFor(self).unlimited().toCMD(), this.getScoreTag(self));
 	}
 	private void add(PrintStream p,Variable self,Selector entity) throws CompileError {
 		p.printf("tag %s add %s\n",entity.toCMD(), this.getScoreTag(self));

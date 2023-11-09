@@ -2,6 +2,7 @@ package net.mcppc.compiler;
 
 import java.util.regex.Matcher;
 
+import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Factories;
@@ -60,6 +61,14 @@ public class NbtPath {
 		@Override
 		public int valueHash() {
 			return this.nbt.hashCode();
+		}
+		@Override
+		public boolean canCast(VarType type) {
+			return false;
+		}
+		@Override
+		public ConstExprToken constCast(VarType type) throws CompileError {
+			throw new CompileError.UnsupportedCast( this.constType(),type);
 		}
 	}
 	String path;

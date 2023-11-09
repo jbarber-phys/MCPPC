@@ -7,6 +7,7 @@ import net.mcppc.compiler.CompileJob;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Const;
 import net.mcppc.compiler.VarType;
+import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.INbtValueProvider;
 import net.mcppc.compiler.VarType.Builtin;
@@ -351,6 +352,15 @@ public abstract class Token {
 		@Override
 		public VarType getType() {
 			return this.type;
+		}
+		@Override
+		public boolean canCast(VarType type) {
+			return type.isStruct() && type.struct == Str.string;
+		}
+		@Override
+		public ConstExprToken constCast(VarType type) throws CompileError {
+			if(!type.isLogical())throw new CompileError.UnsupportedCast( this.constType(),type);
+			return this;
 		}
 	}
 	public static List<CharSequence> asStrings(List<Token> ts) {

@@ -255,7 +255,15 @@ public class Num extends Const.ConstLiteralToken implements INbtValueProvider{
 	public VarType getType() {
 		return this.type;
 	}
-
+	@Override
+	public boolean canCast(VarType type) {
+		return type.isNumeric();
+	}
+	@Override
+	public ConstExprToken constCast(VarType type) throws CompileError {
+		if(!this.canCast(type))throw new CompileError.UnsupportedCast( this.constType(),type);
+		return new Num(this.line,this.col,this.value,type);
+	}
 	public static final Number getNumber(Token t) {
 		return getNumber(t,null);
 	}
