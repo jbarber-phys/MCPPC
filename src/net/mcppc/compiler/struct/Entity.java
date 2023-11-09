@@ -42,15 +42,21 @@ import net.mcppc.compiler.tokens.Token;
 public class Entity extends Struct {
 	public static final Entity entity;
 	public static final Entity entities;
+	public static final Entity player;
+	public static final Entity players;
 	static {
 		entity = new Entity("Entity",false);
 		entities = new Entity("Entities",true);
+		player = new Entity("Player",false).setBase(Selector.AT_A);
+		players = new Entity("Players",true).setBase(Selector.AT_A);
 	}
 	public static void registerAll() {
 		//java.lang.NullPointerException: Cannot read field "name" because "net.mcppc.compiler.struct.Entity.entity" is null
 		//System.err.println(entity.name);
 		Struct.register(entity);
 		Struct.register(entities);
+		Struct.register(player);
+		Struct.register(players);
 	}
 	
 	
@@ -61,6 +67,11 @@ public class Entity extends Struct {
 	public Entity(String name,boolean many) {
 		super(name);
 		this.many=many;
+	}
+	private Selector selector_base = Selector.AT_E;
+	private Entity setBase(Selector base) {
+		this.selector_base = base;
+		return this;
 	}
 	@Override 
 	public boolean canCompareTags(VarType type,VarType otherType) {
@@ -145,7 +156,8 @@ public class Entity extends Struct {
 		Entity st2 = (Entity) from.type.struct;
 		if(!st1.many && st2.many)throw new CompileError.UnsupportedCast(from.type, to.type);
 		st1.clear(p, to);
-		st1.add(p, to, st2.getSelectorFor(from));
+		Selector sl = Selector.softIntersection(st2.getSelectorFor(from), st1.selector_base);
+		st1.add(p, to, sl);
 		
 	}
 
@@ -156,7 +168,8 @@ public class Entity extends Struct {
 		if(e.constType()!=ConstType.SELECTOR)throw new CompileError.UnsupportedCast(e, self.type);
 		Selector.SelectorToken t = (SelectorToken) e;
 		this.clear(p, self);
-		this.add(p, self, t.selector());
+		Selector sl = Selector.softIntersection(t.selector(), this.selector_base);
+		this.add(p, self, sl);
 	}
 	private void clear(PrintStream p,Variable self) throws CompileError {
 		
@@ -173,7 +186,8 @@ public class Entity extends Struct {
 	private void compareEqual(PrintStream p, Compiler c, Scope s, RStack stack, int dest, Selector left, Selector right,boolean not) throws CompileError {
 		Register out=stack.getRegister(dest);
 		out.setValue(p, !not);
-		String prefix = "execute if entity @e[tag=%s] run ".formatted(TEMP);
+		Selector tempselector = this.selector_base.unlimited().tagged(TEMP);
+		String prefix = "execute if entity %s run ".formatted(tempselector.toCMD());
 		p.printf("tag * remove %s\n", TEMP);
 		p.printf("tag %s add %s\n",right.toCMD(), TEMP);
 		p.printf("tag %s remove %s\n",left.toCMD(), TEMP);
@@ -187,8 +201,10 @@ public class Entity extends Struct {
 	private void compareOverlap(PrintStream p, Compiler c, Scope s, RStack stack, int dest, Selector left, Selector right,boolean not) throws CompileError {
 		Register out=stack.getRegister(dest);
 		out.setValue(p, not);
-		String slctr = "@e[tag=%s]".formatted(TEMP);
-		String prefix = "execute if entity @e[tag=%s,tag=%s] run ".formatted(TEMP,TEMP2);
+		//String slctr = "@e[tag=%s]".formatted(TEMP);
+		//Selector slctr = this.selector_base.unlimited().tagged(TEMP);
+		Selector slctr12 = this.selector_base.unlimited().tagged(TEMP).tagged(TEMP2);
+		String prefix = "execute if entity %s run ".formatted(slctr12);
 		p.printf("tag * remove %s\n", TEMP);
 		p.printf("tag * remove %s\n", TEMP2);
 		p.printf("tag %s add %s\n",left.toCMD(), TEMP);
@@ -199,9 +215,9 @@ public class Entity extends Struct {
 	}
 	public Selector getSelectorFor(Variable self) throws CompileError {
 		String mytag = this.getScoreTag(self);
-		Integer limit=null;
-		if (!this.many) limit=1;
-		return new Selector("@e", mytag,limit);
+		Selector sl = this.selector_base.tagged(mytag);
+		if (!this.many) sl=sl.limited(1);
+		return sl;
 	}
 
 	@Override

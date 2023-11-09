@@ -448,6 +448,12 @@ public class Selector {
 		l.argmap.remove("limit");
 		return l;
 	}
+	public Selector tagged(String tag) {
+		if(this.tag.contains(tag))return this;
+		Selector l = new Selector(this);
+		l.tag.add(tag);
+		return l;
+	}
 	public void kill(PrintStream p) {
 		p.printf("kill %s\n", this.toCMD());
 	}
