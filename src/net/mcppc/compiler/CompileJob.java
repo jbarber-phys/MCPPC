@@ -34,21 +34,22 @@ import net.mcppc.compiler.tokens.Import;
 
 
 /*list of language edition TODO ::
-
- * add bossbar struct type that masks a number (or add bossbar keyword to declaration)
+ * addd a lock struct, allow disabling
+ * 		
  * add thread entity death handling mechanism (for synchronized as(...) threads only); have it follow an end statement
  * add mass particle functions for shapes: line, sphere, cylinder, ring; 
  * 			for sphere: see https://en.wikipedia.org/wiki/Geodesic_polyhedron
  * improve printf, add format functions for: color,formatting, click events
  * add stdlib for attacking entities / hitbox/raycast testing
- * maybe slap on a bunch of formatted command masks
  * expose the TagCompound -> {} struct so that the user can use it to pass around mystery compound data
+ * 		add + operator for data merge ops or something
  * and an Object type -> {value: ?}, for dynamic type capability
  * 
- * add java edition targeting
+ * add java edition targeting : Version -> format ID; Target -> min version AND max version;
  * incorperate new 1.20.3 commands: return, tick, random;
  * add true return / breaks (optional); use return # to give the depth to return back to, and if retype = int / bool / long: do a /return as well as $return
  * 
+ * far future:
  * add true-classes: warning, may involve heavy reworking of the compiler
  * add documentation and maybe put test code in the repo
  */

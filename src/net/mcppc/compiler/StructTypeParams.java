@@ -82,6 +82,17 @@ public interface StructTypeParams{
 			if(this.isReady())return defaulttype.withPrecision(this.precision);
 			else return defaulttype.withTemplatePrecision(this.precisionTemplateName);
 		}
+		
+		public String getPrecisionStr() {
+			if(!this.isReady()) {
+				return this.precisionTemplateName;
+			}else return Integer.toString(this.precision);
+		}
+		public VarType floatify(VarType basicType) {
+			if(!this.isReady()) {
+				return basicType.withTemplatePrecisionBasic(precisionTemplateName);
+			}else return basicType.withPrecisionBasic(precision);
+		}
 	}
 	public static class MembTypePair implements StructTypeParams{
 		public final VarType first;

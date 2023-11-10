@@ -48,7 +48,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	//mask parameters (non-final)
 	
 	public static enum Mask{
-		STORAGE(true),ENTITY(true),BLOCK(true),SCORE(false);
+		STORAGE(true),ENTITY(true),BLOCK(true),SCORE(false),BOSSBAR(false);
 		public final boolean isNbt;
 		Mask(boolean isNbt){
 			this.isNbt=isNbt;
@@ -292,6 +292,21 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		this.pointsTo=Mask.STORAGE;
 		return this;
 	}
+	private boolean allocateBossbar = false;
+	public Variable maskBossbar(ResourceLocation barId,String defaultNameLit,boolean allocate,boolean isBasic) throws CompileError  {
+		if(this.type.isStruct()) {
+			if(!this.type.struct.canMask(this.type, Mask.BOSSBAR))
+				throw new CompileError("cannot mask type %s to a %s;".formatted(this.type.asString(),Mask.BOSSBAR));
+			//else good
+		}
+		this.isbasic=isBasic;
+		this.allocateBossbar=allocate;
+		this.holder=barId.toString();
+		this.address=defaultNameLit;
+		//value|max is stored in the vartype struct
+		this.pointsTo=Mask.BOSSBAR;
+		return this;
+	}
 	public Variable maskOtherVar(Variable ref) throws CompileError  {
 		if(this.type.isStruct()) {
 			if(!this.type.struct.canMask(this.type, ref.pointsTo))
@@ -328,15 +343,16 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		//use this one for struct members on stack to stop complaints about register type
 		VarType type=(regType==null? stack.getVarType(home):regType);
 		if(this.type.isStruct()) {
-			if(this.type.struct.canCasteFrom(type, this.type)) {
-				this.type.struct.castRegistersFrom(f, s, stack, home, type, this.type);
-			}else if(stack.getVarType(home).struct.canCasteTo( this.type,type)) {
+			Struct struct = this.type.struct;
+			if(struct.canCasteFrom(type, this.type)) {
+				struct.castRegistersFrom(f, s, stack, home, type, this.type);
+			}else if(stack.getVarType(home).isStruct() && stack.getVarType(home).struct.canCasteTo( this.type,type)) {
 				stack.getVarType(home).struct.castRegistersTo(f, s, stack, home, this.type, type);
 			}else {
 				throw new CompileError.UnsupportedCast(this.type, type);
 			}
 			stack.setVarType(home, this.type);
-			this.type.struct.setMe(f, s, stack, home, this);
+			struct.setMe(f, s, stack, home, this);
 		}else {
 			Register reg=stack.getRegister(home);
 			VarType regtype=type;
@@ -474,6 +490,15 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		} default:return null;
 		}
 	}
+	public String dataGetCmd(double mult) {
+		assert this.getMaskType().isNbt;
+		return "data get %s %s".formatted(this.dataPhrase(),CMath.getMultiplierFor(mult));
+	}
+
+	public String scoreGetCmd() {
+		assert this.getMaskType()==Mask.SCORE;
+		return "scoreboard players get %s".formatted(this.scorePhrase());
+	}
 	public String dataPhraseRecursive() {
 		switch (this.pointsTo) {
 		case STORAGE:{
@@ -517,12 +542,19 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		} default:return null;
 		}
 	}
-	public String isTrue() {
-		if(this.pointsTo==Mask.SCORE) {
-			return "score %s %s matches 1..".formatted(this.holder,this.getAddressToGetset());
-			
+	public String isTrue() throws CompileError {
+		switch (this.pointsTo) {
+		case SCORE:return "score %s %s matches 1..".formatted(this.holder,this.getAddressToGetset());
+
+		case BLOCK:
+		case ENTITY:
+		case STORAGE:
+			return this.matchesPhrase("1b");
+		case BOSSBAR:
+		default:
+			throw new CompileError("Variable masking a bossbar has no truth test");
+		
 		}
-		return this.matchesPhrase("1b");
 	}
 	@Override //IPrintable
 	public String getJsonTextSafe() {
@@ -571,6 +603,10 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 			return "%s%s %s -> %s::%s".formatted(refsrt,this.type.headerString(),this.name,this.holderHeader,this.address);//here go with the true address
 		case STORAGE:
 			return "%s%s %s -> %s.%s".formatted(refsrt,this.type.headerString(),this.name,this.holder,this.address);//here go with the true address
+		case BOSSBAR:
+			String xtrn = this.allocateBossbar? "":" %s".formatted(Keyword.EXTERN.name);
+			return "%s%s %s -> %s---%s%s".formatted(refsrt,this.type.headerString(),this.name,this.holder,this.address,xtrn);//here go with the true address
+
 		default:
 			throw new CompileError("null mask");
 		
@@ -851,7 +887,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	public boolean willAllocateOnLoad(boolean fillWithDefaultvalue) {
 		if(this.isRecursive)return true;
 		if(this.type.isStruct())
-			return this.isbasic  && this.type.struct.willAllocateLoad(this, fillWithDefaultvalue);//usually true
+			return (this.isbasic || this.allocateBossbar)  && this.type.struct.willAllocateLoad(this, fillWithDefaultvalue);//usually true
 		else if (this.pointsTo==Mask.SCORE && this.isbasic) return true;
 		return this.isbasic  && fillWithDefaultvalue;
 	}

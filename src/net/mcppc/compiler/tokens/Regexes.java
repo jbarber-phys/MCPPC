@@ -93,6 +93,7 @@ public final class Regexes {
 	public static final Pattern RANGESEP=Pattern.compile("\\.\\.");// \.\.
 	public static final Pattern SCOREOF=Pattern.compile("::");// ::
 	public static final Pattern TAGOF=Pattern.compile("\\.");// \.
+	public static final Pattern BOSSBAR_W_NAME=Pattern.compile("---");// ---
 	public static final Pattern NAME=Pattern.compile(Strs.NAME);
 	public static final Pattern REF_PREFIX=Pattern.compile("ref(?=[^\\w])");// ref(?=[^\w])
 	public static final Pattern NULL_KEYWORD=Pattern.compile(Strs.NULL);// null(?=[^\w])

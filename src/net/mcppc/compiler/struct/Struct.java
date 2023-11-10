@@ -26,33 +26,17 @@ import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.UnaryOp.UOType;
 
-/**
- * currently hypothetical
- * 
- * like a class but the workings are hard coded into the compiler
- * the class tells what type-args (like precision) to accept
- * 
- * 
+/*
  * TODO it should be possible to also create a class; a struct that will interperet mcpp code as a class template and 
- * determine the behavior at compile time, but functions will be hard as they will need to copy this*
- * 
- * TODO class for Queue, Stack, and List;
- * may want to set up a binary search tree mcfunction
- * 
+ * determine the behavior at compile time;
+ * TODO may want to set up a binary search tree mcfunction for Lists / Arrays
  * skip fixed size arrays as they always have confounding behavior (Vector, Rotation, UUID, ArmorItems)
+ * some types allocate to avoid type conflct in nbt; lists have subtype of first element;
  * 
- * FIXED list tags and compound tags need to be initialized or they wont work
- * must run code to initialize these types
- * example for int array (3):
- * /data modify storage mcpptest:vectest upint set value [0,0,0]
- * example for double array (3):
- * /data modify storage mcpptest:vectest up set value [0.0d,0.0d,0.0d]
- * even the suptype must match; cannot set double to float
- * example for compound tag
- * /data modify storage mcpptest:vectest obj set value {objfield: {subfield: {}}}
- * 
- * FIXED doubles & floats also dont play nice;
- * FIXED also the d,f index comes AFTER the sci notation
+ */
+/**
+ * similar to a class but the workings are hard coded into the compiler;
+ * can accept type arguments determined by the struct;
  * 
  * @author RadiumE13
  *
@@ -74,6 +58,7 @@ public abstract class Struct {
 		NbtCollection.registerAll();
 		NbtMap.registerAll();
 		Uuid.registerAll();
+		Bossbar.registerAll();
 	}
 	public static boolean load() {
 		//a dumb method that exists soly to make sure this initializes before something else else
@@ -115,6 +100,16 @@ public abstract class Struct {
 	 * @return
 	 */
 	public abstract String getNBTTagType(VarType varType);
+	/**
+	 * alters var on declaration; usually does nothing;
+	 * this is applied before any masks
+	 * @param v
+	 * @return
+	 * @throws CompileError 
+	 */
+	public Variable varInit(Variable v,Compiler c,Scope s) throws CompileError {
+		return v;
+	}
 	
 	/**
 	 * tokenizes the type arguments, leaving cursor after the closing paren
@@ -216,6 +211,14 @@ public abstract class Struct {
 	}
 	public void castVarTo(PrintStream p, Scope s,RStack stack,Variable vtag,VarType mytype, VarType newType) throws CompileError{
 		//do nothing
+	}
+	/**
+	 * allows the struct to auto convert itself if put on the stack
+	 * @param mytype
+	 * @return
+	 */
+	public VarType getTypeOnStack(VarType mytype) {
+		return mytype;
 	}
 	/**
 	 * sets some registers to the value of the struct

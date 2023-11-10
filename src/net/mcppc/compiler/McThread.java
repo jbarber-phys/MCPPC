@@ -336,7 +336,7 @@ public class McThread {
 		}
 	}
 	public void addToPath(StringBuffer buff,String suffix) {
-		String nm = this.getName();
+		String nm = this.getName().toLowerCase();
 		buff.append(nm);
 		buff.append(CompileJob.FILE_TO_SUBDIR_SUFFIX);
 		buff.append(suffix);
@@ -565,7 +565,7 @@ public class McThread {
 		return this.path;
 	} 
 	public String getStoragePath() {
-		return this.path + "/" + this.name;
+		return this.path + "/" + this.name.toLowerCase();
 	}
 	public Variable thisNbt(Variable v, NbtPath path) throws CompileError {
 		Selector e = this.getSelf();
@@ -730,7 +730,7 @@ public class McThread {
 	private ResourceLocation subpath(String suff) {
 		StringBuffer buff = new StringBuffer(this.path.path);
 		buff.append(CompileJob.FILE_TO_SUBDIR_SUFFIX);
-		buff.append(this.getName());
+		buff.append(this.getName().toLowerCase());
 		buff.append(CompileJob.FILE_TO_SUBDIR_SUFFIX);
 		buff.append(suff);
 		return new ResourceLocation(this.path.namespace,buff.toString());

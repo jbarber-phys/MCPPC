@@ -234,7 +234,7 @@ public class Function {
 			ret.getMe(p,s, stack,home);
 			if(this.hasTemplate()) {
 				//convert type;
-				stack.setVarType(home, this.getRetType().breakTiesToTemplate(s));
+				stack.setVarType(home, this.getRetType().breakTiesToTemplate(s).onStack());
 				s.removeTemporaryConsts();
 			}
 			this.cleanupAfter(p, c, s, stack);

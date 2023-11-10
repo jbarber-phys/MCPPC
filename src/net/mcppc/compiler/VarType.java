@@ -237,12 +237,18 @@ public class VarType {
 		if (this.isStruct()){
 			return this.struct.withPrecision(this,newPrecision);
 		}
+		return this.withPrecisionBasic(newPrecision);
+	}
+	public VarType withPrecisionBasic(int newPrecision) {
 		return new VarType(this.type,newPrecision);
 	}
 	public VarType withTemplatePrecision(String pc) throws CompileError {
 		if (this.isStruct()){
 			return this.struct.withTemplatePrecision(this,pc);
 		}
+		return this.withTemplatePrecisionBasic(pc);
+	}
+	public VarType withTemplatePrecisionBasic(String pc)  {
 		return new VarType(this.type,pc);
 	}
 	public VarType breakTiesToTemplate(Scope s) throws CompileError {
@@ -253,7 +259,10 @@ public class VarType {
 		if(this.isStruct())return this.struct.getNBTTagType(this);
 		else return this.type.getTagType();
 	}
-	
+	public VarType onStack() {
+		if(this.isStruct()) return this.struct.getTypeOnStack(this);
+		else return this;
+	}
 	public static boolean isType(String type) {
 		for (Builtin t: Builtin.values()) {
 			if ((!t.isStruct) && t.typename.equals(type)) return true;

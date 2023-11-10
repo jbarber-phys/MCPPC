@@ -25,64 +25,64 @@ public class BiOperator extends Token{
 	//TODO add seperate class for custom operator types;
 	public static enum OpType{
 		//flops:
-		ADD("+",OperationOrder.ADD) {
+		ADD("+",OperationOrder.ADD,true,false) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.addsub(p, c, s, stack, home1, home2,"+=");
 			}},
-		SUB("-",OperationOrder.ADD) {
+		SUB("-",OperationOrder.ADD,true,false) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.addsub(p, c, s, stack, home1, home2,"-=");
 			}},
-		MULT("*",OperationOrder.MULT) {
+		MULT("*",OperationOrder.MULT,true,false) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.mult(p, c, s, stack, home1, home2);
 			}},
-		DIV("/",OperationOrder.MULT) {
+		DIV("/",OperationOrder.MULT,true,false) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.div(p, c, s, stack, home1, home2);
 			}},
-		MOD("%",OperationOrder.MULT) {
+		MOD("%",OperationOrder.MULT,true,false) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.mod(p, c, s, stack, home1, home2);
 			}},
-		EXP("^",OperationOrder.EXP) {
+		EXP("^",OperationOrder.EXP,true,false) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				throw new CompileError("OpType.EXP.perform(...) should not be called; handle this elsewhere;");
 			}},
 		
-		EQ("==",OperationOrder.COMPARE) {
+		EQ("==",OperationOrder.COMPARE,true,false) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.compare(p, c, s, stack, home1, home2,"=");
 			}},
-		NEQ("!=",OperationOrder.COMPARE) {
+		NEQ("!=",OperationOrder.COMPARE,true,false) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.compareNot(p, c, s, stack, home1, home2,"=");
 			}},
-		GTEQ(">=",OperationOrder.COMPARE) {
+		GTEQ(">=",OperationOrder.COMPARE,true,false) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.compare(p, c, s, stack, home1, home2,">=");
 			}},
-		LTEQ("<=",OperationOrder.COMPARE) {
+		LTEQ("<=",OperationOrder.COMPARE,true,false) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.compare(p, c, s, stack, home1, home2,"<=");
 			}},
-		GT(">",OperationOrder.COMPARE) {
+		GT(">",OperationOrder.COMPARE,true,false) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.compare(p, c, s, stack, home1, home2,">");
 			}},
-		LT("<",OperationOrder.COMPARE) {
+		LT("<",OperationOrder.COMPARE,true,false) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.compare(p, c, s, stack, home1, home2,"<");
 			}},
-		XOR("|!&",OperationOrder.XOR) {
+		XOR("|!&",OperationOrder.XOR,false,true) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.xor(p, c, s, stack, home1, home2);
 			}},
-		AND("&",OperationOrder.AND) {
+		AND("&",OperationOrder.AND,false,true) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.and(p, c, s, stack, home1, home2);
 			}},
-		OR("|",OperationOrder.OR) {
+		OR("|",OperationOrder.OR,false,true) {
 			@Override public void perform(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,BiOperator token) throws CompileError {
 				token.or(p, c, s, stack, home1, home2);
 			}};
@@ -101,9 +101,15 @@ public class BiOperator extends Token{
 		}
 		public final String s;
 		public final OperationOrder order;
-		OpType(String s,OperationOrder op){
+		
+		//input type
+		public final boolean isNumeric;
+		public final boolean isLogical;
+		OpType(String s,OperationOrder op,boolean isNumeric,boolean isLogical){
 			this.s=s;
 			this.order=op;
+			this.isNumeric=isNumeric;
+			this.isLogical=isLogical;
 		} static {
 			for(OpType op:OpType.values()) {
 				MAP.put(op.s, op);

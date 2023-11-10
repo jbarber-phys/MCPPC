@@ -106,6 +106,18 @@ public abstract class Token {
 		@Override public String asString() {return "::";
 		}
 	}
+	public static class BossbarMaskSep extends Token{
+		public static final Factory factory=new Factory(Regexes.BOSSBAR_W_NAME) {
+			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+				c.cursor=matcher.end();
+				return new BossbarMaskSep(line,col);
+			}};
+		public BossbarMaskSep(int line, int col) {
+			super(line, col);
+		}
+		@Override public String asString() {return "---";
+		}
+	}
 	public static class Member extends Token{
 		public static final Factory factory=new Factory(Regexes.MEMBER) {
 			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {

@@ -48,7 +48,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	static final Token.Factory[] lookMaskHolder = Factories.genericLook(
 			Coordinates.CoordToken.factory,Selector.SelectorToken.factory,ResourceLocation.ResourceToken.factory,Token.WildChar.dontPassFactory);
 	static final Token.Factory[] lookMaskOp =  Factories.genericLook(
-			Token.TagOf.factory,Token.ScoreOf.factory,Token.LineEnd.factory,Token.CodeBlockBrace.factory);
+			Token.TagOf.factory,Token.ScoreOf.factory,Token.BossbarMaskSep.factory,Token.LineEnd.factory,Token.CodeBlockBrace.factory);
 
 	static final Token.Factory[] lookMaskScore = Factories.genericLook(Token.BasicName.factory);
 	
@@ -84,6 +84,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		return false;
 	}
 	public void applyMask(Compiler c, Matcher matcher, int line, int col,Keyword access, boolean skip) throws CompileError {
+		
 		Token holder=c.nextNonNullMatch(lookMaskHolder);
 		boolean isThreadThis = false;
 		if(holder instanceof Token.WildChar) {
@@ -153,7 +154,15 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			if(!(address instanceof NbtPath.NbtPathToken))throw new CompileError.UnexpectedToken(address,"nbt path");
 			if(!skip)this.variable.maskStorage(((ResourceLocation.ResourceToken)holder).res, ((NbtPath.NbtPathToken)address).path());
 			return;	
-		}else if (holder instanceof MemberName && (op instanceof Token.LineEnd || op instanceof Token.CodeBlockBrace)) {
+		}else if (holder instanceof ResourceLocation.ResourceToken && op instanceof Token.BossbarMaskSep) {
+			//bossbar
+			Token address=Const.checkForExpression(c,c.currentScope, matcher, line, col, ConstType.STRLIT);
+			if(!(address instanceof Token.StringToken))throw new CompileError.UnexpectedToken(address,"string");
+			boolean isExtern = Keyword.checkFor(c, matcher, Keyword.EXTERN);
+			if(!skip)this.variable.maskBossbar(((ResourceLocation.ResourceToken)holder).res, ((Token.StringToken) address).literal(),!isExtern,false);
+			return;	
+		}
+		else if (holder instanceof MemberName && (op instanceof Token.LineEnd || op instanceof Token.CodeBlockBrace)) {
 			//another var
 			c.cursor=beforeop;
 			if(!skip)this.variable.maskOtherVar(((MemberName) holder).var);
@@ -373,6 +382,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 				Warnings.warning("vars declared in functions cannot be public; converted var %s to local;".formatted(varname.asString()), c);
 			}
 			d.variable=new Variable(varname.asString(),type.type, access, c);
+			if(type.type.isStruct()) d.variable = type.type.struct.varInit(d.variable, c, c.currentScope);
 			Function localOf=null;
 			if(isFuncLocal) {
 				localOf = c.currentScope.getFunction();

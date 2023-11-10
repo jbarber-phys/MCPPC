@@ -24,6 +24,7 @@ import net.mcppc.compiler.struct.Struct;
 import net.mcppc.compiler.tokens.Bool;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Factories;
+import net.mcppc.compiler.tokens.MemberName;
 import net.mcppc.compiler.tokens.TemplateArgsToken;
 import net.mcppc.compiler.tokens.Token;
 
@@ -226,6 +227,60 @@ public abstract class BuiltinFunction {
 			return this.targs.isEmpty();
 		}
 	}
+	public static class NameArgs implements Args{
+		private final List<String> targs=new ArrayList<String>();
+		//optional
+		private final Map<String,Integer> argmap=new HashMap<String, Integer>();
+		public String arg(int index){
+			if(index<targs.size() && index>=0)return this.targs.get(index);
+			else return null;
+		}
+		public String arg(String key){
+			Integer index=this.argmap.get(key);
+			if(index==null)return null;
+			else return this.arg(index);
+		}
+		public void add(String key,String token) {
+			int index=this.targs.size();
+			this.argmap.put(key, index);
+			this.targs.add(token);
+		}
+		public boolean has(int i) {
+			return this.targs.size()>i && i>=0;
+		}
+		public boolean has(String key) {
+			return this.argmap.containsKey(key);
+		}
+		public void add(String token) {
+			this.targs.add(token);
+		}
+		public int nargs() {return this.targs.size();}
+		public NameArgs(){
+		}
+		public NameArgs names(Compiler c,Scope s,int line,int col,Matcher m, RStack stack) throws CompileError {
+			int start = c.cursor;
+			boolean go=true;
+			while(go) {
+				Token t= c.nextNonNullMatch(Factories.checkForMembName);
+				if(!(t instanceof MemberName)) {
+					return null;
+					//c.cursor=start;
+				}
+				if (((MemberName) t).names.size()!=1) {
+					//a var name
+					c.cursor=start;
+					return null;
+				}
+				String name = ((MemberName) t).names.get(0);
+				this.add(name);
+				go = BuiltinFunction.findArgsep(c);
+			}
+			return this;
+		}
+		public boolean isEmpty() {
+			return this.targs.isEmpty();
+		}
+	}
 	public abstract VarType getRetType(BFCallToken token);
 	public final String name;
 	public boolean isNonstaticMember() {
@@ -334,6 +389,14 @@ public abstract class BuiltinFunction {
 		throw new CompileError("too many args in builtin function;");
 	}
 	public static final Args tokenizeArgsNone(Compiler c, Matcher matcher, int line, int col)throws CompileError {
+		BasicArgs args=new BasicArgs();
+		if(findArgsep(c)) {
+			throw new CompileError("too many args in builtin function;");
+		}else {
+			return args;
+		}
+	}
+	public static final Args tokenizeArgsNames(Compiler c, Matcher matcher, int line, int col)throws CompileError {
 		BasicArgs args=new BasicArgs();
 		if(findArgsep(c)) {
 			throw new CompileError("too many args in builtin function;");
@@ -494,7 +557,7 @@ public abstract class BuiltinFunction {
 				throws CompileError {
 			if(this.rtype.isVoid())return;
 			Register r=stack.getRegister(stackstart);
-			stack.setVarType(stackstart, this.rtype);
+			stack.setVarType(stackstart, this.rtype.onStack());
 			if(this.rtype.isLogical())  r.setToSuccess(p, cmd);
 			else if(this.rtype.isNumeric())  r.setToResult(p,cmd);
 			
@@ -504,7 +567,7 @@ public abstract class BuiltinFunction {
 		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
 				throws CompileError {
 			if(this.rtype.isVoid())return;
-			int home = stack.setNext(this.rtype);
+			int home = stack.setNext(this.rtype.onStack());
 			this.getRet(p, c, s, token, stack, home);
 			stack.pop();
 			
