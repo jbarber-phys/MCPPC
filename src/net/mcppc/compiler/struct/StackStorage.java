@@ -132,7 +132,7 @@ public class StackStorage extends Struct implements Struct.IInternalOnly {
 		if (size==0)return size;
 		String[] defaults = new String[size]; Arrays.fill(defaults, SCORETYPE.defaultValue());
 		String deflt = "[%s]".formatted(String.join(",", defaults));
-		store.setMeToNbtValueBasic(p, c, s, stack, deflt);
+		store.setMeToNbtValueBasic(p, s, stack, deflt);
 		for(int i=0;i<size;i++) {
 			Variable sub = thiss.getIndexRef(store, i);
 			sub.setMe(p, s, stack.getRegister(i), SCORETYPE);
@@ -148,7 +148,7 @@ public class StackStorage extends Struct implements Struct.IInternalOnly {
 			Variable sub = thiss.getIndexRef(store, i);
 			sub.getMe(p, s, stack.getRegister(i));
 		}
-		store.setMeToNbtValueBasic(p, c, s, stack, Struct.DEFAULT_LIST);
+		store.setMeToNbtValueBasic(p, s, stack, Struct.DEFAULT_LIST);
 	}
 	
 

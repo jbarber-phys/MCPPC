@@ -459,7 +459,7 @@ public class Scope {
 			if(this.myBreakVar!=null) return this.myBreakVar;
 			if (this.isDirectThreadblock) {
 				//this.myBreakVar = this.thread.myBreak();//this link breaks the break statements in threads
-				this.myBreakVar = this.thread.myBreakVar(this.threadBlockNumber);//TODO test this
+				this.myBreakVar = this.thread.myBreakVar(this.threadBlockNumber);
 				//but this line will break if synchronized
 				//this.myBreakVar=new Variable("\"$break\"",VarType.BOOL,null,this.getSubResNoTemplate());
 			}

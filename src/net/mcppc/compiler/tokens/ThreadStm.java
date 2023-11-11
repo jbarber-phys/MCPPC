@@ -55,6 +55,8 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		 register(End.endstop,End::makeStop);
 		 register(End.endrestart,End::makeRestart);
 		 register(End.endkill,End::makeKill);
+		 register(NonSequence.tick,NonSequence::makeTick);
+		 register(NonSequence.death,NonSequence::makeDeath);
 		}
 	public static abstract class ThreadBlock extends Token {
 		public final String name;
@@ -113,7 +115,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		//Token term=Factories.carefullSkipStm(c, matcher, line, col);
 		//if((!(term instanceof Token.CodeBlockBrace)) || (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{");
 
-		me.endStatement(c,matcher);
+		me.endStatement(c,matcher,true);
 		return me;
 	}
 	public static ThreadStm makeMe(Compiler c, Matcher matcher, int line, int col,Keyword opener) throws CompileError {
@@ -145,11 +147,17 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		me.makeBlockControl(c, matcher, line, col, false);
 		
 		
-		me.endStatement(c,matcher);
+		me.endStatement(c,matcher,false);
 		return me;
 	}
-	private void endStatement(Compiler c, Matcher matcher) throws CompileError{
+	private void endStatement(Compiler c, Matcher matcher,boolean isPass1) throws CompileError{
+		if(isPass1) {
+			this.myThread.blockPass1(this);
+		}
 		if(this.isLast) {
+			if(isPass1) {
+				this.myThread.finishPass1();
+			}
 			Statement.nextIsLineEnder(c, matcher,false);
 		}else if (this.hasBlock) {
 			Statement.nextIsLineEnder(c, matcher,true);
@@ -202,6 +210,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 			this.blockControls.add(sub);
 			if(sub.isEnd())break;
 		}
+		if(this.blockControls.size()>1 && !this.isInSequence()) throw new CompileError("a tick/death thread block cannot have more than 1 control");
 	}
 	private final RStack mystack;
 	private final boolean isFirst;
@@ -247,35 +256,56 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 			ResourceLocation res = this.myThread.pathLookupPull();
 			res.run(p);
 		}
-		this.myThread.myGoto().attemptSelfify(s).setMeToNumber(p, c, s, this.mystack, (Integer)this.blockNumber+1);
-		this.myThread.waitIn().attemptSelfify(s).setMeToNumber(p, c, s, this.mystack, (Integer)0);
-		for(ThreadBlock block: this.blockControls) {
-			block.addToStartOfAfterBlock(p, c, s, this);
+		if(this.isInSequence()) {
+			ThreadStm aftr = this.getAfterMe();
+			if(aftr!=null) {
+				int nextGoto = aftr.blockNumber;
+				this.myThread.myGoto().attemptSelfify(s).setMeToNumber(p, s, this.mystack, (Integer)nextGoto);
+			}
+			this.myThread.waitIn().attemptSelfify(s).setMeToNumber(p, s, this.mystack, (Integer)0);
+			for(ThreadBlock block: this.blockControls) {
+				block.addToStartOfAfterBlock(p, c, s, this);
+			}
 		}
+		if(this.isDeath) {
+			Variable isdead = this.myThread.getIsDeadFlag();
+			isdead.setMeToBoolean(p, s, mystack, false);
+			Variable wasrunning = this.myThread.getWasRunningFlag();
+			RStack stack = s.getStackFor();
+			wasrunning.setMeToBoolean(p, s,stack , false);
+			stack.clear();stack.finish(c.namespace);
+		}
+		
 		this.mystack.clear();this.mystack.finish(c.job);
 		
 		
 	}
 	@Override
 	public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
-		if(this.afterMe==null) {
-			//you forgot to end the thread statement
-			throw new CompileError("thread %s.%s ended without a 'next start / restart;' statement"
-					.formatted(c.resourcelocation,this.myThread.getName()));
+		if(this.isInSequence()) {
+			ThreadStm afterStm = this.getAfterMe();
+			if(afterStm==null) {
+				//you forgot to end the thread statement
+				throw new CompileError("thread %s.%s ended without a 'next start / restart;' statement"
+						.formatted(c.resourcelocation,this.myThread.getName()));
+			}
+			//System.err.printf("addToEndOfMyBlock: s = %s\n", s.getSubRes().toString());
+			//System.err.printf("\t selfify = %s\n", s.getInheritedParameter(McThread.IS_THREADSELF));
+			for(ThreadBlock block: afterStm.blockControls) {
+				block.addToEndOfBeforeBlock(p, c, s, this,false);
+			}
 		}
-		//System.err.printf("addToEndOfMyBlock: s = %s\n", s.getSubRes().toString());
-		//System.err.printf("\t selfify = %s\n", s.getInheritedParameter(McThread.IS_THREADSELF));
-		for(ThreadBlock block: this.afterMe.blockControls) {
-			block.addToEndOfBeforeBlock(p, c, s, this,false);
-		}
+		
 		//System.err.println("adding to block end from before statements " + s.getSubRes().toString());
 		for(ThreadBlock block: this.blockControls) {
 			block.addToEndOfAfterBlock(p, c, s, this);
 		}
 		this.mystack.clear();this.mystack.finish(c.job);
-		String exitCmd = this.myThread.pathExit().toString();
-		String exitif = this.myThread.exit().attemptSelfify(s).isTrue();
-		p.printf("execute if %s run function %s\n", exitif,exitCmd);
+		if(!this.isDeath) {
+			String exitCmd = this.myThread.pathExit().toString();
+			String exitif = this.myThread.exit().attemptSelfify(s).isTrue();
+			p.printf("execute if %s run function %s\n", exitif,exitCmd);
+		}
 		
 		if (this.myThread.hasLookup()) {
 			//push data locals
@@ -308,7 +338,6 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 	private void setLoop(boolean loop,int index) {
 		this.loop=loop;
 		this.loopindex=index;
-		//TODO subscope may be null right now
 		if(this.mySubscope!=null)this.mySubscope.setBreakable(loop);
 	}
 	@Override
@@ -323,6 +352,11 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 	ThreadStm startedBy;
 	ThreadStm afterMe=null;
 	public boolean hasAnonamousBlock = false;
+	
+	public ThreadStm getAfterMe() {
+		if(afterMe == null || afterMe.isInSequence()) return afterMe;
+		else return afterMe.getAfterMe();
+	}
 	@Override
 	public boolean setPredicessor(MultiFlow pred) throws CompileError {
 		if(pred instanceof ThreadStm) {
@@ -345,11 +379,22 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		else return false;
 	}
 	private int size() {
-		//number of block # spacing
+		//keep this one, but skip it for flow control
 		return 1;
+	}
+	public boolean isTick() {
+		return isTick;
+	}public boolean isDeath() {
+		return isDeath;
+	}
+	private boolean isTick=false;
+	private boolean isDeath = false;
+	public boolean isInSequence() {
+		return !(isTick || isDeath);
 	}
 	@Override
 	public boolean claim() {
+		//stay true even for tick / death
 		return true;
 	}
 	@Override
@@ -376,6 +421,20 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		public static final String name = "lines";
 		public final Map<String,Integer> data = new HashMap<String, Integer>();
 		public Lines(int line, int col,int index, String name) {
+			super(line, col,index, name);
+		}
+		
+	}
+	public static class StartsAt extends ThreadBlock {
+		public static StartsAt make(Compiler c, Matcher matcher, int line, int col,ThreadStm stm, int index,boolean isPass1) throws CompileError{
+			StartsAt me = new StartsAt(line,col,index,name);
+			Num firstindex =(Num) Num.tokenizeNextNumNonNull(c, c.currentScope, matcher, line, col);
+			stm.myThread.setFirstBlockNum(firstindex.value.intValue());
+			return me;
+		}
+		//for mch
+		public static final String name = "startsat";
+		public StartsAt(int line, int col,int index, String name) {
 			super(line, col,index, name);
 		}
 		
@@ -462,13 +521,13 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		public void addToEndOfBeforeBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm,boolean isStart) throws CompileError {
 			stm.mySubscope.setBreakable(true);
 			Variable breakv = stm.myThread.myBreakVar(stm.blockNumber).attemptSelfify(s);//stm.mySubscope.makeAndgetBreakVarInMe(c);
-			breakv.setMeToBoolean(p, c, s, this.test.stack, false);
+			breakv.setMeToBoolean(p, s, this.test.stack, false);
 			this.add(p, c, s, stm,true,isStart);
 		}
 		@Override
 		public void addToStartOfAfterBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
 			Variable breakv = stm.myThread.myBreakVar(stm.blockNumber).attemptSelfify(s);
-			breakv.setMeToBoolean(p, c, s, this.test.stack, false);
+			breakv.setMeToBoolean(p, s, this.test.stack, false);
 		}
 		@Override
 		public void addToEndOfAfterBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
@@ -486,7 +545,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 				String condition = String.format("execute if score %s matches %d run ",block.scorePhrase(),myblock);
 				p.printf(condition);
 			}
-			if(isBefore)block.setMeToNumber(p, c, s, this.test.stack, afterblock);//halt
+			if(isBefore)block.setMeToNumber(p, s, this.test.stack, afterblock);//halt
 			this.test.compileOps(p, c, s, VarType.INT);
 			int home = this.test.setReg(p, c, s, VarType.INT);
 			String ifu= !this.inverted? "if" : "unless";
@@ -503,7 +562,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 
 			p.printf(condition);
 			stm.loopIf = condition2;
-			block.setMeToNumber(p, c, s, this.test.stack, myblock);//halt
+			block.setMeToNumber(p, s, this.test.stack, myblock);//halt
 			
 			
 		}
@@ -538,7 +597,6 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		public static final String endstop = "stop";
 		public static final String endrestart = "restart";
 		public static final String endkill = "kill";
-		private Equation test;
 		private final boolean restart;
 		private ThreadCall call = null;
 		private boolean kill = false;
@@ -563,6 +621,34 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		
 	}
 
+	
+	public static class NonSequence extends ThreadBlock {
+		public static final String tick = "tick";
+		public static final String death = "death";
+		public static NonSequence makeTick(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,int index,boolean isPass1) throws CompileError{
+			stm.isTick=true;
+			return NonSequence.make(c, matcher, line, col, stm, index, tick,true, isPass1);
+		}
+		public static NonSequence makeDeath(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,int index,boolean isPass1) throws CompileError{
+			stm.isDeath=true;
+			return NonSequence.make(c, matcher, line, col, stm, index, death,false, isPass1);
+		}
+		public static NonSequence make(Compiler c, Matcher matcher, int line, int col,ThreadStm stm,int index,String name,boolean isTick,boolean isPass1) throws CompileError{
+			if(isPass1)stm.myThread.addNonSequence(stm);
+			return new NonSequence(line,col,index,name,isTick);
+		}
+		final boolean istick;
+		public NonSequence(int line, int col, int index, String name,boolean isTick) {
+			super(line, col, index, name);
+			this.istick=isTick;
+		}
+
+		@Override
+		public void addToStartOfAfterBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
+			//do nothing; this wont even be reached
+		}
+		
+	}
 	@Override
 	public boolean doHeader() {
 		return this.isFirst && this.myThread !=null && this.myThread.doHdr();

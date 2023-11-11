@@ -49,21 +49,22 @@ import net.mcppc.compiler.tokens.Token;
  * * * compiler gives this to code blocks, where it is used by actual thread code block_%n
  * * * (tokenize only) thread controls call to get a subscope with null block number
  * 
- *  TODO thread local vars:
- *  TODO give locals to control blocks; current bug: controls lack access thread while they are being created
- *  because the thread is not given untel setPredicessor(), which happens after token creation
- *  will need to alter compile2 to allow earlier setPredicessor() TODO test
- *  also need to propagate some scope arguments through builtin function;
- * 
+ *  TODO tick and death blocks:
+ *  add namespace tick: call ignoring wait param to tickblocks,
+ *   *  in the tickblock, add the executor tag, call blocks, remove tag and leave
+ *   * 
  *  
- *  
- *  add option to enable uuid tables but leave it off by default for optimization
- *  lookup index at start of block, back copy after: time O(N_thread)
- *  add flag for completion, throw runtime error if it fails
- *  score is preffered, do this only if a local is non-stackable
  *  
  *  
  */
+
+/*
+ * //TODO flowvars are scores of executor and dissapear if dead;
+ * this stops the death condition from working; it overfires
+ *tried to solve by altering flowvars but making them not be on executor stops the executor from ticking
+ *TODO SOLUTION: to guard the death flag, instead use a second death flag for prev-goto or something
+ */
+
 /**
  * A thread that runs mcfunctions over multiple ticks; can also run multiple threads at once (but only 1 on each entity)
  * @author RadiumE13
@@ -81,11 +82,10 @@ public class McThread {
 	 * name of a scope inherited parameter for thread-selfness
 	 */
 	public static final String IS_THREADSELF = "is_threadself";
-	//TODO enable this and test again
+	
 	public static final boolean DO_SELFIFY = true;
 	
 	
-	//public static final boolean ALLOW_UUID_MAPPING = false;//TODO compile setting for this
 	private McThread() {}//construction is done post-init
 	Keyword access = null;
 	ResourceLocation path = null;
@@ -103,9 +103,63 @@ public class McThread {
 	Map<String,Integer> namedBlocksPublic = new HashMap<String,Integer>();
 	Map<String,Integer> namedBlocksPrivate = new HashMap<String,Integer>();
 	
-	ThreadStm firstControl=null;
+	ThreadStm firstControl=null;//the first block regardless of type
+	private ThreadStm getFirstRunningControl() {
+		//the first block that actually runs
+		assert this.firstControl.isInSequence();
+		return firstControl;
+		//if(firstControl == null) return null;
+		//if(firstControl.isInSequence()) return firstControl;
+		//else return firstControl.getAfterMe();
+	}
 	
 	int numBlocks = 0;
+	
+	int firstBlock = 1;
+	public void setFirstBlockNum(int idx) {
+		//pass 1 only
+		//TODO this is never called
+		this.firstBlock = idx;
+	}
+	private int getFirstGoto() {
+		return firstBlock;
+	}
+	
+	//special event blocks
+	//note that a stop-kill will run the death block
+	Integer deathBlock = null;
+	Integer tickBlock = null;
+	public void addNonSequence(ThreadStm stm) throws CompileError {
+		//System.err.printf("addNonSequence\n");
+		if(stm.blockControls.size()>1) throw new CompileError("a tick/death thread block cannot have more than 1 control");
+		if(stm.isDeath()) {
+			if(this.deathBlock!=null) throw new CompileError("multiple death blocks found in thread %s".formatted(this.name));
+			this.deathBlock = stm.getBlockNumber();
+		}else if(stm.isTick()) {
+			if(this.tickBlock!=null) throw new CompileError("multiple tick blocks found in thread %s".formatted(this.name));
+			this.tickBlock = stm.getBlockNumber();
+		}
+	}
+	private boolean skipIndex(Integer i) {
+		return (i.equals(deathBlock) || i.equals(tickBlock));
+	}
+	private boolean hasDeathblock() {
+		return this.isSynchronized && this.executeAs!=null && this.deathBlock!=null;
+	}
+	/**
+	 * flag for this thread is dead; masks a score of resource location
+	 * @return
+	 */
+	public Variable getIsDeadFlag() {
+		return new Variable("isdead",VarType.BOOL,null,Mask.SCORE,this.getStoragePath(),OBJ_ISDEAD);
+	}
+	/**
+	 * stores if a synchronized thread 
+	 * @return
+	 */
+	public Variable getWasRunningFlag() {
+		return new Variable("wasrunning",VarType.BOOL,null,Mask.SCORE,this.getStoragePath(),OBJ_WASRUNNING);
+	}
 	
 	boolean killOnStop = false;
 	
@@ -118,11 +172,10 @@ public class McThread {
 	//vars findable in only one block
 	private Map<Integer,Map<String,Const>> constsPrivate = new HashMap<Integer,Map<String,Const>>();
 	
-	//this is all still TODO
 	/**
 	 * adds a thread-local define to this thread;<p>
 	 *  public vars can be accessed in any block but private vars are lmited to this block;<p>
-	 * will modify the vars mask to make it thread-safe according to the following rules: TODO <br>
+	 * will modify the vars mask to make it thread-safe according to the following rules: <br>
 	 * <ul>
 	 *  <li>if thread is synchronized, or if it is not data equivalent, change nothing
 	 *  <li> private ... = ...; normal behavior
@@ -264,10 +317,29 @@ public class McThread {
 		for(Variable v: this.varsPublic.values()) 
 			if (v.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES)) v.allocateLoad(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
 	}
-	
-	
+	/**
+	 * called after the last block is added during pass 1
+	 */
+	public void blockPass1(ThreadStm stm) {
+		if(this.firstControl==null) {
+			this.firstControl = stm;
+			return;
+		}
+		if(!this.firstControl.isInSequence()) {
+			this.firstControl = stm;
+			if(this.firstBlock < stm.getBlockNumber()) this.firstBlock = stm.getBlockNumber();
+		}
+	}
+	/**
+	 * called after the last block is added during pass 1
+	 */
+	public void finishPass1() {
+		//do nothing
+	}
 	
 	public void ensureSize(ThreadStm stm, int index) {
+		
+		//this is called in pass 2
 		this.numBlocks = Math.max(this.numBlocks, index);
 	}
 	public void addBlockName(String name,Keyword access,int index) {
@@ -370,7 +442,7 @@ public class McThread {
 		//System.err.printf("thread populate ()%s;\n",isPass1);
 		if(!isPass1) {
 			//System.err.printf("setting first control %s;\n", stm);
-			self.firstControl = stm;
+			self.firstControl = stm;//follow this at the method level in pass 2
 		}
 		self.populateMe(c, matcher, line, col, isPass1);
 		if(!isPass1) {
@@ -459,7 +531,12 @@ public class McThread {
 	public static final String OBJ_GOTO= "mcpp.goto";
 	public static final String OBJ_WAIT= "mcpp.wait";
 	public static final String OBJ_EXIT= "mcpp.exit";
+	
 	public static final String OBJ_BREAK_F= "mcpp.thread.break_%d";
+	
+	//death event flags
+	public static final String OBJ_ISDEAD= "mcpp.isdead";
+	public static final String OBJ_WASRUNNING= "mcpp.wasrunning";
 	public static String getObjBreak(int block) {return OBJ_BREAK_F.formatted(block);};
 	public static String getBreak(int block) {return BREAK_F.formatted(block);};
 	
@@ -521,18 +598,23 @@ public class McThread {
 		}else return new Selector("@e",this.getTag(),null);
 	}
 	public Variable myGoto() throws CompileError {
-		return this.myGoto(this.getSelf());
+		Selector self = this.getSelf();
+		return this.myGoto(self);
 	}
 	public Variable waitIn() throws CompileError {
-		return this.wait(this.getSelf());
+		Selector self = this.getSelf();
+		return this.wait(self);
 	}
 	public Variable myBreakVar(int block) throws CompileError {
-		return this.myBreakVar(this.getSelf(),block);
+		Selector self = this.getSelf();
+		return this.myBreakVar(self,block);
 	}
 	public Variable exit() throws CompileError {
-		return this.exit(this.getSelf());
+		Selector self = this.getSelf();
+		return this.exit(self);
 	}
 	public Variable myGoto(Selector e) throws CompileError {
+		
 		if(e==null) {
 			return new Variable(GOTO,VarType.INT,null,Mask.SCORE,this.getStoragePath(),OBJ_GOTO);
 		}
@@ -542,7 +624,7 @@ public class McThread {
 		if(e==null) {
 			return new Variable(WAIT,VarType.INT,null,Mask.SCORE,this.getStoragePath(),OBJ_WAIT);
 		}
-		return waitStatic(e);
+		return waitStaticEntity(e);
 		//return new Variable(WAIT,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_WAIT).addSelfification(e.selfify());
 	}
 	public Variable myBreakVar(Selector e, int block) throws CompileError {
@@ -551,7 +633,7 @@ public class McThread {
 		}
 		return new Variable(getBreak(block),VarType.BOOL,null,Mask.SCORE,"","").maskEntityScore(e, getObjBreak(block)).addSelfification(e.selfify());
 	}
-	public static Variable waitStatic(Selector e) throws CompileError {
+	public static Variable waitStaticEntity(Selector e) throws CompileError {
 		//same as nonstatic for sub case that e!=null
 		return new Variable(WAIT,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_WAIT).addSelfification(e.selfify());
 	}
@@ -593,10 +675,16 @@ public class McThread {
 		if(this.executeAs!=null) {
 			as = "as (%s)".formatted(this.executeAs.toHDR());
 		}
+		String first = "";
+		//System.err.printf("final start = %d; %s %s\n",this.getFirstGoto(),this.deathBlock,this.tickBlock);
+		if(this.getFirstGoto() > 1) {
+			int begin = this.getFirstGoto();
+			first = "%s %s ".formatted(ThreadStm.StartsAt.name,begin);
+		}
 		List<String> lines = this.namedBlocksPublic.entrySet().stream().map(e -> "%s %s".formatted(e.getKey(),e.getValue())).toList();
 		String[] lns = new String[lines.size()]; lines.toArray(lns);
 		String g = "lines %s %s".formatted(this.numBlocks,String.join(" ", lns));
-		p.printf("thread public %s %s %s;\n", this.name,as,g);
+		p.printf("thread public %s %s %s%s;\n", this.name,as,first,g);
 	}
 	private Scope controllerScopeTokenize = null;
 	public void cleanControllerScope() {
@@ -616,25 +704,31 @@ public class McThread {
 		this.truestart(p, c, s, stack, executor, ((Integer) gotob),gotoStm,true);
 	}
 	public void truestart(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor) throws CompileError {
-		this.truestart(p, c, s, stack, executor, ((Integer) null),this.firstControl,true);
+		this.truestart(p, c, s, stack, executor, ((Integer) null),this.getFirstRunningControl(),true);
 	}
 		
 	private void truestart(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor,Object gotoCache,ThreadStm gotoStm, boolean start) throws CompileError {
 		//must be pass 2-version
 		boolean tagme = !this.isSynchronized || this.executeAs!=null;
-		if(tagme && start)executor.addTag(p, this.getTag());
+		if(this.hasDeathblock() && start) {
+			Variable wasrunning = this.getWasRunningFlag();
+			wasrunning.setMeToBoolean(p, s, stack, true);
+		}
+		if(tagme && start) {
+			executor.addTag(p, this.getTag());
+		}
 		if(gotoCache==null) {
-			this.myGoto(executor).setMeToNumber(p, c, s, stack, 1);
+			this.myGoto(executor).setMeToNumber(p, s, stack, this.getFirstGoto());
 		}else if (gotoCache instanceof Integer){
-			this.myGoto(executor).setMeToNumber(p, c, s, stack, ((Integer) gotoCache));
+			this.myGoto(executor).setMeToNumber(p, s, stack, ((Integer) gotoCache));
 		}else if (gotoCache instanceof Register){
 			//this is deprecated, never use this
 			this.myGoto(executor).setMe(p, s, ((Register) gotoCache), VarType.INT);
 		} else {
 			throw new CompileError("MCPP::invalidargument McThread::truestart()");
 		}
-		this.wait(executor).setMeToNumber(p, c, s, stack, (Integer)0);
-		this.exit(executor).setMeToBoolean(p, c, s, stack, false);
+		this.wait(executor).setMeToNumber(p, s, stack, (Integer)0);
+		this.exit(executor).setMeToBoolean(p, s, stack, false);
 		isCompilingStart = true;
 		
 		if(!this.isSynchronized && this.hasLookup()) {
@@ -675,9 +769,9 @@ public class McThread {
 				if(this.isSynchronized) {
 					//remove all current executors
 					Selector old = this.getAllExecutors();
-					this.myGoto(old).setMeToNumber(p, c, s, stack, 0);
-					this.wait(old).setMeToNumber(p, c, s, stack, (Integer)0);
-					this.exit(old).setMeToBoolean(p, c, s, stack, false);
+					this.myGoto(old).setMeToNumber(p, s, stack, 0);
+					this.wait(old).setMeToNumber(p, s, stack, (Integer)0);
+					this.exit(old).setMeToBoolean(p, s, stack, false);
 					old.removeTag(p, this.getTag());
 					
 					me = me.limited(1);
@@ -713,7 +807,7 @@ public class McThread {
 		//if(me!=null )me.removeTag(p,McThread.TEMPTAG);
 	}
 	public void restart(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor) throws CompileError {
-		this.truestart(p, c, s, stack, executor,null,this.firstControl,false);
+		this.truestart(p, c, s, stack, executor,null,this.getFirstRunningControl(),false);
 	}
 	public void stop(PrintStream p,Compiler c,Scope s,RStack stack, Selector executor, boolean kill) throws CompileError {
 		if(!this.isSynchronized && this.hasLookup() && s.hasThread() && s.getThread() == this) {
@@ -722,9 +816,12 @@ public class McThread {
 		if((!this.isSynchronized && this.executeAs==null )|| kill) {
 			executor.kill(p);
 		}else {
-			this.myGoto(executor).setMeToNumber(p, c, s, stack, 0);
-			this.wait(executor).setMeToNumber(p, c, s, stack, (Integer)0);
+			this.myGoto(executor).setMeToNumber(p, s, stack, 0);
+			this.wait(executor).setMeToNumber(p, s, stack, (Integer)0);
 			if(executor!=null)executor.removeTag(p, this.getTag());
+			if(this.hasDeathblock()) {
+				this.getWasRunningFlag().setMeToBoolean(p, s, stack, false);
+			}
 		}
 	}
 	private ResourceLocation subpath(String suff) {
@@ -745,6 +842,7 @@ public class McThread {
 	public static final String STOP = "stop";
 	public static final String RESTART = "restart";
 	public static final String TICK = "tick";
+	public static final String EVERY_TICK = "tick_every";
 	public static final String PULL = "pull_vars";
 	public static final String PUSH = "push_vars";
 	private ResourceLocation pathStart(Integer block) {
@@ -772,6 +870,15 @@ public class McThread {
 	public ResourceLocation pathTick() {
 		return this.subpath(TICK);
 	}
+	public ResourceLocation pathEventTick() {
+		return this.subpath(EVERY_TICK);
+	}
+	public ResourceLocation pathBlockTick() {
+		return this.pathBlock(this.tickBlock);
+	}
+	public ResourceLocation pathDeath() {
+		return this.pathBlock(this.deathBlock);
+	}
 	
 	public ResourceLocation pathLookupPull() {
 		return this.subpath(PULL);
@@ -780,8 +887,9 @@ public class McThread {
 		return this.subpath(PUSH);
 	}
 	public void createSubsBlocks(Compiler c) throws CompileError {
-		
-		Scope start = new Scope(this.firstControl.getOuterScope(),this,START,false,this.firstControl.getBlockNumber());
+		ThreadStm firstRunningCtrl = getFirstRunningControl();
+		int firstBlockNum = firstRunningCtrl.getBlockNumber();
+		Scope start = new Scope(this.firstControl.getOuterScope(),this,START,false,firstBlockNum);
 		Selector self = this.truestartSelf();
 		start.addInheritedParameter(IS_THREADSELF, false);
 		//don't selfify unless starts are in execute as form
@@ -796,7 +904,7 @@ public class McThread {
 		}
 		start.closeFiles();
 		
-		Scope stop = new Scope(this.firstControl.getOuterScope(),this,STOP,false,this.firstControl.getBlockNumber());
+		Scope stop = new Scope(this.firstControl.getOuterScope(),this,STOP,false,firstBlockNum);
 		stop.addInheritedParameter(IS_THREADSELF, false);
 		try {
 			PrintStream p = stop.open(c.job);
@@ -809,7 +917,7 @@ public class McThread {
 		}
 		stop.closeFiles();
 		
-		Scope restart = new Scope(this.firstControl.getOuterScope(),this,RESTART,false,this.firstControl.getBlockNumber());
+		Scope restart = new Scope(this.firstControl.getOuterScope(),this,RESTART,false,firstBlockNum);
 		restart.addInheritedParameter(IS_THREADSELF, false);
 		try {
 			PrintStream p = restart.open(c.job);
@@ -821,7 +929,7 @@ public class McThread {
 			throw new CompileError("File not found for %s".formatted(restart.getSubRes().toString()));
 		}
 		restart.closeFiles();
-		Scope tick = new Scope(this.firstControl.getOuterScope(),this,TICK,false,this.firstControl.getBlockNumber());
+		Scope tick = new Scope(this.firstControl.getOuterScope(),this,TICK,false,firstBlockNum);
 		try {
 			PrintStream p = tick.open(c.job);
 			RStack stack = tick.getStackFor();
@@ -832,9 +940,23 @@ public class McThread {
 			throw new CompileError("File not found for %s".formatted(restart.getSubRes().toString()));
 		}
 		tick.closeFiles();
+		if(this.tickBlock!=null || this.deathBlock!=null) {
+			//do not generate this
+			Scope eventManage = new Scope(this.firstControl.getOuterScope(),this,EVERY_TICK,false,firstBlockNum);
+			try {
+				PrintStream p = eventManage.open(c.job);
+				RStack stack = eventManage.getStackFor();
+				this.tickManageEvery(p, c, eventManage,stack);
+				stack.clear();stack.finish(c.job);
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+				throw new CompileError("File not found for %s".formatted(restart.getSubRes().toString()));
+			}
+			eventManage.closeFiles();
+		}
 		
 		if (!this.isSynchronized && this.hasLookup()){
-			Scope pull = new Scope(this.firstControl.getOuterScope(),this,PULL,false,this.firstControl.getBlockNumber());
+			Scope pull = new Scope(this.firstControl.getOuterScope(),this,PULL,false,firstBlockNum);
 			pull.addInheritedParameter(IS_THREADSELF, true);
 			try {
 				PrintStream p = pull.open(c.job);
@@ -846,7 +968,7 @@ public class McThread {
 				throw new CompileError("File not found for %s".formatted(restart.getSubRes().toString()));
 			}
 			pull.closeFiles();
-			Scope push = new Scope(this.firstControl.getOuterScope(),this,PUSH,false,this.firstControl.getBlockNumber());
+			Scope push = new Scope(this.firstControl.getOuterScope(),this,PUSH,false,firstBlockNum);
 			push.addInheritedParameter(IS_THREADSELF, true);
 			try {
 				PrintStream p = push.open(c.job);
@@ -866,13 +988,20 @@ public class McThread {
 		String score = wait.scorePhrase();
 		p.printf("execute if score %s matches 1.. run scoreboard players remove %s 1\n",score,score);
 	}
-	public static void decrementDelay(PrintStream p) throws CompileError {
-		Variable wait = McThread.waitStatic(Selector.AT_S);
+	public static void decrementDelayEntity(PrintStream p) throws CompileError {
+		Variable wait = McThread.waitStaticEntity(Selector.AT_S);
 		String score = wait.scorePhrase();
 		p.printf("execute if score %s matches 1.. run scoreboard players remove %s 1\n",score,score);
 	}
 	public void executeTick(PrintStream p,CompileJob job,Namespace ns) {
 		//clock is handled before this
+		//as entity
+		if(this.tickBlock!=null | this.deathBlock!=null) {
+			p.printf("execute as @s[tag = %s] at @s run ",this.getTag());
+				this.pathEventTick().run(p);
+		}
+		//calls this threads tick function
+		//dont do it every tick unless that is actually needed
 		p.printf("execute as @s[tag = %s,scores = {%s = 0}] at @s run ",this.getTag(),McThread.OBJ_WAIT);
 			this.pathTick().run(p);
 	}
@@ -880,6 +1009,7 @@ public class McThread {
 		return this.isSynchronized && this.executeAs==null ;
 	}
 	public void tickManage(PrintStream p,Compiler c,Scope s,RStack stack) throws CompileError {
+		//is writen to threads tick block
 		//tag me so subscopes know how to flow properly
 		boolean isGlobal = this.isGlobal();
 		//String me = isGlobal? this.path.toString() : Selector.AT_S.toCMD();
@@ -889,11 +1019,30 @@ public class McThread {
 		Selector self = isGlobal? null : Selector.AT_S;
 		Variable gotov = this.myGoto(self);
 		Variable waitv = this.wait(self);
-		
+
 		for(int i=1;i<=this.numBlocks;i++) {
+			if(this.skipIndex(i)) continue;
 			p.printf("execute if score %s matches 0 if score %s matches %d run "
 					,waitv.scorePhrase(),gotov.scorePhrase(),i);
 				this.pathBlock(i).run(p);
+		}
+		
+		if(!isGlobal)p.printf("tag @s remove %s\n", McThread.TAG_CURRENT);
+	}
+	public void tickManageEvery(PrintStream p,Compiler c,Scope s,RStack stack) throws CompileError {
+		//is written to new manageEverTick
+		boolean isGlobal = this.isGlobal();
+		if(!isGlobal)p.printf("tag @s add %s\n", McThread.TAG_CURRENT);
+
+		if(!isGlobal && this.isSynchronized && this.deathBlock!=null) {
+			//executing as entity
+			//set death flag to false
+			Variable isDead = this.getIsDeadFlag();
+			isDead.setMeToBoolean(p, s, stack, false);//we are alive so set death to false
+		}
+		if(!isGlobal && this.isSynchronized && this.tickBlock!=null) {
+			//executing as entity with goto >=1
+			this.pathBlockTick().run(p);
 		}
 		
 		if(!isGlobal)p.printf("tag @s remove %s\n", McThread.TAG_CURRENT);
@@ -902,6 +1051,8 @@ public class McThread {
 		p.printf("scoreboard objectives add %s dummy\n", OBJ_GOTO);
 		p.printf("scoreboard objectives add %s dummy\n", OBJ_EXIT);
 		p.printf("scoreboard objectives add %s dummy\n", OBJ_WAIT);
+		p.printf("scoreboard objectives add %s dummy\n", OBJ_ISDEAD);
+		p.printf("scoreboard objectives add %s dummy\n", OBJ_WASRUNNING);
 		for(int i=1;i<=ns.maxThreadBreaks;i++) {
 			p.printf("scoreboard objectives add %s dummy\n", getObjBreak(i));
 		}
@@ -915,11 +1066,28 @@ public class McThread {
 			Variable block = self.myGoto((Selector)null);
 			Variable delay = self.wait((Selector)null);
 			ResourceLocation res = self.pathTick();
+			if(self.tickBlock!=null) {
+				//tick event synchronized
+				ResourceLocation res2 = self.pathBlockTick();
+				p.printf("execute if score %s matches 1.. run "
+						, block.scorePhrase());
+					res2.run(p);
+			}
 			p.printf("execute if score %s matches 1.. if score %s matches 0 run "
 					, block.scorePhrase(),delay.scorePhrase());
 				res.run(p);
 		}else {
 			hasAsync = true;
+		}
+		for(McThread self : ns.threads) if(self.isSynchronized && self.executeAs != null && self.deathBlock!=null) {
+			Variable isDead = self.getIsDeadFlag();
+			Variable wasrunning = self.getWasRunningFlag();
+			//TODO add another var for wasRunning, set to true on launch, set to false on stop or death
+			//only prime isDead if wasRunning
+			RStack stack = new RStack(new ResourceLocation(ns,"mcpp__tick__thread"));
+			p.printf("execute if score %s matches 1.. run " , wasrunning.scorePhrase());
+					isDead.setMeToBoolean(p, null, stack, true);//set it to true; then if nothing sets it back, we are dead
+			stack.clear();stack.finish(ns);
 		}
 		if(hasAsync) {
 			ns.addEntityTick();
@@ -928,12 +1096,20 @@ public class McThread {
 			//but this would cost 1 @e per tick
 			
 			p.printf("execute as @e[tag=!,scores = {%s = 1..}] at @s run ", McThread.OBJ_GOTO);
-				ns.getEntityTickFunction().run(p);
+					ns.getEntityTickFunction().run(p);
+		}
+
+		for(McThread self : ns.threads) if(self.isSynchronized && self.executeAs != null && self.deathBlock!=null) {
+			Variable isDead = self.getIsDeadFlag();//score
+			
+			p.printf("execute if score %s matches 1.. run ", isDead.scorePhrase());
+					self.pathDeath().run(p);
 		}
 		return true;
 	}
 	public static void onEntityTick(PrintStream p, CompileJob job,Namespace ns) throws CompileError {
-		McThread.decrementDelay(p);
+		McThread.decrementDelayEntity(p);
+		
 		for(McThread self : ns.threads) if(!(self.isSynchronized && self.executeAs == null)) {
 			self.executeTick(p, job, ns);
 		}

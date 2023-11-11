@@ -203,10 +203,10 @@ public class ForStm extends Statement implements Statement.CodeBlockOpener,State
 	public void compileMe(PrintStream p, Compiler c, Scope s) throws CompileError {
 		ResourceLocation mcf=this.mySubscope.getSubRes();
 		Variable mybreak=this.mySubscope.getBreakVarInMe(c);
-		mybreak.setMeToBoolean(p, c, s, mystack, false);
+		mybreak.setMeToBoolean(p, s, mystack, false);
 		if(this.newCounter)this.counter.allocateCall(p, false);
 		for(Number n:this.span) {
-			this.counter.setMeToNumber(p, c, s, mystack, n);
+			this.counter.setMeToNumber(p, s, mystack, n);
 			p.printf("execute unless %s run function %s\n", mybreak.isTrue(),mcf);
 		}
 		if(this.newCounter)this.counter.deallocateAfterCall(p);

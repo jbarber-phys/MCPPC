@@ -126,7 +126,7 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 		UnaryOp not = new UnaryOp(this.line,-3,UOType.NOT);
 		if(this.role==Keyword.IF) {
 			if(this.done ==null )this.done=this.mySubscope.getIfelseDoneVarExMe(c);
-			this.done.setMeToBoolean(p, c, s, mystack, false);
+			this.done.setMeToBoolean(p, s, mystack, false);
 		}else {
 			if(this.predicessor==null) throw new CompileError("flow statement %s has no preceding if statement;".formatted(this.role.name));
 			this.done=this.predicessor.done;

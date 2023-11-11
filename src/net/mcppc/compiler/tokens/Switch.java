@@ -144,8 +144,8 @@ public class Switch extends Statement implements MultiFlow,Statement.CodeBlockOp
 			VarType tp = this.switchEq.retype;
 			this.value = s.addLoopLocal("\"$value\"", tp, c);
 			this.switchEq.setVar(f, c, s, this.value);
-			this.breakv.setMeToBoolean(f, c, s, stack, false);
-			this.makeMatchFlag(c, s).setMeToBoolean(f, c, s, stack, false);
+			this.breakv.setMeToBoolean(f, s, stack, false);
+			this.makeMatchFlag(c, s).setMeToBoolean(f, s, stack, false);
 		}
 		Variable val = this.getValue(c, s);
 		VarType type = val.type;

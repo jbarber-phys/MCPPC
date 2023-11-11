@@ -61,7 +61,7 @@ public class While extends Statement implements Statement.CodeBlockOpener,Statem
 		RStack stack=mystack;
 		ResourceLocation mcf=this.mySubscope.getSubRes();
 		Variable mybreak=this.mySubscope.getBreakVarInMe(c);
-		mybreak.setMeToBoolean(p, c, s, stack, false);//on start only
+		mybreak.setMeToBoolean(p, s, stack, false);//on start only
 		this.test.compileOps(p, c, s, VarType.BOOL);
 		int ts=this.test.setReg(p, c, s, VarType.BOOL);
 		Register tr=stack.getRegister(ts);

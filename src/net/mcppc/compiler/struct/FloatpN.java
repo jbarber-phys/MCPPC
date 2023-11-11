@@ -306,9 +306,9 @@ public class FloatpN extends Struct {
 			Variable.directSet(p,s, val1, val2, stack);
 		}
 	}
-	public void setPrecision(PrintStream p,Compiler c,Scope s, Variable me,VarType type) throws CompileError {
+	public void setPrecision(PrintStream p,Scope s, Variable me,VarType type) throws CompileError {
 		Variable prec = this.varPrecision(me);
-		prec.setMeToNumber(p, c, s, s.getStackFor(), type.getPrecision(s));
+		prec.setMeToNumber(p, s, s.getStackFor(), type.getPrecision(s));
 	}
 	@Override
 	public boolean canMask(VarType mytype, Mask mask) {
@@ -372,9 +372,9 @@ public class FloatpN extends Struct {
 	}
 
 	@Override
-	public void setVarToNumber(PrintStream p, Compiler c, Scope s, RStack stack, Number val, Variable self)
+	public void setVarToNumber(PrintStream p, Scope s, RStack stack, Number val, Variable self)
 			throws CompileError {
-		this.varValue(self).setMeToNumber(p, c, s, stack, val);
+		this.varValue(self).setMeToNumber(p, s, stack, val);
 	}
 
 	@Override

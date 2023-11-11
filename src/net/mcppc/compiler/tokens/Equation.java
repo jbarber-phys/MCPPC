@@ -705,7 +705,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		}else if (in instanceof CommandToken) {
 			regnum=this.storeCMD(p, c, s, typeWanted, in);
 		}else if (in instanceof Const.ConstExprToken) {
-			this.printTree(System.err);
+			//this.printTree(System.err);
 			throw new CompileError.CannotStack((Const.ConstExprToken)in);
 		}
 		else {
@@ -1003,7 +1003,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		}else {
 			if (this.elements.size()==0)return ;//done
 			if(this.elements.size()>1) {
-				this.printTree(System.err);
+				//this.printTree(System.err);
 				throw new CompileError("eq mistaken for a does no ops eq.");
 			}
 			Token e=this.elements.get(0);
@@ -1052,9 +1052,9 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 				Variable from=((MemberName) e).var;
 				Variable.directSet(p,s, v, from, this.stack);
 			}else if(e instanceof Num) {
-				v.setMeToNumber(p, c, s, stack, ((Num)e).value);
+				v.setMeToNumber(p, s, stack, ((Num)e).value);
 			}else if(e instanceof Bool) {
-				v.setMeToBoolean(p, c, s, stack, ((Bool)e).val);
+				v.setMeToBoolean(p, s, stack, ((Bool)e).val);
 			}else if(e instanceof Function.FuncCallToken) {
 				((Function.FuncCallToken)e).getRet(p, c, s, v, stack);
 			}else if(e instanceof Const.ConstExprToken) {

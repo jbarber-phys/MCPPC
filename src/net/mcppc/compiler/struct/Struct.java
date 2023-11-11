@@ -340,9 +340,9 @@ public abstract class Struct {
 			throws CompileError{throw new CompileError.UnsupportedOperation( op, mytype);}
 	
 	
-	public void setVarToNumber(PrintStream p,Compiler c,Scope s, RStack stack,Number val,Variable self) throws CompileError {throw new CompileError.CannotSet(self.type, "number");}
+	public void setVarToNumber(PrintStream p,Scope s,RStack stack, Number val,Variable self) throws CompileError {throw new CompileError.CannotSet(self.type, "number");}
 	public void setRegistersToNumber(PrintStream p,Compiler c,Scope s, RStack stack,int home,Number val,VarType myType)throws CompileError {throw new CompileError.CannotSet(myType, "number");}
-	public void setVarToBool(PrintStream p,Compiler c,Scope s, RStack stack,boolean val,Variable self)throws CompileError{throw new CompileError.CannotSet(self.type, "bool");}
+	public void setVarToBool(PrintStream p,Scope s,RStack stack, boolean val,Variable self)throws CompileError{throw new CompileError.CannotSet(self.type, "bool");}
 	public void setRegistersToBool(PrintStream p,Compiler c,Scope s, RStack stack,int home,boolean val,VarType myType)throws CompileError{throw new CompileError.CannotSet(myType, "bool");}
 	
 

@@ -325,7 +325,7 @@ public class Bossbar extends Struct {
 		int value = (int)(num.doubleValue()*mult);
 		p.printf("bossbar set %s %s %d\n", this.getBossBarId(v),this.getBossBarField(v),value);
 	}
-	public void setVarToNumber(PrintStream p,Compiler c,Scope s, RStack stack,Number val,Variable self) throws CompileError {
+	public void setVarToNumber(PrintStream p,Scope s,RStack stack, Number val,Variable self) throws CompileError {
 		int pc = this.getPrecision(self.type, s);
 		double mult = Math.pow(10, pc);
 		int value = (int)(val.doubleValue()*mult);

@@ -372,7 +372,7 @@ public class NbtCollection extends Struct {
 		@Override
 		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 			Variable self = token.getThisBound();
-			self.setMeToNbtValueBasic(p, c, s, stack, DEFAULT_LIST);
+			self.setMeToNbtValueBasic(p, s, stack, DEFAULT_LIST);
 		}
 
 		@Override

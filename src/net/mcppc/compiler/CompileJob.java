@@ -33,10 +33,8 @@ import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.tokens.Import;
 
 
-/*list of language edition TODO ::
- * addd a lock struct, allow disabling
- * 		
- * add thread entity death handling mechanism (for synchronized as(...) threads only); have it follow an end statement
+/*list of language editions TODO ::
+ * 
  * add mass particle functions for shapes: line, sphere, cylinder, ring; 
  * 			for sphere: see https://en.wikipedia.org/wiki/Geodesic_polyhedron
  * improve printf, add format functions for: color,formatting, click events
@@ -48,8 +46,10 @@ import net.mcppc.compiler.tokens.Import;
  * add java edition targeting : Version -> format ID; Target -> min version AND max version;
  * incorperate new 1.20.3 commands: return, tick, random;
  * add true return / breaks (optional); use return # to give the depth to return back to, and if retype = int / bool / long: do a /return as well as $return
- * 
+ * VERSION NOTES: see /return version changes for lots of details: added at 15, 18 removed run, 19 re-added run and fail
  * far future:
+ * add locks: invar -> outvar :: -> flag;
+ * * if in a thread will not be ticked unless thread is running
  * add true-classes: warning, may involve heavy reworking of the compiler
  * add documentation and maybe put test code in the repo
  */
@@ -179,6 +179,10 @@ public class CompileJob {
 
 		public ResourceLocation getEntityTickFunction() {
 			return new ResourceLocation(this,"mcpp__tick_entities");
+		}
+		public ResourceLocation getEntityEveryTickFunction() {
+			//runs even while waiting
+			return new ResourceLocation(this,"mcpp__tick_entities_every");
 		}
 		public void fillMaxRegisters(int i) {
 			this.maxNumRegisters=Math.max(this.maxNumRegisters, i);
@@ -804,6 +808,7 @@ public class CompileJob {
 		for(Namespace ns: this.namespaces.values()) if(this.willTick(ns)){
 			if((!ns.isExternal) && ns.srcFilesRel.size()==0)continue;//skip
 			ResourceLocation mcf=ns.getTickFunction();
+			//TODO add death tester
 			String mcfname = mcf.toString();
 			Path load=this.pathForMcf(mcf);
 			PrintStreamLineCounting p=null;
@@ -820,6 +825,7 @@ public class CompileJob {
 					p.close();
 					p.announceLines(mcf.toString());
 					ResourceLocation mcf2 = ns.getEntityTickFunction();
+					//TODO every-tick function if exist
 					mcfname = mcf2.toString();
 					load=this.pathForMcf(mcf2);
 					f=load.toFile();

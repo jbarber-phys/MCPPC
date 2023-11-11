@@ -612,11 +612,11 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		
 		}
 	}
-	public void setMeToNumber(PrintStream p,Compiler c,Scope s, RStack stack,Number value) throws CompileError {
+	public void setMeToNumber(PrintStream p,Scope s,RStack stack, Number value) throws CompileError {
 		if(!this.type.isNumeric()) throw new CompileError("cannot set variable %s to a number value %s;"
 				.formatted(this.toHeader(),value));
 		if(this.type.isStruct()) {
-			this.type.struct.setVarToNumber(p, c, s, stack, value,this);
+			this.type.struct.setVarToNumber(p, s, stack, value, this);
 		} else {
 			//enforce type
 			if(this.pointsTo == Mask.SCORE) {
@@ -629,11 +629,11 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 			}
 		}
 	}
-	public void setMeToBoolean(PrintStream p,Compiler c,Scope s, RStack stack,boolean value) throws CompileError {
+	public void setMeToBoolean(PrintStream p,Scope s,RStack stack, boolean value) throws CompileError {
 		if(this.type.isNumeric()) throw new CompileError("cannot set variable %s to a boolean value %s;"
 				.formatted(this.toHeader(),value));
 		if(this.type.isStruct()) {
-			this.type.struct.setVarToBool(p, c, s, stack, value,this);
+			this.type.struct.setVarToBool(p, s, stack, value, this);
 		}else {
 			if(this.pointsTo == Mask.SCORE) {
 				int pcs = this.type.getPrecision(s);
@@ -644,7 +644,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 			}
 		}
 	}
-	public void setMeToNbtValueBasic(PrintStream p,Compiler c,Scope s, RStack stack,String value) throws CompileError {
+	public void setMeToNbtValueBasic(PrintStream p,Scope s,RStack stack, String value) throws CompileError {
 		if(this.getMaskType() != Mask.STORAGE) throw new CompileError("cannot set nbt value of a score variable %s;".formatted(this.name));
 		p.printf("data modify %s set value %s\n", this.dataPhrase(),value);
 	}
@@ -793,9 +793,9 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		if(this.type.isStruct()) {
 			this.type.struct.setMeToExpr(p, stack, this, e);
 		}else if (e instanceof Bool) {
-			this.setMeToBoolean(p, null, null, stack, ((Bool)e).val);
+			this.setMeToBoolean(p, null, stack, ((Bool)e).val);
 		}else if (e instanceof Num) {
-			this.setMeToNumber(p, null, null, stack, ((Num)e).value);
+			this.setMeToNumber(p, null, stack, ((Num)e).value);
 		}
 		
 	}
