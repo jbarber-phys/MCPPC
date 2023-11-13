@@ -84,7 +84,7 @@ public class FunctionMask extends BuiltinFunction {
 	}
 
 	@Override
-	public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+	public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 			throws CompileError {
 		throw new CompileError("unwanted call to FunctionMask");
 

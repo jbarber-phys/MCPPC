@@ -104,7 +104,7 @@ public class PrintF extends BuiltinFunction{
 		return VarType.VOID;
 	}
 	@Override
-	public void getRet(PrintStream p, Compiler c, Scope s,  BFCallToken token, RStack stack, int stackstart) throws CompileError{
+	public void getRet(PrintStream p, Compiler c, Scope s,  BFCallToken token, RStack stack, int stackstart, VarType typeWanted) throws CompileError{
 		throw new CompileError.UnsupportedCast( this.getRetType(token),stack.getVarType(stackstart));
 	}
 	@Override
@@ -200,7 +200,7 @@ public class PrintF extends BuiltinFunction{
 					//anon vars must think they are being loaded
 					if(anon.willAllocateOnLoad(false))anon.allocateLoad(p, false);
 					eq.setVar(p, c, s, anon);
-					if(eq.retype.isLogical()) {
+					if(eq.retype.isLogical() && !eq.retype.isNumeric()) {
 						convertBoolToStr(p,anon,s,stack);
 					}
 					jsonargs.add(anon.getJsonText());
@@ -226,7 +226,7 @@ public class PrintF extends BuiltinFunction{
 		//p.printf("execute unless %s run data modify %s set value \"false\"\n", var.matchesPhrase("\"true\""),var.dataPhrase());
 		//return;
 		int h=stack.reserve(1);
-		var.getMe(p, s, stack, h);
+		var.getMe(p, s, stack, h, VarType.BOOL);
 		Register r=stack.getRegister(h);
 		p.printf("execute if score %s matches 1.. run data modify %s set value \"true\"\n", r.inCMD(),var.dataPhrase());
 		p.printf("execute unless score %s matches 1.. run data modify %s set value \"false\"\n", r.inCMD(),var.dataPhrase());

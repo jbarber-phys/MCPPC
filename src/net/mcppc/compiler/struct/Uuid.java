@@ -47,7 +47,7 @@ public class Uuid extends Struct {
 	}
 	@Override
 	public String getNBTTagType(VarType varType) {
-		return "tag_list";
+		return VarType.Builtin.NBT_LIST;
 	}
 
 	@Override
@@ -79,7 +79,7 @@ public class Uuid extends Struct {
 	}
 
 	@Override
-	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me) throws CompileError {
+	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me, VarType typeWanted) throws CompileError {
 		throw new CompileError.CannotStack(me.type);
 
 	}
@@ -150,11 +150,11 @@ public class Uuid extends Struct {
 		@Override public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 			// do nothing here
 		}
-		@Override public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		@Override public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 			Variable self = token.getThisBound();
 			Variable smallest = ((Uuid) self.type.struct).getComponent(self, 3);
-			smallest.getMe(p, s, stack, stackstart);
+			smallest.getMe(p, s, stack, stackstart, typeWanted);
 		}
 		@Override public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
 				throws CompileError {

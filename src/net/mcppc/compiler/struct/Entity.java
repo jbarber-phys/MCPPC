@@ -132,7 +132,7 @@ public class Entity extends Struct {
 	}
 
 	@Override
-	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me) throws CompileError {
+	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me, VarType typeWanted) throws CompileError {
 		throw new CompileError.CannotStack(me.type);
 
 	}
@@ -164,7 +164,7 @@ public class Entity extends Struct {
 	@Override public boolean canSetToExpr(ConstExprToken e) {
 		return e.constType()==ConstType.SELECTOR;
 	}
-	@Override public void setMeToExpr(PrintStream p,RStack stack,Variable self, ConstExprToken e) throws CompileError {
+	@Override public void setMeToExpr(PrintStream p,Scope s,RStack stack, Variable self, ConstExprToken e) throws CompileError {
 		if(e.constType()!=ConstType.SELECTOR)throw new CompileError.UnsupportedCast(e, self.type);
 		Selector.SelectorToken t = (SelectorToken) e;
 		this.clear(p, self);
@@ -397,7 +397,7 @@ public class Entity extends Struct {
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 			
 		}
@@ -443,7 +443,7 @@ public class Entity extends Struct {
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 		}
 
@@ -494,7 +494,7 @@ public class Entity extends Struct {
 		 * the last bit acts as a testfor statement
 		 */
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 			Variable self=token.getThisBound();
 			if(self==null)throw new CompileError("function %s must be called as a nonstaic member".formatted(this.name));
@@ -559,7 +559,7 @@ public class Entity extends Struct {
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 		}
 

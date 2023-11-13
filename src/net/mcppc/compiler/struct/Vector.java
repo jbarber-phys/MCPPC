@@ -118,7 +118,7 @@ public class Vector extends Struct {
 	@Override
 	public String getNBTTagType(VarType varType) {
 		//should be unused
-		return "tag_list";//?
+		return VarType.Builtin.NBT_LIST;//?
 	}
 	
 	public boolean canMask(VarType mytype, Mask mask) {
@@ -285,11 +285,11 @@ public class Vector extends Struct {
 		//stack.debugOut(System.err);
 	}
 	@Override
-	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me) throws CompileError {
+	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me, VarType typeWanted) throws CompileError {
 		for(int j=0;j<DIM;j++) {
 			Variable cpn=this.getComponent(me, j);
 			int hj=home+j*cpn.type.sizeOf();
-			cpn.getMe(p,s, stack, hj);
+			cpn.getMe(p,s, stack, hj, typeWanted);
 		}
 		//stack.runtimeOutShow(p, home, home+2,PrintF.stderr);
 		stack.setVarType(home, me.type);
@@ -721,10 +721,10 @@ public class Vector extends Struct {
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 			Variable obj=this.newobj(c,token);
-			obj.getMe(p,s, stack, stackstart);
+			obj.getMe(p,s, stack, stackstart, typeWanted);
 		}
 
 		@Override

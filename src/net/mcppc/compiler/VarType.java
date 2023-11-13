@@ -52,6 +52,10 @@ public class VarType {
 		STRUCT("struct",false,false,false,true,false),
 		
 		VOID("void",false,false,false,false,true);
+
+		public static final String NBT_STRING = "string";
+		public static final String NBT_LIST = "list";
+		public static final String NBT_COMPOUND = "compound";
 		public boolean isNumber;
 		public boolean isFloatP;
 		public boolean isLogical;
@@ -81,6 +85,12 @@ public class VarType {
 		public String getTagType() throws CompileError {
 			if (this.isStruct)throw new CompileError("Struct cannot be set directly to tag");
 			if (this.isVoid)throw new CompileError("void cannot be set to tag");
+			if (this==BOOL)return BYTE.typename;
+			else return this.typename;
+		}
+		public String getTagTypeSafe() {
+			if (this.isStruct)return null;
+			if (this.isVoid)return null;
 			if (this==BOOL)return BYTE.typename;
 			else return this.typename;
 		}
@@ -259,8 +269,8 @@ public class VarType {
 		if(this.isStruct())return this.struct.getNBTTagType(this);
 		else return this.type.getTagType();
 	}
-	public VarType onStack() {
-		if(this.isStruct()) return this.struct.getTypeOnStack(this);
+	public VarType onStack(VarType typeWanted) {
+		if(this.isStruct()) return this.struct.getTypeOnStack(this, typeWanted);
 		else return this;
 	}
 	public static boolean isType(String type) {
@@ -377,6 +387,16 @@ public class VarType {
 			b=isFloat?VarType.Builtin.DOUBLE:VarType.Builtin.INT;
 		}
 		return b;
+	}
+	public static VarType fromNumber(Number num) {
+		if(num instanceof Byte) return VarType.BYTE;
+		if(num instanceof Short) return VarType.SHORT;
+		if(num instanceof Integer) return VarType.INT;
+		if(num instanceof Long) return VarType.LONG;
+		if(num instanceof Float) return VarType.FLOAT;
+		if(num instanceof Double) return VarType.DOUBLE;
+		return VarType.VOID;//null
+		
 	}
 	public String defaultValue() throws CompileError{
 		if(this.isStruct())return this.struct.getDefaultValue(this);

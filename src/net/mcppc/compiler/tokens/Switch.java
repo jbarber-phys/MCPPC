@@ -160,7 +160,7 @@ public class Switch extends Statement implements MultiFlow,Statement.CodeBlockOp
 			Variable doflag = this.makeMatchFlag(c, s);
 			
 			int dor = stack.setNext(doflag.type);
-			doflag.getMe(f, s,stack, dor);
+			doflag.getMe(f, s,stack, dor, doflag.type);
 			BiOperator op = new BiOperator(this.line, -1, BiOperator.OpType.EQ);
 			BiOperator or = new BiOperator(this.line, -3, BiOperator.OpType.OR);
 			BiOperator and = new BiOperator(this.line, -4, BiOperator.OpType.AND);
@@ -181,7 +181,7 @@ public class Switch extends Statement implements MultiFlow,Statement.CodeBlockOp
 				
 			}
 			int br = stack.setNext(this.breakv.type);
-			this.breakv.getMe(f, s, stack, br);
+			this.breakv.getMe(f, s, stack, br, this.breakv.type);
 			not.perform(f, c, s, stack, br);
 			and.perform(f, c, s, stack, dor, br);
 			doflag.setMe(f, s, stack, dor);

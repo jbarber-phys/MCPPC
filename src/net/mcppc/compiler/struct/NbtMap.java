@@ -70,7 +70,7 @@ public class NbtMap extends Struct {
 
 	@Override
 	public String getNBTTagType(VarType varType) {
-		return "tag_list";
+		return VarType.Builtin.NBT_LIST;
 	}
 
 	@Override
@@ -127,7 +127,7 @@ public class NbtMap extends Struct {
 		}else return false;
 	}
 	@Override
-	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me) throws CompileError {
+	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me, VarType typeWanted) throws CompileError {
 		throw new CompileError.CannotStack(me.type);
 
 	}
@@ -137,7 +137,7 @@ public class NbtMap extends Struct {
 		throw new CompileError.CannotStack(me.type);
 	}
 	private static VarType getNbtCompoundType() {
-		return new VarType(TagCompound.tag,new StructTypeParams.Blank());
+		return new VarType(NbtCompound.tag,new StructTypeParams.Blank());
 	}
 	@Override
 	public void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
@@ -184,9 +184,9 @@ public class NbtMap extends Struct {
 		return false; // no map const yet
 	}
 	@Override
-	public void setMeToExpr(PrintStream p, RStack stack, Variable me, ConstExprToken e) throws CompileError {
+	public void setMeToExpr(PrintStream p, Scope s, RStack stack, Variable me, ConstExprToken e) throws CompileError {
 		// no list consts yet
-		super.setMeToExpr(p, stack, me, e);
+		super.setMeToExpr(p, s, stack, me, e);
 	}
 	@Override
 	public boolean hasField(Variable self, String name) {
@@ -347,7 +347,7 @@ public class NbtMap extends Struct {
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 			//TODO allow ret value (bool) and allow optional arg for ref-value removed / old value
 		}
@@ -408,11 +408,11 @@ public class NbtMap extends Struct {
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 			VarType valuetype = NbtMap.myValueType(token.getThisBound().type);
 			Variable value = this.entrybuff.fieldMyNBTPath(VALUE, valuetype);
-			value.getMe(p, s, stack, stackstart);
+			value.getMe(p, s, stack, stackstart, typeWanted);
 		}
 
 		@Override
@@ -472,7 +472,7 @@ public class NbtMap extends Struct {
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 			Loop loop = Loop.loop(Loop.HAS);
 			Register reg = loop.getHasFlag();
@@ -642,11 +642,11 @@ public class NbtMap extends Struct {
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 			//will throw
 			Variable obj=this.newobj(c,token);
-			obj.getMe(p,s, stack, stackstart);
+			obj.getMe(p,s, stack, stackstart, typeWanted);
 		}
 
 		@Override
@@ -677,7 +677,7 @@ public class NbtMap extends Struct {
 		
 		public ThreadUuidLookupTable(McThread thread) throws CompileError {
 			String holder = thread.getStoragePath();
-			VarType compound = TagCompound.TAG_COMPOUND;
+			VarType compound = NbtCompound.TAG_COMPOUND;
 			VarType uuid = Uuid.uuid.getType();
 			VarType lookupType = map.mapOf(uuid, compound);
 			this.lookupTable = new Variable("$lookup",lookupType,null,Mask.STORAGE, holder,"\"$lookup\"");
@@ -737,7 +737,7 @@ public class NbtMap extends Struct {
 		}
 		public void initMyVars(Compiler c,Scope s,PrintStream p,RStack stack) throws CompileError {
 
-			VarType compound = TagCompound.TAG_COMPOUND;
+			VarType compound = NbtCompound.TAG_COMPOUND;
 			VarType uuid = Uuid.uuid.getType();
 			Variable truestartUuid = new Variable("$uuidstart",uuid,null,thread.getBasePath());
 			thread.thisNbtTruestart(truestartUuid, NbtPath.UUID);

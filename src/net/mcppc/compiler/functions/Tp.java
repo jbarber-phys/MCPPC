@@ -144,7 +144,7 @@ public class Tp extends BuiltinFunction{
 	}
 
 	@Override
-	public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+	public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 			throws CompileError {
 		
 	}

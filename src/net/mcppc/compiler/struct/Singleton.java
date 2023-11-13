@@ -75,7 +75,7 @@ public class Singleton extends Struct {
 	}
 
 	@Override
-	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me) throws CompileError {
+	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me, VarType typeWanted) throws CompileError {
 		throw new NoSingletonInstance(this);
 	}
 

@@ -60,7 +60,7 @@ public class FloatpN extends Struct {
 
 	@Override
 	public String getNBTTagType(VarType varType) {
-		return "tag_compound";
+		return VarType.Builtin.NBT_COMPOUND;
 	}
 
 	@Override
@@ -149,12 +149,12 @@ public class FloatpN extends Struct {
 		RuntimeError.printf(p, prefix, "unexpected precision outside %s..%s".formatted(this.MINPRECISION,this.MAXPRECISION));
 	}
 	@Override
-	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me) throws CompileError {
+	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me, VarType typeWanted) throws CompileError {
 		// inline currently
 		Variable val=this.varValue(me);
 		Variable prc=this.varPrecision(me);
 		//val.getMe(p,stack,home);
-		prc.getMe(p,s, stack, home+1);
+		prc.getMe(p,s, stack, home+1, typeWanted);
 		Register pcr=stack.getRegister(home+1);
 		Register out=stack.getRegister(home);
 		this.getMyVal(p, val, pcr, out);
@@ -282,7 +282,7 @@ public class FloatpN extends Struct {
 			Variable inval=this.varValue(me);
 			int ph=stack.reserve(1);
 			Register pcr=stack.getRegister(ph);
-			prec.getMe(p,s, stack, ph);
+			prec.getMe(p,s, stack, ph, to.type);
 			this.getMyValDirect(p, inval, pcr, to);
 		}
 	}
@@ -390,8 +390,8 @@ public class FloatpN extends Struct {
 	}
 
 	@Override
-	public void setMeToExpr(PrintStream p, RStack stack, Variable me, ConstExprToken e) throws CompileError {
-		this.varValue(me).setMeToExpr(p, stack, e);
+	public void setMeToExpr(PrintStream p, Scope s, RStack stack, Variable me, ConstExprToken e) throws CompileError {
+		this.varValue(me).setMeToExpr(p, s, stack, e);
 	}
 
 	@Override

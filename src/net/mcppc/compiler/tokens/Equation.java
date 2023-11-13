@@ -704,7 +704,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			VarType type = ((MemberName) in).var.type;
 			
 			regnum=stack.setNext(type);
-			((MemberName) in).var.getMe(p,s, stack,regnum);
+			((MemberName) in).var.getMe(p,s, stack,regnum, typeWanted);
 			this.stack.estmiate(regnum, ((MemberName) in).estimate);
 		}else if (in instanceof Num) {
 			regnum=stack.setNext(((Num) in).type);
@@ -720,7 +720,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			
 			regnum=stack.setNext(type);
 			((Function.FuncCallToken) in).call(p, c, s, stack);
-			((Function.FuncCallToken) in).getRet(p, c, s, this.stack,regnum);
+			((Function.FuncCallToken) in).getRet(p, c, s, this.stack,regnum, typeWanted);
 			this.stack.estmiate(regnum, ((Function.FuncCallToken) in).getEstimate());
 		}else if (in instanceof BuiltinFunction.BFCallToken) {
 			//if(((BuiltinFunction.BFCallToken) in).getBF() instanceof BuiltinConstructor)this.printStatementTree(System.err, 0);
@@ -728,7 +728,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			
 			regnum=stack.setNext(type);
 			((BuiltinFunction.BFCallToken) in).call(p, c, s, stack);
-			((BuiltinFunction.BFCallToken) in).getRet(p, c, s, stack,regnum);
+			((BuiltinFunction.BFCallToken) in).getRet(p, c, s, stack,regnum, typeWanted);
 			this.stack.estmiate(regnum, ((BuiltinFunction.BFCallToken) in).getEstimate());
 		}else if (in instanceof CommandToken) {
 			regnum=this.storeCMD(p, c, s, typeWanted, in);
@@ -1088,7 +1088,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			}else if(e instanceof Const.ConstExprToken) {
 				
 				if(v.canSetToExpr((Const.ConstExprToken)e)) {
-					v.setMeToExpr(p,this.stack,(Const.ConstExprToken)e);
+					v.setMeToExpr(p,s,this.stack, (Const.ConstExprToken)e);
 				}else throw new CompileError.UnsupportedCast((Const.ConstExprToken)e, v.type);
 			}
 			else if(e instanceof BuiltinFunction.BFCallToken) {
@@ -1108,15 +1108,15 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			Token e=this.elements.get(0);
 			if(e instanceof MemberName) {
 				Variable from=((MemberName) e).var;
-				from.getMe(p,s, stack, this.homeReg);
+				from.getMe(p,s, stack, this.homeReg, typeWanted);
 			}else if(e instanceof Num) {
 				stack.getRegister(this.homeReg).setValue(p,s, ((Num)e).value, ((Num)e).type);
 			}else if(e instanceof Bool) {
 				stack.getRegister(this.homeReg).setValue(p, ((Bool)e).val);
 			}else if(e instanceof Function.FuncCallToken) {
-				((Function.FuncCallToken)e).getRet(p, c, s, stack, this.homeReg);
+				((Function.FuncCallToken)e).getRet(p, c, s, stack, this.homeReg, typeWanted);
 			} else if(e instanceof BuiltinFunction.BFCallToken) {
-				((BuiltinFunction.BFCallToken)e).getRet(p, c, s, stack, this.homeReg);
+				((BuiltinFunction.BFCallToken)e).getRet(p, c, s, stack, this.homeReg, typeWanted);
 			}else if (e instanceof Const.ConstExprToken) {
 				throw new CompileError.CannotStack((Const.ConstExprToken)e);
 			}

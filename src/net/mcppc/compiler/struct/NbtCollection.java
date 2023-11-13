@@ -91,7 +91,7 @@ public class NbtCollection extends Struct {
 
 	@Override
 	public String getNBTTagType(VarType varType) {
-		return "tag_list";
+		return VarType.Builtin.NBT_LIST;
 	}
 
 	@Override
@@ -142,7 +142,7 @@ public class NbtCollection extends Struct {
 		}else return false;
 	}
 	@Override
-	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me) throws CompileError {
+	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me, VarType typeWanted) throws CompileError {
 		throw new CompileError.CannotStack(me.type);
 
 	}
@@ -204,9 +204,9 @@ public class NbtCollection extends Struct {
 		return false; // no list const yet
 	}
 	@Override
-	public void setMeToExpr(PrintStream p, RStack stack, Variable me, ConstExprToken e) throws CompileError {
+	public void setMeToExpr(PrintStream p, Scope s, RStack stack, Variable me, ConstExprToken e) throws CompileError {
 		// no list consts yet
-		super.setMeToExpr(p, stack, me, e);
+		super.setMeToExpr(p, s, stack, me, e);
 	}
 	@Override
 	public boolean hasField(Variable self, String name) {
@@ -285,7 +285,7 @@ public class NbtCollection extends Struct {
 			NbtCollection.endpend(p, c, s, stack, self, eq, this.pend);
 		}
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 			//
 			
@@ -323,7 +323,7 @@ public class NbtCollection extends Struct {
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 			Variable start = token.getThisBound().indexMyNBTPath(0);
 			start.getMe(p, s, stack.getRegister(stackstart));
@@ -376,7 +376,7 @@ public class NbtCollection extends Struct {
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 			
 		}
@@ -434,11 +434,11 @@ public class NbtCollection extends Struct {
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 			//will throw
 			Variable obj=this.newobj(c,token);
-			obj.getMe(p,s, stack, stackstart);
+			obj.getMe(p,s, stack, stackstart, typeWanted);
 		}
 
 		@Override

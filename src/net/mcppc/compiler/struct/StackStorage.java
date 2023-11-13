@@ -25,7 +25,7 @@ public class StackStorage extends Struct implements Struct.IInternalOnly {
 
 	@Override
 	public String getNBTTagType(VarType varType) {
-		return "TAG_List";
+		return VarType.Builtin.NBT_LIST;
 	}
 
 	@Override
@@ -89,7 +89,7 @@ public class StackStorage extends Struct implements Struct.IInternalOnly {
 	}
 
 	@Override
-	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me) throws CompileError {
+	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me, VarType typeWanted) throws CompileError {
 		throw new CompileError.CannotStack(me.type);
 	}
 

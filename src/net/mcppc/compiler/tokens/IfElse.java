@@ -134,7 +134,7 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 		Register rdo;
 		if(this.role!=Keyword.ELSE) {
 			int home1=this.mystack.setNext(VarType.BOOL);
-			this.done.getMe(p,s, mystack, home1);
+			this.done.getMe(p,s, mystack, home1, VarType.BOOL);
 			this.test.compileOps(p, c, s, VarType.BOOL);
 			int home2=this.test.setReg(p, c, s, VarType.BOOL);
 			this.mystack.castRegister(p,s, home2, VarType.BOOL);
@@ -151,7 +151,7 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 			this.done.setMe(p,s, mystack, home1);
 		}else {
 			int home1=this.mystack.setNext(VarType.BOOL);
-			this.done.getMe(p,s, mystack, home1);
+			this.done.getMe(p,s, mystack, home1, VarType.BOOL);
 			not.perform(p, c, s, mystack, home1);
 			this.done.setMe(p,s, mystack, home1);
 			rdo=this.mystack.getRegister(home1);

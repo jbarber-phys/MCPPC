@@ -109,7 +109,7 @@ public class RStack {
 	public void castRegister(PrintStream p,Scope s,int index,VarType newType) throws CompileError {
 		VarType oldType=this.getVarType(index);
 		this.castRegisterValue(p,s, index, oldType, newType);
-		this.setVarType(index, newType);
+		this.setVarType(index, newType);//always do the cast
 		//this.vartypes.put(index, newType);
 	}
 	private void castRegisterValue(PrintStream p,Scope s,int index,VarType oldType,VarType newType) throws CompileError {
@@ -124,7 +124,7 @@ public class RStack {
 			if(newType.isStruct() && newType.struct.canCasteFrom(oldType,newType))
 				newType.struct.castRegistersFrom(p, s, this, index, oldType, newType);
 			else if(oldType.isStruct()  && oldType.struct.canCasteTo(newType,oldType))
-				newType.struct.castRegistersTo(p,  s, this, index, newType, oldType);
+				oldType.struct.castRegistersTo(p,  s, this, index, newType, oldType);
 			else throw new CompileError.UnsupportedCast(newType, oldType);
 			if(newSize<oldSize) {
 				//shrink

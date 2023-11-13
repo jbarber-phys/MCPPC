@@ -59,7 +59,7 @@ public class Bossbar extends Struct {
 
 	@Override
 	public String getNBTTagType(VarType varType) {
-		return "int";
+		return VarType.Builtin.INT.getTagTypeSafe();
 	}
 
 	public boolean canMask(VarType mytype, Mask mask) {
@@ -159,7 +159,7 @@ public class Bossbar extends Struct {
 		stack.castRegister(p, s, start, mytype);
 	}
 	//convert self to a float if put on the stack
-	@Override public VarType getTypeOnStack(VarType mytype) {
+	@Override public VarType getTypeOnStack(VarType mytype, VarType typeWanted) {
 		return this.floatify(mytype);
 	}
 	/*
@@ -192,7 +192,7 @@ public class Bossbar extends Struct {
 	}
 	
 	@Override
-	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me) throws CompileError {
+	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me, VarType typeWanted) throws CompileError {
 		String bid = this.getBossBarId(me);
 		String subvar = this.getBossBarField(me);
 		Register reg = stack.getRegister(home);
@@ -318,7 +318,7 @@ public class Bossbar extends Struct {
 	@Override public boolean canSetToExpr(ConstExprToken e) {
 		return e.constType()==ConstType.NUM;
 	}
-	@Override public void setMeToExpr(PrintStream p,RStack stack,Variable v,ConstExprToken t) throws CompileError {
+	@Override public void setMeToExpr(PrintStream p,Scope s,RStack stack,Variable v, ConstExprToken t) throws CompileError {
 		Number num = ((Num)t).value;
 		int pc = this.getPrecision(v.type, null);
 		double mult = Math.pow(10, pc);
@@ -472,7 +472,7 @@ public class Bossbar extends Struct {
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {}
 
 		@Override public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
@@ -526,7 +526,7 @@ public class Bossbar extends Struct {
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 		}
 

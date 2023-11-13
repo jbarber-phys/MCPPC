@@ -38,7 +38,7 @@ public class Str extends Struct{
 	}
 	@Override
 	public String getNBTTagType(VarType varType) {
-		return "tag_string";
+		return VarType.Builtin.NBT_STRING;
 	}
 	@Override
 	public int getPrecision(VarType mytype, Scope s) throws CompileError {
@@ -58,7 +58,7 @@ public class Str extends Struct{
 		return -1;//cannot stack
 	}
 	@Override
-	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me) throws CompileError {
+	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me, VarType typeWanted) throws CompileError {
 		throw new CompileError.CannotStack(me.type);
 	}
 	@Override
@@ -105,7 +105,7 @@ public class Str extends Struct{
 		return e.constType()==ConstType.STRLIT;
 	}
 	@Override
-	public void setMeToExpr(PrintStream p, RStack stack, Variable me, ConstExprToken e) throws CompileError {
+	public void setMeToExpr(PrintStream p, Scope s, RStack stack, Variable me, ConstExprToken e) throws CompileError {
 		p.printf("data modify %s set value %s\n",me.dataPhrase(), ((Token.StringToken)e).literal());
 	}
 	@Override

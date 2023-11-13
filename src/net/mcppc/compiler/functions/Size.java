@@ -31,7 +31,7 @@ public class Size extends BuiltinFunction{
 	}
 
 	@Override
-	public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+	public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 			throws CompileError {
 		
 		Size.lengthOf(p,  stack.getRegister(stackstart), token.getThisBound());
@@ -68,9 +68,9 @@ public class Size extends BuiltinFunction{
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
-			super.getRet(p, c, s, token, stack, stackstart);
+			super.getRet(p, c, s, token, stack, stackstart, typeWanted);
 			stack.getRegister(stackstart).capValue(p, 1);
 		}
 
@@ -78,7 +78,7 @@ public class Size extends BuiltinFunction{
 		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
 				throws CompileError {
 			int home = stack.reserve(1);
-			this.getRet(p, c, s, token, stack, home);
+			this.getRet(p, c, s, token, stack, home, VarType.BOOL);
 			v.setMe(p, s, stack.getRegister(home), this.getRetType(token));
 		}
 		

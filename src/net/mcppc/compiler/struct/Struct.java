@@ -10,6 +10,7 @@ import net.mcppc.compiler.*;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.Const.ConstExprToken;
+import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.CompileError.UnsupportedCast;
@@ -59,8 +60,8 @@ public abstract class Struct {
 		NbtMap.registerAll();
 		Uuid.registerAll();
 		Bossbar.registerAll();
-		TagCompound.registerAll();
-		
+		NbtCompound.registerAll();
+		NbtObject.registerAll();
 		
 		Singleton.registerAll();
 	}
@@ -202,14 +203,23 @@ public abstract class Struct {
 	public boolean isDataEquivalent(VarType type) {
 		return !this.isConstEquivalent(type);
 	}
+	
 	public void castRegistersFrom(PrintStream p, Scope s,RStack stack,int start,VarType old, VarType mytype) throws CompileError{
 		//do nothing
 	}
 	public void castVarFrom(PrintStream p, Scope s ,RStack stack,Variable vtag,VarType old, VarType mytype) throws CompileError{
 		//do nothing
 	}
-	
+	/**
+	 * if true, sets register types to the new type on a cast;
+	 * this should only ever be false for NbtObj and should only be referenced before a variable setMe(...)
+	 * @return
+	 */
+	public boolean setRegTypeOnCastFrom() {
+		return true;
+	}
 	public boolean canCasteTo(VarType to,VarType mytype) { return mytype.equals(mytype); }
+	
 	public void castRegistersTo(PrintStream p, Scope s,RStack stack,int start,VarType newType, VarType mytype) throws CompileError{
 		//do nothing
 	}
@@ -220,25 +230,27 @@ public abstract class Struct {
 	/**
 	 * allows the struct to auto convert itself if put on the stack
 	 * @param mytype
+	 * @param typeWanted TODO
 	 * @return
 	 */
-	public VarType getTypeOnStack(VarType mytype) {
+	public VarType getTypeOnStack(VarType mytype, VarType typeWanted) {
 		return mytype;
 	}
 	/**
 	 * sets some registers to the value of the struct
 	 * @param p
-	 * @param s TODO
+	 * @param s 
 	 * @param stack
 	 * @param home
 	 * @param me
+	 * @param typeWanted 
 	 * @throws CompileError
 	 */
-	public abstract void getMe(PrintStream p,Scope s,RStack stack,int home, Variable me)throws CompileError;
+	public abstract void getMe(PrintStream p,Scope s,RStack stack,int home, Variable me, VarType typeWanted)throws CompileError;
 	/**
 	 * gets some registers to set a variable of this struct
 	 * @param p
-	 * @param s TODO
+	 * @param s 
 	 * @param stack
 	 * @param home
 	 * @param me
@@ -265,7 +277,7 @@ public abstract class Struct {
 		String dfrom=from.dataPhrase();
 		p.printf("data modify %s set from %s\n",dto,dfrom);
 	}
-	public boolean canMask(VarType mytype, Mask mask) { return mask !=Mask.SCORE; }
+	public boolean canMask(VarType mytype, Mask mask) { return mask.isNbt; }
 	
 	public boolean canDoBiOp(BiOperator.OpType op,VarType mytype,VarType other,boolean isFirst)throws CompileError {return false;};
 	public void doBiOpFirst(BiOperator.OpType op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,Integer home1,Integer home2)
@@ -596,8 +608,14 @@ public abstract class Struct {
 	public boolean canSetToExpr(ConstExprToken e) {
 		return false;
 	}
-	public void setMeToExpr(PrintStream p,RStack stack,Variable me, ConstExprToken e) throws CompileError {
+	public void setMeToExpr(PrintStream p,Scope s,RStack stack, Variable me, ConstExprToken e) throws CompileError {
 		throw new CompileError.UnsupportedCast(e, me.type);
+	}
+	public void setMeToNbtExprBasic(PrintStream p,RStack stack,Variable me, ConstExprToken e) throws CompileError {
+		assert e.constType() == ConstType.NBT;
+		assert me.getMaskType().isNbt;
+		p.printf("data modify %s set value %s\n",me.dataPhrase(), e.textInMcf());
+		
 	}
 
 	public boolean isReady(VarType varType) {

@@ -120,15 +120,15 @@ public class NbtList extends NbtCollection{
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 			if(this.ell!=null) {
-				ell.getMe(p, s, stack, stackstart);
+				ell.getMe(p, s, stack, stackstart, typeWanted);
 				return;
 			}
 			NbtList list = (NbtList) token.getThisBound().type.struct;
 			Variable get = list.getIndexRef(this.listbuff, 0);
-			get.getMe(p, s, stack,stackstart);
+			get.getMe(p, s, stack,stackstart, typeWanted);
 			listbuff.deallocateLoad(p);
 		}
 
@@ -161,7 +161,7 @@ public class NbtList extends NbtCollection{
 			public void setIndex(PrintStream p,Scope s, Variable index) throws CompileError {
 				RStack stack = new RStack(this.res);
 				int indexhome = stack.setNext(VarType.INT);
-				index.getMe(p, s, stack, indexhome);
+				index.getMe(p, s, stack, indexhome, VarType.INT);
 			}
 			public void setIndex(PrintStream p,Compiler c,Scope s, Equation index) throws CompileError {
 				if(index.isConstRefable()) {
@@ -273,7 +273,7 @@ public class NbtList extends NbtCollection{
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 			//nothing
 		}
@@ -313,7 +313,7 @@ public class NbtList extends NbtCollection{
 			public void setIndex(PrintStream p,Scope s, Variable index) throws CompileError {
 				RStack stack = new RStack(this.res);
 				int indexhome = stack.setNext(VarType.INT);
-				index.getMe(p, s, stack, indexhome);
+				index.getMe(p, s, stack, indexhome, VarType.INT);
 			}
 			public void setIndex(PrintStream p,Compiler c,Scope s, Equation index) throws CompileError {
 				if(index.isConstRefable()) {

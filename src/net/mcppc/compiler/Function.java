@@ -228,13 +228,14 @@ public class Function {
 			return this.func.getMCF(this.tempArgs);
 		}
 		@Override
-		public void getRet(PrintStream p,Compiler c,Scope s,RStack stack,int home) throws CompileError {
+		public void getRet(PrintStream p,Compiler c,Scope s,RStack stack,int home, VarType typeWanted) throws CompileError {
+			//TODO
 			Variable ret = this.isInSelf ? this.getTempRet(p, c, s, stack) : this.func.returnV;
 			if(this.hasTemplate())s.addTemplateConstsTemporarily(func, tempArgs);
-			ret.getMe(p,s, stack,home);
+			ret.getMe(p,s, stack,home, typeWanted);
 			if(this.hasTemplate()) {
 				//convert type;
-				stack.setVarType(home, this.getRetType().breakTiesToTemplate(s).onStack());
+				stack.setVarType(home, this.getRetType().breakTiesToTemplate(s).onStack(typeWanted));
 				s.removeTemporaryConsts();
 			}
 			this.cleanupAfter(p, c, s, stack);

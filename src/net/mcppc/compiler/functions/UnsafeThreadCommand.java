@@ -130,7 +130,7 @@ public abstract class UnsafeThreadCommand extends BuiltinFunction {
 	public abstract void actualCall(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError ;
 
 	@Override
-	public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+	public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 			throws CompileError {
 	}
 

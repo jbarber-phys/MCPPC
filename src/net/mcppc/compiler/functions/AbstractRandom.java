@@ -127,7 +127,7 @@ public abstract class AbstractRandom extends BuiltinFunction{
 	}
 
 	@Override public abstract void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError ;
-	@Override public abstract void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart) throws CompileError ;
+	@Override public abstract void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted) throws CompileError ;
 	@Override public abstract void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack);
 	@Override public abstract void onLoad(PrintStream p,CompileJob job,Namespace ns) throws CompileError;
 	public abstract Variable getSeed(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError;//nullable
@@ -162,7 +162,7 @@ public abstract class AbstractRandom extends BuiltinFunction{
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 		}
 		@Override

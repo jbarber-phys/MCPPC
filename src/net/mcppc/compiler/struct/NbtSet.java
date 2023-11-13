@@ -96,7 +96,7 @@ public class NbtSet  extends NbtCollection{
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 			if(this.addition !=0) return;
 			Loop loop = Loop.loop(addition);
@@ -237,11 +237,11 @@ public class NbtSet  extends NbtCollection{
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 			//will throw
 			Variable obj=this.newobj(c,token);
-			obj.getMe(p,s, stack, stackstart);
+			obj.getMe(p,s, stack, stackstart, typeWanted);
 		}
 
 		@Override

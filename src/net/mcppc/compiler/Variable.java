@@ -344,14 +344,16 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		VarType type=(regType==null? stack.getVarType(home):regType);
 		if(this.type.isStruct()) {
 			Struct struct = this.type.struct;
+			boolean setRegType=true;
 			if(struct.canCasteFrom(type, this.type)) {
+				setRegType = struct.setRegTypeOnCastFrom();
 				struct.castRegistersFrom(f, s, stack, home, type, this.type);
 			}else if(stack.getVarType(home).isStruct() && stack.getVarType(home).struct.canCasteTo( this.type,type)) {
 				stack.getVarType(home).struct.castRegistersTo(f, s, stack, home, this.type, type);
 			}else {
 				throw new CompileError.UnsupportedCast(this.type, type);
 			}
-			stack.setVarType(home, this.type);
+			if(setRegType)stack.setVarType(home, this.type);//this should only be skipped for NbtObject
 			struct.setMe(f, s, stack, home, this);
 		}else {
 			Register reg=stack.getRegister(home);
@@ -437,9 +439,9 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		}break;
 		}
 	}
-	public void getMe(PrintStream p,Scope s,RStack stack,int home) throws CompileError {
+	public void getMe(PrintStream p,Scope s,RStack stack,int home, VarType typeWanted) throws CompileError {
 		if(this.type.isStruct()) {
-			this.type.struct.getMe(p, s, stack, home, this);
+			this.type.struct.getMe(p, s, stack, home, this, typeWanted);
 		}else {
 			Register reg=stack.getRegister(home);
 			getMe(p,s,reg);
@@ -719,7 +721,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	}
 	private static void castDirectSet(PrintStream f,Scope s,Variable to,Variable from,RStack stack) throws CompileError {
 		int i=stack.setNext(from.type);//TODO typewanted is to.type
-		from.getMe(f,s, stack, i);
+		from.getMe(f,s, stack, i, to.type);
 		to.setMe(f,s, stack, i);
 		stack.pop();
 		// may be able to remove intermediary score but will still need multipliers
@@ -789,9 +791,9 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		else if(e.constType()==ConstType.NUM) return this.type.isNumeric();		
 		else return false;
 	}
-	public void setMeToExpr(PrintStream p, RStack stack, ConstExprToken e) throws CompileError {
+	public void setMeToExpr(PrintStream p, Scope s, RStack stack, ConstExprToken e) throws CompileError {
 		if(this.type.isStruct()) {
-			this.type.struct.setMeToExpr(p, stack, this, e);
+			this.type.struct.setMeToExpr(p, s, stack, this, e);
 		}else if (e instanceof Bool) {
 			this.setMeToBoolean(p, null, stack, ((Bool)e).val);
 		}else if (e instanceof Num) {

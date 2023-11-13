@@ -143,8 +143,8 @@ public abstract class BuiltinFunction {
 			}
 		}
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s,RStack stack,int stackstart) throws CompileError {
-			this.f.getRet(p, c, s, this, stack, stackstart);
+		public void getRet(PrintStream p, Compiler c, Scope s,RStack stack,int stackstart, VarType typeWanted) throws CompileError {
+			this.f.getRet(p, c, s, this, stack, stackstart, typeWanted);
 		}
 		@Override
 		public void getRet(PrintStream p, Compiler c, Scope s,Variable v,RStack stack) throws CompileError {
@@ -313,7 +313,8 @@ public abstract class BuiltinFunction {
 	public abstract Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line,int col, RStack stack)throws CompileError ;
 	
 	public abstract void call(PrintStream p, Compiler c, Scope s,BFCallToken token,RStack stack) throws CompileError;
-	public abstract void getRet(PrintStream p, Compiler c, Scope s,BFCallToken token,RStack stack,int stackstart) throws CompileError;
+	//TODO
+	public abstract void getRet(PrintStream p, Compiler c, Scope s,BFCallToken token,RStack stack,int stackstart, VarType typeWanted) throws CompileError;
 	public abstract void getRet(PrintStream p, Compiler c, Scope s,BFCallToken token,Variable v,RStack stack) throws CompileError;
 	public void dumpRet(PrintStream p,Compiler c,Scope s, BFCallToken token,RStack stack) throws CompileError  {
 		//default to doing nothing
@@ -522,7 +523,7 @@ public abstract class BuiltinFunction {
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {//void
 		}
 
@@ -564,11 +565,11 @@ public abstract class BuiltinFunction {
 		}
 
 		@Override
-		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart)
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 			if(this.rtype.isVoid())return;
 			Register r=stack.getRegister(stackstart);
-			stack.setVarType(stackstart, this.rtype.onStack());
+			stack.setVarType(stackstart, this.rtype.onStack(typeWanted));
 			if(this.rtype.isLogical())  r.setToSuccess(p, cmd);
 			else if(this.rtype.isNumeric())  r.setToResult(p,cmd);
 			
@@ -578,8 +579,9 @@ public abstract class BuiltinFunction {
 		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
 				throws CompileError {
 			if(this.rtype.isVoid())return;
-			int home = stack.setNext(this.rtype.onStack());
-			this.getRet(p, c, s, token, stack, home);
+			int home = stack.setNext(this.rtype.onStack(v.type));
+			this.getRet(p, c, s, token, stack, home, v.type);
+			v.setMe(p, s, stack, home);
 			stack.pop();
 			
 		}
