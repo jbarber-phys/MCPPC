@@ -59,6 +59,9 @@ public abstract class Struct {
 		NbtMap.registerAll();
 		Uuid.registerAll();
 		Bossbar.registerAll();
+		TagCompound.registerAll();
+		
+		
 		Singleton.registerAll();
 	}
 	public static boolean load() {
@@ -213,6 +216,7 @@ public abstract class Struct {
 	public void castVarTo(PrintStream p, Scope s,RStack stack,Variable vtag,VarType mytype, VarType newType) throws CompileError{
 		//do nothing
 	}
+	
 	/**
 	 * allows the struct to auto convert itself if put on the stack
 	 * @param mytype

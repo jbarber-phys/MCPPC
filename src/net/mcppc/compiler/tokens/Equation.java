@@ -690,6 +690,10 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	public VarType retype=VarType.VOID;
 	// register is added by putTokenToRegister if !(in instanceof Equation) (then the sub_equation will do it)
 	private int putTokenToRegister(PrintStream p,Compiler c,Scope s,VarType typeWanted,Token in) throws CompileError {
+		//the cast flag is not yet used;
+		return putTokenToRegister(p,c,s,typeWanted,in,false);
+	}
+	private int putTokenToRegister(PrintStream p,Compiler c,Scope s,VarType typeWanted,Token in,boolean isCast) throws CompileError {
 		//to a register
 		int regnum;
 		if (in instanceof Equation) {
@@ -697,7 +701,9 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			//regnum=((Equation) in).setReg(p, c, s, typeWanted);
 			regnum=((Equation) in).setReg(p, c, s, ((Equation) in).retype);
 		}else if (in instanceof MemberName) {
-			regnum=stack.setNext(((MemberName) in).var.type);
+			VarType type = ((MemberName) in).var.type;
+			
+			regnum=stack.setNext(type);
 			((MemberName) in).var.getMe(p,s, stack,regnum);
 			this.stack.estmiate(regnum, ((MemberName) in).estimate);
 		}else if (in instanceof Num) {
@@ -710,14 +716,17 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			stack.getRegister(regnum).setValue(p,s, score,((Bool) in).type);
 			this.stack.estmiate(regnum, null);
 		}else if (in instanceof Function.FuncCallToken) {
-			regnum=stack.setNext(((Function.FuncCallToken) in).getFunction().retype);
+			VarType type =((Function.FuncCallToken) in).getFunction().retype; 
+			
+			regnum=stack.setNext(type);
 			((Function.FuncCallToken) in).call(p, c, s, stack);
 			((Function.FuncCallToken) in).getRet(p, c, s, this.stack,regnum);
 			this.stack.estmiate(regnum, ((Function.FuncCallToken) in).getEstimate());
 		}else if (in instanceof BuiltinFunction.BFCallToken) {
 			//if(((BuiltinFunction.BFCallToken) in).getBF() instanceof BuiltinConstructor)this.printStatementTree(System.err, 0);
+			VarType type = ((BuiltinFunction.BFCallToken) in).getRetType();
 			
-			regnum=stack.setNext(((BuiltinFunction.BFCallToken) in).getRetType());
+			regnum=stack.setNext(type);
 			((BuiltinFunction.BFCallToken) in).call(p, c, s, stack);
 			((BuiltinFunction.BFCallToken) in).getRet(p, c, s, stack,regnum);
 			this.stack.estmiate(regnum, ((BuiltinFunction.BFCallToken) in).getEstimate());
@@ -905,7 +914,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			else if(this.elements.get(0) instanceof Equation &&  ((Equation)this.elements.get(0)).isCast) {
 				Type cast=(Type) ((Equation)this.elements.get(0)).elements.get(0);
 				Token in=this.elements.get(1);
-				this.homeReg=this.putTokenToRegister(p, c, s, cast.type, in);
+				this.homeReg=this.putTokenToRegister(p, c, s, cast.type, in,true);
 				//cast register
 				//System.err.printf("Equation: casting %s -> %s", stack.getVarType(this.homeReg).asString(),cast.type.asString());
 				this.stack.castRegister(p,s, this.homeReg, cast.type);

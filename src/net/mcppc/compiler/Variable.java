@@ -718,7 +718,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		return t;
 	}
 	private static void castDirectSet(PrintStream f,Scope s,Variable to,Variable from,RStack stack) throws CompileError {
-		int i=stack.setNext(from.type);
+		int i=stack.setNext(from.type);//TODO typewanted is to.type
 		from.getMe(f,s, stack, i);
 		to.setMe(f,s, stack, i);
 		stack.pop();

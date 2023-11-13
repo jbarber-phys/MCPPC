@@ -44,6 +44,7 @@ import net.mcppc.compiler.tokens.Import;
  * add java edition targeting : Version -> format ID; Target -> min version AND max version;
  * incorperate new 1.20.3 commands: return, tick, random, damage;
  * add true return / breaks (optional); use return # to give the depth to return back to, and if retype = int / bool / long: do a /return as well as $return
+ * String: add substring method using /data .... string (block <sourcePos>|entity <source>|storage <source>) [<sourcePath>] [<start>] [<end>]
  * VERSION NOTES: see /return version changes for lots of details: added at 15, 18 removed run, 19 re-added run and fail
  * far future:
  * add locks: invar -> outvar :: -> flag;
