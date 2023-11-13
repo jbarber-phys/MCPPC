@@ -66,6 +66,17 @@ public abstract class BuiltinFunction {
 		BuiltinFunction bf=null;
 		bf = BUILTIN_FUNCTIONS.get(names.get(0));
 		if(bf!=null || names.size()<=1)return bf;
+		else if (names.size()==2) {
+			//static BF
+			Struct struct = Struct.getStruct(names.get(0));
+			String fname = names.get(1);
+			if(struct!=null)try {
+				VarType type = new VarType(struct,struct.paramsWNoArgs());
+				if(struct.hasStaticBuiltinMethod(fname))return struct.getStaticBuiltinMethod(fname, type);
+			}catch (CompileError e) {}//go on
+					
+		}
+		
 		List<String> subnames = names.subList(0, names.size()-1);String mname=names.get(names.size()-1);
 		//System.err.printf("check for var methods\n");
 		Variable v;

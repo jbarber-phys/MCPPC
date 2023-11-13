@@ -25,6 +25,10 @@ public class Rotation {
 			super(line, col);
 			this.rot=new Rotation(m);
 		}
+		public RotToken(int line, int col,Rotation r) {
+			super(line, col);
+			this.rot=r;
+		}
 		@Override public String asString() {
 			return rot.asString();
 		}
@@ -72,6 +76,14 @@ public class Rotation {
 	public Rotation(Num yaw,Num pitch){
 		angs=new String[]{CMath.getMultiplierFor(yaw.value.floatValue())
 				,CMath.getMultiplierFor(pitch.value.floatValue())};
+	}
+	public Rotation(String pitch,String yaw){
+		angs=new String[]{pitch,yaw};
+	}
+	public static RotToken unslice(Num ang1,String ang2) {
+		Rotation r= new Rotation(CMath.getMultiplierFor(ang1.value.doubleValue()),
+				ang2);
+		return new RotToken(ang1.line,ang1.col,r);
 	}
 	public String asString() {
 		return this.inHDR();

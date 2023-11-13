@@ -59,6 +59,7 @@ public abstract class Struct {
 		NbtMap.registerAll();
 		Uuid.registerAll();
 		Bossbar.registerAll();
+		Singleton.registerAll();
 	}
 	public static boolean load() {
 		//a dumb method that exists soly to make sure this initializes before something else else
@@ -578,10 +579,10 @@ public abstract class Struct {
 	public BuiltinFunction getStaticBuiltinMethod(String name,VarType type) throws CompileError {
 		throw new CompileError.BFuncNotFound(this, name, true);
 	}
-	protected boolean hasStaticBuiltinMethodBasic(String name,Map<String,FunctionMask> mds) {
+	protected boolean hasStaticBuiltinMethodBasic(String name,Map<String,BuiltinFunction> mds) {
 		return mds.containsKey(name);
 	}
-	protected BuiltinFunction getStaticBuiltinMethodBasic(String name,VarType type,Map<String,FunctionMask> mds) throws CompileError {
+	protected BuiltinFunction getStaticBuiltinMethodBasic(String name,VarType type,Map<String,BuiltinFunction> mds) throws CompileError {
 		return mds.get(name);
 	}
 	

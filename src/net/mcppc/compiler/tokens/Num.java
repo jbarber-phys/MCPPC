@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.mcppc.compiler.CMath;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Const;
 import net.mcppc.compiler.Scope;
@@ -227,6 +228,14 @@ public class Num extends Const.ConstLiteralToken implements INbtValueProvider{
 	public String textInMcf() {
 		if(this.value==null)return "null";
 		return this.type.numToString(this.value);
+	}
+	/** this gives the value free of both the type name and scientific notation, fit for use as a multiplier
+	 * 
+	 * @return
+	 */
+	public String textAsMultiplier() {
+		if(CMath.isNumberInt(this.value)) return CMath.getMultiplierFor(this.value.longValue());
+		return CMath.getMultiplierFor(this.value.doubleValue());
 	}
 	@Override
 	public int valueHash() {

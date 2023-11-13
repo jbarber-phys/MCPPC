@@ -5,6 +5,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 
@@ -155,7 +156,9 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			MemberName.factory,Num.factory,CommandToken.factory,
 			Token.Paren.factory,//sub-eq or caste
 			Token.LineEnd.factory, Token.CodeBlockBrace.factory,Token.ArgEnd.factory, //possible terminators; unexpected
-			Token.StringToken.factory//just in case of trivial equations
+			Token.StringToken.factory,//just in case of trivial equations
+			Coordinates.CoordToken.factory, // new edition; exponent will not confuse it because the ^ comes at the front of a value
+			Rotation.RotToken.factory // new edition; exponent will not confuse it because the ^ comes at the front of a value
 			);
 	
 	static final Token.Factory[] lookForOperation= Factories.genericLook(
@@ -309,6 +312,21 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	}
 	private Token nextValueNoType(Compiler c,Matcher m) throws CompileError {
 		Token v=c.nextNonNullMatch(lookForValue);
+		if(v instanceof Num) {
+			m.region(c.cursor, m.regionEnd());
+			if(m.usePattern(Regexes.COORDS_SLICED).lookingAt()) {
+				//System.err.printf("repairing coord slice\n");
+				v = Coordinates.unslice((Num) v, m.group("y"), m.group("z"));
+				c.cursor = m.end();
+			}else if(m.usePattern(Regexes.ROTATION_SLICED).lookingAt()) {
+				//System.err.printf("repairing rot slice\n");
+				v = Rotation.unslice((Num) v, m.group("ang2"));
+				c.cursor = m.end();
+			}else {
+			}
+			//prevent mangling of coords / rotation:
+			//problematic cases: 0 ~0 ...
+		}
 		//may be wildchar if is indexable invalid selector
 		if(v instanceof Token.WildChar) v = c.nextNonNullMatch(Factories.checkForMembName);
 		return v;
@@ -470,6 +488,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 					if(tempargs==null)c.cursor=pc;
 				}
 			}
+
 			Token op=c.nextNonNullMatch(lookForOperation);
 			if (op instanceof Token.Paren && ((Token.Paren) op).forward) {
 				//function call
@@ -1168,6 +1187,16 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			return this.getConstVarRef().type;
 		}
 		return null;
+	}
+	
+	public static ConstExprToken constifyAndGet(Equation eq,Compiler c,Scope s,ConstType... ctypes) throws CompileError{
+		eq.constify(c, s);
+		if(!eq.isConstable()) throw new CompileError("equation at line %s col %s failed to constify when needed".formatted(eq.line,eq.col));
+		ConstExprToken ct = eq.getConst();
+		Set<ConstType> ctps = Set.<ConstType>of(ctypes);
+		if(ctps.contains(ct.constType())) return ct;
+		else throw new CompileError("equation at line %s col %s had a wrong const type %s, wanted %s;".formatted(eq.line,eq.col,ct.constType(),ctps));
+		
 	}
 	public void transferRegValue(PrintStream p,int home,Register to) throws CompileError {
 		to.operation(p, "=", this.stack.getRegister(home));

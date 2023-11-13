@@ -24,6 +24,10 @@ public class Coordinates {
 	public static final CoordToken ZEROBLOCK =new CoordToken(-1,-1, new Coordinates("0","0","0"));
 	public static final CoordToken ATME =new CoordToken(-1,-1, new Coordinates("~","~","~"));
 	public static final CoordToken FORWARD =new CoordToken(-1,-1, new Coordinates("^","^","^1"));
+	
+	public static enum CoordSystem {
+		ABS,TILDE,CARET;
+	}
 	public static class CoordToken extends Const.ConstExprToken{
 		public static final Factory factory=new Factory(Regexes.COORDS) {
 			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
@@ -92,6 +96,29 @@ public class Coordinates {
 				,CMath.getMultiplierFor(y.value.doubleValue())
 				,CMath.getMultiplierFor(z.value.doubleValue())};
 	}
+	private Coordinates(String[] vec){
+		this.vec=vec;
+	}
+	public static Coordinates asAbs(double x,double y,double z) {
+		return new Coordinates("%s".formatted(CMath.getMultiplierFor(x)),
+				"%s".formatted(CMath.getMultiplierFor(y)),
+				"%s".formatted(CMath.getMultiplierFor(z)));
+	}
+	public static Coordinates asTildes(double x,double y,double z) {
+		return new Coordinates("~%s".formatted(CMath.getMultiplierFor(x)),
+				"~%s".formatted(CMath.getMultiplierFor(y)),
+				"~%s".formatted(CMath.getMultiplierFor(z)));
+	}
+	public static Coordinates asCarets(double x,double y,double z) {
+		return new Coordinates("^%s".formatted(CMath.getMultiplierFor(x)),
+				"^%s".formatted(CMath.getMultiplierFor(y)),
+				"^%s".formatted(CMath.getMultiplierFor(z)));
+	}
+	public static CoordToken unslice(Num x,String y,String z) {
+		Coordinates c= new Coordinates(CMath.getMultiplierFor(x.value.doubleValue()),
+				y, z);
+		return new CoordToken(x.line,x.col,c);
+	}
 	public String asString() {
 		return this.inHDR();
 	}
@@ -102,5 +129,40 @@ public class Coordinates {
 	public String inCMD() {
 		return this.inHDR();
 	}
-	
+	public CoordSystem getSystem(int i) {
+		switch (this.vec[i].charAt(0)) {
+		case '~': return CoordSystem.TILDE;
+		case '^': return CoordSystem.CARET;
+		default: return CoordSystem.ABS;
+		}
+	}
+	public double numCoord(int i) {
+		String s=this.vec[i];
+		if(this.getSystem(i)!=CoordSystem.ABS) s = s.substring(1);
+		if(s.length()==0) return 0;
+		return Double.valueOf(s);
+	}
+	private String preffix(int i) {
+		if(this.getSystem(i)!=CoordSystem.ABS)return this.vec[i].substring(0, 1);
+		return "";
+	}
+	/**
+	 * takes an affine combination of coordinates
+	 * @param v1
+	 * @param v2
+	 * @param a
+	 * @return
+	 * @throws CompileError
+	 */
+	public static Coordinates interpolate(Coordinates v1,Coordinates v2,double a) throws CompileError{
+		String[] vc = new String[3];
+		for(int i=0;i<3;i++) {
+			if(v1.getSystem(i)!=v2.getSystem(i)) throw new CompileError("Cannot interpolate coordinates %s and %s".formatted(v1.asString(),v2.asString()));
+			double v3i = v1.numCoord(i)*(1.-a) + v2.numCoord(i) * a;
+			vc[i] = "%s%s".formatted(v1.preffix(i),v3i);
+		}
+		
+		return new Coordinates(vc);
+		
+	}
 }

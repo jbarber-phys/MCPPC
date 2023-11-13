@@ -48,6 +48,9 @@ public abstract class CMath {
 		//String s="%s".formatted(num);
 		//return s;
 	}
+	public static String getMultiplierFor(long num) {
+		return "%d".formatted(num);
+	}
 	public static String removeSciNot(double num) {
 		int MAX_DIGITS=(int) Math.ceil(Register.SCORE_BITS*Math.log10(2));
 		String f="%%-%d.%df".formatted(MAX_DIGITS,MAX_DIGITS);

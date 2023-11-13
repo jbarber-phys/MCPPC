@@ -746,7 +746,7 @@ public class Vector extends Struct {
 			, List.of(new Selector.SelectorToken(-1,-1,Selector.AT_S)));//List.of does not allow null members;
 
 
-	private Map<String,FunctionMask> STATICMETHODS;
+	private Map<String,BuiltinFunction> STATICMETHODS;
 	@Override
 	public boolean hasStaticBuiltinMethod(String name) {
 		return super.hasStaticBuiltinMethodBasic(name, this.STATICMETHODS);

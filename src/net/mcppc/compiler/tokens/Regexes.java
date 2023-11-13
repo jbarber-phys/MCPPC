@@ -67,7 +67,13 @@ public final class Regexes {
 		public static final String COORDS=("(?<x>%s)\\s+(?<y>%s)\\s+(?<z>%s)".formatted(TILDE_HAT_NUM,TILDE_HAT_NUM,TILDE_HAT_NUM));
 		// (?<x>%s)\s+(?<y>%s)\s+(?<z>%s)
 		public static final String ROTATION=("(?<ang1>%s)\\s+(?<ang2>%s)".formatted(TILDE_NOHAT_NUM,TILDE_NOHAT_NUM));
-		// (?<ang1>%s)\s+(?<ang2>%s)
+		
+		
+		//coords / rots with the first number cut off
+		public static final String COORDS_SLICED=("\\s+(?<y>%s)\\s+(?<z>%s)".formatted(TILDE_NOHAT_NUM,TILDE_NOHAT_NUM));
+		// \s+(?<y>%s)\s+(?<z>%s)
+		public static final String ROTATION_SLICED=("\\s+(?<ang2>%s)".formatted(TILDE_NOHAT_NUM));
+		// \s+(?<ang2>%s)
 		
 		public static final String RESOURCELOCATION=("(?<namespace>\\w+):(?<path>(\\w+\\/)*(?<end>\\w+))");// (?<namespace>\w+):(?<path>(\w+\/)*(?<end>\w+))
 		
@@ -145,11 +151,16 @@ public final class Regexes {
 
 	//public static final Pattern ROTATION=Pattern.compile("([~]?[+-]?\\d*)\\s+([~]?[+-]?\\d*)");// ([~]?[+-]?\d*)\s+([~]?[+-]?\d*)
 	public static final Pattern ROTATION=Pattern.compile(Strs.ROTATION);
+
+	public static final Pattern COORDS_SLICED=Pattern.compile(Strs.COORDS_SLICED);
+	public static final Pattern ROTATION_SLICED=Pattern.compile(Strs.ROTATION_SLICED);
 	
 	//selector: escape [] for arrays by doubling them: {Pos[[1]]: 0d}
 	public static final Pattern STRLIT=Pattern.compile(Strs.STRLITSTRING);// string escaping is so important that other regexes get to have it in them
 	//I have double checked aand the STRLIT pattern is MC compadible
 	public static final Pattern RESOURCELOCATION=Pattern.compile(Strs.RESOURCELOCATION);
+
+	public static final Pattern BLOCKSTATEARGS=Pattern.compile("\\[([\\h,\\w=])*\\]");//\[([\h,\w=])*\]
 	//below only use if you know nbt is terminated by =~;\n
 	public static final Pattern NBTPATH=Pattern.compile("((%s)|[^~;=\\n])+".formatted(Strs.STRLITSTRING));// ((%s)|[^~;=\n])+
 	//public static final Pattern STM_SKIP_MSCCHAR=Pattern.compile("[^\\\";{}@\\w/]+");// [^\";{}@\w/]+

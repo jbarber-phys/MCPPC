@@ -35,16 +35,14 @@ import net.mcppc.compiler.tokens.Import;
 
 /*list of language editions TODO ::
  * 
- * add mass particle functions for shapes: line, sphere, cylinder, ring; 
- * 			for sphere: see https://en.wikipedia.org/wiki/Geodesic_polyhedron
- * improve printf, add format functions for: color,formatting, click events
- * add stdlib for attacking entities / hitbox/raycast testing
  * expose the TagCompound -> {} struct so that the user can use it to pass around mystery compound data
  * 		add + operator for data merge ops or something
  * and an Object type -> {value: ?}, for dynamic type capability
+ * add stdlib for attacking entities / hitbox/raycast testing
+ * improve printf, add format functions for: color,formatting, click events (maybe save this for later)
  * 
  * add java edition targeting : Version -> format ID; Target -> min version AND max version;
- * incorperate new 1.20.3 commands: return, tick, random;
+ * incorperate new 1.20.3 commands: return, tick, random, damage;
  * add true return / breaks (optional); use return # to give the depth to return back to, and if retype = int / bool / long: do a /return as well as $return
  * VERSION NOTES: see /return version changes for lots of details: added at 15, 18 removed run, 19 re-added run and fail
  * far future:
