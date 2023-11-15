@@ -59,6 +59,10 @@ public class Coordinates {
 		@Override public String textInMcf() {
 			return this.pos.inCMD();
 		}
+		@Override
+		public String getJsonText() throws CompileError {
+			throw new CompileError("cannot print an %s".formatted(this.constType().name));
+		}
 		private static final Pattern TILDE=Pattern.compile("~");// ~
 		private static final Pattern CARET=Pattern.compile("\\^");// \^
 		private static final Pattern NONWORD=Pattern.compile("[^\\w]");// [^\w]

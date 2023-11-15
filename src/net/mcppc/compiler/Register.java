@@ -101,6 +101,13 @@ public class Register implements Comparable<Register>,PrintF.IPrintable{
 		p.printf("execute store result score %s run %s\n", this.inCMD(),cmd);
 		
 	}
+	public void invert(PrintStream p,Register buffer) {
+		buffer.setValue(p, false);
+		p.printf("execute if score %s matches 0 run ", this.inCMD());
+			buffer.setValue(p, true);
+		this.operation(p, "=", buffer);
+		
+	}
 	@Override
 	public String getJsonTextSafe() {
 		String score="{\"score\": {\"name\": \"%s\", \"objective\": \"%s\"}}".formatted(this.holder,getScoreAt(index));

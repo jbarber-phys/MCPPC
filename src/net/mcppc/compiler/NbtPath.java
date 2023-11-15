@@ -70,6 +70,10 @@ public class NbtPath {
 		public ConstExprToken constCast(VarType type) throws CompileError {
 			throw new CompileError.UnsupportedCast( this.constType(),type);
 		}
+		@Override
+		public String getJsonText() throws CompileError {
+			throw new CompileError("cannot print an %s".formatted(this.constType().name));
+		}
 	}
 	String path;
 	public NbtPath(String s) {

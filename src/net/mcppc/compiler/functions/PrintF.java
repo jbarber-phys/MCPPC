@@ -2,19 +2,27 @@ package net.mcppc.compiler.functions;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.BuiltinFunction.BFCallToken;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
+import net.mcppc.compiler.Function.FuncCallToken;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Entity;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Factories;
+import net.mcppc.compiler.tokens.MemberName;
+import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.Regexes;
+import net.mcppc.compiler.tokens.TemplateArgsToken;
 import net.mcppc.compiler.tokens.Token;
+import net.mcppc.compiler.tokens.Token.BasicName;
 import net.mcppc.compiler.tokens.Token.StringToken;
 import net.mcppc.compiler.tokens.TreePrintable;
 /**
@@ -121,23 +129,58 @@ public class PrintF extends BuiltinFunction{
 		final Selector s ;
 		final String lit;
 		public final List<Token> targs=new ArrayList<Token>();
+
+		public final Map<String,Token> fkwargs=new HashMap<String,Token>();
+		
+		public FuncCallToken runFunc = null;
 		public PrintfArgs(Selector s,String lit) {
 			this.s=s;
 			this.lit=lit;
 		}
 		
 	}
+	public static final String ONCLICK_FUNCTION = "run"; 
+	static BasicName checkForFormatArg(Compiler c, Scope s, Matcher matcher, int line,int col, RStack stack) throws CompileError {
+		Token.Factory[] look = Factories.genericCheck(Token.BasicName.factory);
+		Token.Factory[] look2 = Factories.genericCheck(Token.Assignlike.factoryAssign);
+		int begin = c.cursor;
+		Token t=c.nextNonNullMatch(look);
+		if(!(t instanceof BasicName)) return null;
+		Token op = c.nextNonNullMatch(look2);
+		if(op instanceof Token.Assignlike) {
+			//keep going
+		}else {
+			//reset
+			c.cursor = begin;
+			return null;
+		}
+		//System.err.printf("found a format arg: %s\n", t.asString());//TODO debug this
+		//found an arg: x
+		return (BasicName) t;
+	}
 	public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line,int col, RStack stack)throws CompileError {
+		return PrintF.tokenizeFormatArgs(c, s, matcher, line, col, stack,true);
+	}
 
-		Selector reciver=Selector.AT_S;
-		ConstExprToken t=Const.checkForExpressionSafe(c,s, matcher, line, col, ConstType.SELECTOR,ConstType.STRLIT);
-				//c.nextNonNullMatch(testForSelector);
-		
-		if(t!=null &&t instanceof Selector.SelectorToken) {
-			reciver=((Selector.SelectorToken) t).selector();
-			if(!BuiltinFunction.findArgsep(c))new CompileError("not enough args in printf(...)");
+	public static Args tokenizeFormatArgs(Compiler c, Scope s, Matcher matcher, int line,int col, RStack stack,boolean hasReciver)throws CompileError {
+		//TODO make this static for format(...) func
+		//TODO test this
+		Selector reciver=null;
+		ConstExprToken t;
+		if(hasReciver) {
+			reciver=Selector.AT_S;
+			t=Const.checkForExpressionSafe(c,s, matcher, line, col, ConstType.SELECTOR,ConstType.STRLIT);
+					//c.nextNonNullMatch(testForSelector);
+			
+			if(t!=null &&t instanceof Selector.SelectorToken) {
+				reciver=((Selector.SelectorToken) t).selector();
+				if(!BuiltinFunction.findArgsep(c))new CompileError("not enough args in printf(...)");
+				t=Const.checkForExpressionSafe(c,s, matcher, line, col,ConstType.STRLIT);
+			}
+		}else {
 			t=Const.checkForExpressionSafe(c,s, matcher, line, col,ConstType.STRLIT);
 		}
+		
 		//t=c.nextNonNullMatch(nextFormatString);
 		
 		if(t==null ||!(t instanceof Token.StringToken)) {
@@ -155,8 +198,13 @@ public class PrintF extends BuiltinFunction{
 		//CompileJob.compileMcfLog.printf("printf: %s, %s;\n",s,litFstring);
 		PrintfArgs args=new PrintfArgs(reciver,litFstring);
 		boolean moreArgs=BuiltinFunction.findArgsep(c);
+		BasicName kwarg = null;
 		while(moreArgs) {
 			//t=c.nextNonNullMatch(testForSelector);
+			kwarg = PrintF.checkForFormatArg(c, s, matcher, line, col, stack);
+			if(kwarg!=null) {
+				break;
+			}
 			t=Const.checkForExpressionSafe(c,s, matcher, line, col, ConstType.SELECTOR);
 			if(t!=null && t instanceof Selector.SelectorToken) {
 				args.targs.add(t);
@@ -166,6 +214,36 @@ public class PrintF extends BuiltinFunction{
 				args.targs.add(eq);
 				moreArgs=!eq.wasLastArg();
 			}
+		}
+		boolean first=true;
+		if(kwarg!=null) while (moreArgs) {
+			if(first) first=false;
+			else kwarg = PrintF.checkForFormatArg(c, s, matcher, line, col, stack);
+			if(kwarg==null) {
+				throw new CompileError("failed to find a <kwarg>=... term in json format function before close paren");
+			}
+			//System.err.printf("found arg %s\n", kwarg.name);
+			if(kwarg.name.equals(ONCLICK_FUNCTION)) {
+				Token memb = c.nextNonNullMatch(Factories.checkForMembName);
+				if(!(memb instanceof MemberName)) throw new CompileError.UnexpectedToken(t, "function name (with no paren or args)");
+				int pc=c.cursor;
+				//check for function template 
+				TemplateArgsToken tempargs=null;
+				Function f=c.myInterface.checkForFunctionWithTemplate(((MemberName) memb).names, s);
+				if(f!=null) {
+					tempargs=TemplateArgsToken.checkForArgs(c, s, matcher);
+					if(tempargs==null)c.cursor=pc;
+				}
+				args.runFunc =new Function.FuncCallToken( memb.line, memb.col,(MemberName) memb) ;
+				args.runFunc.identify(c,s);
+				if(tempargs!=null)args.runFunc.withTemplate(tempargs);
+				args.runFunc.linkMe(c, s);
+				moreArgs = BuiltinFunction.findArgsep(c);
+				continue;
+			}
+			Equation eq=Equation.toArgue(line, col, c, matcher, s);
+			args.fkwargs.put(kwarg.name, eq);
+			moreArgs=!eq.wasLastArg();
 		}
 		return args;
 		
@@ -178,23 +256,40 @@ public class PrintF extends BuiltinFunction{
 	}
 	public void call(PrintStream p, Compiler c, Scope s, Args args, RStack stack,String prefix) throws CompileError {
 		PrintfArgs pargs=(PrintfArgs) args;
+		String json = compileJsonTextElement(p, c, s, pargs, stack, this.color);
+		p.printf("%stellraw %s %s\n"
+				,prefix
+				,pargs.s.toCMD()
+				,json
+				);
+	}
+	public static String compileJsonTextElement(PrintStream p, Compiler c, Scope s, PrintfArgs pargs, RStack stack,String color)  throws CompileError{
+		//PrintfArgs pargs=(PrintfArgs) args;
 		List<String> jsonargs=new ArrayList<String>();
 		int index=1;
 		//if set to true, vars will be passed by reference and printf will display what they show after all ops have been performed
 		boolean REFARGS=false;
+		final String COLOR = "color";
 		//CompileJob.compileMcfLog.printf("printf compile begun;\n");
 		for(Token t:pargs.targs) {
 			if(t instanceof Selector.SelectorToken) {
 				jsonargs.add(((Selector.SelectorToken) t).selector().getJsonText());
 			}else {
 				Equation eq=(Equation) t;
+				eq.constify(c, s);
 				//use ref if it is given
-				if(REFARGS && eq.isRefable() && !eq.retype.isLogical()) {
+				if(eq.isConstable()) {
+					ConstExprToken cs = eq.getConst();
+					jsonargs.add(cs.getJsonText());
+				}
+				else if(REFARGS && eq.isRefable() && !eq.retype.isLogical()) {
 					//DO NOT take a const-only ref as later args may edit it;
 					Variable ref=eq.getVarRef();
 					jsonargs.add(ref.getJsonText());
 				}else {
+					//TODO if eq is printable, then bind a context for anon vars
 					eq.compileOps(p, c, s, null);
+					//TODO add a context arg to prevent problems with sub format collision
 					NbtPath anonvn=new NbtPath("\"$printf\".\"$%d\"".formatted(index));
 					Variable anon=new Variable("anon",eq.retype,null,c).maskStorageAllocatable(c.resourcelocation, anonvn);
 					//anon vars must think they are being loaded
@@ -209,19 +304,46 @@ public class PrintF extends BuiltinFunction{
 			}
 			index++;
 		}
+		String thecolor = color==null?null:"\"%s\"".formatted(color);
+		String clickEvent="";
+		if(pargs.runFunc!=null) {
+			//call a function as a click event
+			FuncCallToken ft = pargs.runFunc;
+			ResourceLocation mcf = ft.getMyMCF();
+			clickEvent = ", \"clickEvent\": {\"action\": \"run_command\", \"value\": \"/function %s\"}".formatted(mcf.toString());
+			//skip the args
+		}
+		String formats="";
+		if(!pargs.fkwargs.isEmpty()) {
+			StringBuffer buff = new StringBuffer();
+			for(Entry<String, Token> e:pargs.fkwargs.entrySet()) {
+				String key = e.getKey();
+				Token t = e.getValue();
+				Equation eq=(Equation) t;
+				eq.constify(c, s);
+				//use ref if it is given
+				if(!eq.isConstable()) throw new CompileError("failed to get a const value for format argument %s=...".formatted(key));
+				ConstExprToken ce = eq.getConst();
+				if(key.equals(COLOR)) thecolor = ce.getJsonArg();
+				else buff.append(" , \"%s\": %s".formatted(key,ce.getJsonArg()));
+				//System.err.printf("kwarg: %s\n", key);
+			}
+			formats = buff.toString();
+			//System.err.printf("formats: %s\n", formats);
+		}
 		
 		
 		CharSequence[] subtags = new CharSequence[jsonargs.size()];jsonargs.toArray(subtags);
 		String argstr=String.join(" , ", jsonargs);//
-		p.printf("%stellraw %s {\"translate\": %s, \"with\": [%s], \"color\": \"%s\"}\n"
-				,prefix
-				,pargs.s.toCMD()
-				,pargs.lit
+		String setcolor = thecolor==null?"" :", \"color\": %s".formatted(thecolor);
+		return String.format( "{\"translate\": %s, \"with\": [%s]%s%s%s}"
+				, pargs.lit
 				, argstr
-				,this.color
-				);
+				,setcolor,
+				clickEvent,
+				formats);
 	}
-	public void convertBoolToStr(PrintStream p,Variable var,Scope s,RStack stack) throws CompileError {
+	public static void convertBoolToStr(PrintStream p,Variable var,Scope s,RStack stack) throws CompileError {
 		//p.printf("execute unless %s run data modify %s set value \"true\"\n", var.matchesPhrase("0"),var.dataPhrase());
 		//p.printf("execute unless %s run data modify %s set value \"false\"\n", var.matchesPhrase("\"true\""),var.dataPhrase());
 		//return;
@@ -240,14 +362,11 @@ public class PrintF extends BuiltinFunction{
 		this.printf(p,"", subject, format, args);
 	}
 	public void printf(PrintStream p, String prefix,Selector subject, String format,IPrintable... args) throws CompileError {
-		//TODO java.util.concurrent.CompletionException: java.lang.IllegalArgumentException: 
-				//Whilst parsing command on line 23: Only players may be affected by this command,
-				// but the provided selector includes entities at position 0: <--[HERE]
-		//playerify subject
+		
 		String argstr=String.join(" , ",   List.of(args).stream().map(var ->var.getJsonTextSafe()).toList());//
 		p.printf("%stellraw %s {\"translate\": %s, \"with\": [%s], \"color\": \"%s\"}\n"
 				,prefix
-				,subject
+				,subject.playerify()
 				,format
 				, argstr
 				,this.color
@@ -264,5 +383,61 @@ public class PrintF extends BuiltinFunction{
 			else  p.printf("%s\t%s\n",s.toString(), t.asString());
 		}
 		p.printf("%s\t)\n",s.toString(), this.name);
+	}
+	
+	
+	public static class TitleF extends PrintF {
+		public static final PrintF title = new TitleF("title",TextColors.WHITE,"title",5,30,20);
+		public static final PrintF subtitle = new TitleF("subtitle",TextColors.WHITE,"subtitle",5,30,20);
+		public static final PrintF actionbar = new TitleF("actionbar",TextColors.WHITE,"actionbar",5,30,20);
+		public final String location;
+		public final int fadeInDefault;
+		public final int stayDefault;
+		public final int fadeOutDefault;
+		public static final String FADE_IN = "fadeIn";
+		public static final String STAY = "stay";
+		public static final String FADE_OUT = "fadeOut";
+		public TitleF(String name, String color,String location,int fadeIn,int stay,int fadeOut) {
+			super(name, color);
+			this.location=location;
+			this.fadeInDefault = fadeIn;
+			this.stayDefault = stay;
+			this.fadeOutDefault = fadeOut;
+		}
+		@Override
+		public void call(PrintStream p, Compiler c, Scope s, Args args, RStack stack,String prefix) throws CompileError {
+			PrintfArgs pargs=(PrintfArgs) args;
+			Num fin =  (Num) Equation.constifyAndGet((Equation) pargs.fkwargs.remove(FADE_IN), c, s, ConstType.NUM);
+			Num sty =  (Num) Equation.constifyAndGet((Equation) pargs.fkwargs.remove(STAY), c, s, ConstType.NUM);
+			Num fot =  (Num) Equation.constifyAndGet((Equation) pargs.fkwargs.remove(FADE_OUT), c, s, ConstType.NUM);
+			int fadeIn = fin!=null?fin.value.intValue():this.fadeInDefault;
+			int stay = sty!=null?sty.value.intValue():this.stayDefault;
+			int fadeOut = fot!=null?fot.value.intValue():this.fadeOutDefault;
+			String json = compileJsonTextElement(p, c, s, pargs, stack, this.color);
+			p.printf("%stitle %s %s %s\n"
+					,prefix
+					,pargs.s.toCMD()
+					,this.location
+					,json
+					);
+			p.printf("%stellraw %s times %s %s %s\n"
+					,prefix
+					,pargs.s.toCMD()
+					,fadeIn,stay,fadeOut
+					);
+		}
+		@Override
+		public void printf(PrintStream p, String prefix,Selector subject, String format,IPrintable... args) throws CompileError {
+			//this is for internal use by the compiler; this one should probably not be used
+			String argstr=String.join(" , ",   List.of(args).stream().map(var ->var.getJsonTextSafe()).toList());//
+			p.printf("%stellraw %s {\"translate\": %s, \"with\": [%s], \"color\": \"%s\"}\n"
+					,prefix
+					,subject.playerify()
+					,format
+					, argstr
+					,this.color
+					);
+		}
+		
 	}
 }

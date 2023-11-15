@@ -436,6 +436,9 @@ public class VarType {
 	public String boolToStringNumber(boolean n) {
 		return n?"1b":"0b";
 	}
+	public String boolToStringTrueFalse(boolean n) {
+		return n?"true":"false";
+	}
 	public TemplateArgsToken getTemplateArgs(Scope s) throws CompileError{
 		if(this.isStruct())
 			return this.struct.getTemplateArgs(this,s);

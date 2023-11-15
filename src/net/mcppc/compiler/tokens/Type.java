@@ -187,6 +187,10 @@ public class Type extends Const.ConstLiteralToken {
 		return this.type.getNBTTagType();
 	}
 	@Override
+	public String getJsonText() throws CompileError {
+		return "{\"text\": \"%s\"}".formatted(this.asString());
+	}
+	@Override
 	public boolean canCast(VarType type) {
 		return false;
 	}

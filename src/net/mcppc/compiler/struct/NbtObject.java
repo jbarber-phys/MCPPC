@@ -16,6 +16,7 @@ import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
+import net.mcppc.compiler.tokens.NullToken;
 import net.mcppc.compiler.tokens.Num;
 
 public class NbtObject extends Struct {
@@ -91,7 +92,7 @@ public class NbtObject extends Struct {
 	@Override
 	public void getMe(PrintStream p, Scope s, RStack stack, int home, Variable me, VarType typeWanted) throws CompileError {
 		//throw new CompileError.CannotStack(me.type);
-		if(typeWanted.struct instanceof NbtObject) throw new CompileError("cannot force an Obj onto the stack without converting");
+		if(typeWanted == null ||typeWanted.struct instanceof NbtObject) throw new CompileError.CannotStack(me.type);
 		Variable val = this.getValue(me, typeWanted);
 		val.getMe(p, s, stack, home, typeWanted);
 	}
@@ -110,6 +111,7 @@ public class NbtObject extends Struct {
 	public void getMeDirect(PrintStream p, Scope s, RStack stack, Variable to, Variable me) throws CompileError {
 		if(to.type.struct instanceof NbtObject) {
 			super.basicSetDirect(p, to, me);
+			//this.deleteIfFromNull(p, s, stack, to, me);//redundant
 			return;
 		}
 		Variable meval = this.getValue(me, to.type);
@@ -120,10 +122,17 @@ public class NbtObject extends Struct {
 	public void setMeDirect(PrintStream p, Scope s, RStack stack, Variable me, Variable from) throws CompileError {
 		if(from.type.struct instanceof NbtObject) {
 			super.basicSetDirect(p, me, from);
+			//this.deleteIfFromNull(p, s, stack, me, from);//redundant
 			return;
 		}
 		Variable meval = this.getValue(me, from.type);
 		Variable.directSet(p, s, meval, from, stack);
+	}
+	public void deleteIfFromNull(PrintStream p, Scope s, RStack stack, Variable to, Variable from) {
+		//TODO test this
+		Variable tov = this.getValue(to, VarType.VOID);//type does not matter
+		Variable fromv = this.getValue(from, VarType.VOID);//type does not matter
+		p.printf("execute unless data %s run data remove %s\n", fromv.dataPhrase(),tov.dataPhrase());
 	}
 	
 	//see if value can do the operation
@@ -134,14 +143,25 @@ public class NbtObject extends Struct {
 	}
 	@Override
 	public boolean canDoBiOpDirect(BiOperator op, VarType mytype, VarType other, boolean isFirst) throws CompileError {
+		if(other.isVoid()) {
+			//can do equals
+		}
 		if(other.struct instanceof NbtObject) {
+			
 		}else if (other.isDataEquivalent()) {
+			
 		}else return false;
 		switch(op.op) {
 			case EQ:
 			case NEQ: return true;
-			default: return false;
+			default: break;
 		}
+		if(op.op.isNumeric) {
+			return other.isNumeric();
+		}if(op.op.isLogical) {
+			return other.isLogical();
+		}
+		return false;
 	}
 	@Override
 	public boolean canDoBiOpDirectOn(BiOperator op, VarType mytype, VarType other) throws CompileError {
@@ -151,10 +171,19 @@ public class NbtObject extends Struct {
 	public int doBiOpFirstDirect(BiOperator op, VarType mytype, PrintStream p, Compiler c, Scope s, RStack stack,
 			INbtValueProvider me, INbtValueProvider other) throws CompileError {
 		assert me instanceof Variable;//no such thing as a const Obj
+		switch(op.op) {
+			case EQ:
+			case NEQ:break;
+			default:  {
+				//do what the other would do operating with itself
+				Variable value = this.getValue((Variable) me, other.getType());
+				return Variable.directOp(p, c, s, value, op, other, stack,false);
+			} 
+		}
 		if(other.getType().struct instanceof NbtObject) {
 			assert other instanceof Variable;
 			return super.basicDirectEquals(p, c, s, stack, me, other, op.op == OpType.NEQ);
-		}else if(other instanceof Num &&  ((Num) other).value==null) {
+		}else if(other instanceof NullToken) { //Num &&  ((Num) other).value==null
 			return this.getIsNull(p, c, s, stack, (Variable) me, op.op == OpType.NEQ);
 		}
 		Variable value = this.getValue((Variable) me, other.getType());
@@ -165,10 +194,20 @@ public class NbtObject extends Struct {
 	public int doBiOpSecondDirect(BiOperator op, VarType mytype, PrintStream p, Compiler c, Scope s, RStack stack,
 			INbtValueProvider other, INbtValueProvider me) throws CompileError {
 		assert me instanceof Variable;//no such thing as a const Obj
+		switch(op.op) {
+			case EQ:
+			case NEQ:break;
+			default:  {
+				assert !(other.getType().struct instanceof NbtObject);
+				//do what the other would do operating with itself
+				Variable value = this.getValue((Variable) me, other.getType());
+				return Variable.directOp(p, c, s, other, op, value, stack,false);
+			} 
+		}
 		if(other.getType().struct instanceof NbtObject) {
 			assert other instanceof Variable;
 			return super.basicDirectEquals(p, c, s, stack, other, me, op.op == OpType.NEQ);
-		}else if(other instanceof Num &&  ((Num) other).value==null) {
+		}else if(other instanceof NullToken) {// Num &&  ((Num) other).value==null
 			return this.getIsNull(p, c, s, stack, (Variable) me, op.op == OpType.NEQ);
 		}
 		Variable value = this.getValue((Variable) me, other.getType());
@@ -177,8 +216,16 @@ public class NbtObject extends Struct {
 	public int getIsNull(PrintStream p, Compiler c, Scope s, RStack stack,
 			Variable self,boolean invert) throws CompileError {
 		int home=stack.setNext(VarType.BOOL);
+		Variable value = this.getValue(self, VarType.VOID);
 		Register reg=stack.getRegister(home);
-		reg.setToSuccess(p, "data get %s".formatted(self.dataPhrase()));
+		reg.setToSuccess(p, "data get %s".formatted(value.dataPhrase()));
+		if(!invert) {
+			//true if a failure happened
+			int buffer = stack.setNext(VarType.BOOL);
+			Register buff=stack.getRegister(buffer);
+			reg.invert(p, buff);
+			stack.pop();
+		}
 		return home;
 	}
 	
@@ -187,6 +234,7 @@ public class NbtObject extends Struct {
 		VarType tp = VarType.fromNumber(val);
 		if(tp.isVoid()) {
 			//null: delete self
+			//this is deprecated as Num is no longer nullable in value
 			Variable value = this.getValue(self, tp);
 			value.basicdeallocateBoth(p);
 			return;
@@ -206,6 +254,7 @@ public class NbtObject extends Struct {
 		case NBT:
 		case NUM:
 		case STRLIT:
+		case NULL:
 			return true;
 		case TYPE:
 		case COORDS:
@@ -232,6 +281,12 @@ public class NbtObject extends Struct {
 		case STRLIT:
 			type=Str.STR;
 			break;
+		case NULL:{
+			//delete my value
+			Variable value = this.getValue(me,VarType.VOID );
+			value.basicdeallocateBoth(p);
+			return;
+		}
 		case TYPE:
 		case COORDS:
 		case ROT:

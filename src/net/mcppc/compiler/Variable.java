@@ -692,9 +692,9 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	}public static int directOp(PrintStream p,Compiler c,Scope s,INbtValueProvider prevVar,BiOperator op,INbtValueProvider newVar,RStack stack) throws CompileError {
 		return Variable.directOp(p,c, s, prevVar,op, newVar, stack,true);
 	}
-	private static int directOp(PrintStream p,Compiler c,Scope s,INbtValueProvider prevVar,BiOperator op,INbtValueProvider newVar,RStack stack,boolean mustBeDirect) throws CompileError {
-		if(prevVar.getType().isVoid())throw new CompileError("Varaible.directOp() not for voids.");
-		if(newVar.getType().isVoid())throw new CompileError("Varaible.directOp() not for voids.");
+	public static int directOp(PrintStream p,Compiler c,Scope s,INbtValueProvider prevVar,BiOperator op,INbtValueProvider newVar,RStack stack,boolean mustBeDirect) throws CompileError {
+		//if(prevVar.getType().isVoid())throw new CompileError("Varaible.directOp() not for voids.");
+		//if(newVar.getType().isVoid())throw new CompileError("Varaible.directOp() not for voids.");
 		if(prevVar.getType().isStruct() && prevVar.getType().struct.canDoBiOpDirect(op, prevVar.getType(), newVar.getType(), true)) {
 			return prevVar.getType().struct.doBiOpFirstDirect( op, prevVar.getType(),p, c, s, stack, prevVar, newVar);
 		}else if(newVar.getType().isStruct() && newVar.getType().struct.canDoBiOpDirect(op, newVar.getType(), prevVar.getType(), false)) {

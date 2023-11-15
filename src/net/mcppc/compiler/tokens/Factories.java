@@ -7,11 +7,14 @@ import java.util.regex.Pattern;
 import net.mcppc.compiler.BuiltinFunction;
 import net.mcppc.compiler.CompileJob;
 import net.mcppc.compiler.Compiler;
+import net.mcppc.compiler.Const;
 import net.mcppc.compiler.Function;
 import net.mcppc.compiler.NbtPath;
 import net.mcppc.compiler.RStack;
 import net.mcppc.compiler.Selector;
 import net.mcppc.compiler.Variable;
+import net.mcppc.compiler.Const.ConstExprToken;
+import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Function.FuncCallToken;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Equation.End;
@@ -209,16 +212,29 @@ public final class Factories {
 				//? ~~
 				if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ESTIMATE) {
 					//ignore index
-					Token est=c.nextNonNullMatch(Factories.checkForNullableNumber);
+					
+					/*
+					Token est=c.nextNonNullMatch(Factories.checkForNullableNumber);//TODO deprecate this
 					if(!(est instanceof Num)) {
 						est=Num.tokenizeNextNumNonNull(c,c.currentScope, matcher, line, col);
 					}
 					if(!(est instanceof Num)) {
 						throw new CompileError.UnexpectedToken(est, "number");
 					}
+					Number estval = ((Num) est).value;
+					*/
+					ConstExprToken est = Const.checkForExpression(c, c.currentScope, matcher, line, col, ConstType.NUM,ConstType.NULL);
+					Number estval;
+					if(est instanceof NullToken) {
+						estval=null;
+					}else if (est instanceof Num) {
+						estval = ((Num) est).value;
+					}else {
+						throw new CompileError.UnexpectedToken(est, "number or null");
+					}
 					asn = c.nextNonNullMatch(Factories.nextIsLineEnd);
 					if(!(asn instanceof Token.LineEnd))new CompileError.UnexpectedToken(asn, ";");
-					Statement.Estimate stm= new Statement.Estimate(line, col,c.cursor, nm.var,((Num)est).value);
+					Statement.Estimate stm= new Statement.Estimate(line, col,c.cursor, nm.var,estval);
 					c.currentScope.addEstimate(stm.var, stm.estimate);
 					return stm;
 				}
@@ -350,7 +366,7 @@ public final class Factories {
 
 	//public static final Token.Factory[] checkForAssignlike = {newline,comment,space,Statement.Domment.factory,Token.Assignlike.factoryAssign,Token.Assignlike.factoryEstimate,Token.WildChar.dontPassFactory};
 	public static final Token.Factory[] nextNum = Factories.genericLook(Num.factory);//{newline,comment,domment,space,Num.factory};
-	public static final Token.Factory[] checkForNullableNumber = Factories.genericCheck(Num.factory,Num.nullfactory);//{newline,comment,domment,space,Num.factory,Num.nullfactory,Token.WildChar.dontPassFactory};	
+	//public static final Token.Factory[] checkForNullableNumber = Factories.genericCheck(Num.factory,Num.nullfactory);//{newline,comment,domment,space,Num.factory,Num.nullfactory,Token.WildChar.dontPassFactory};	
 	//returns a nonnull WildChar after space; does this without moving past the wildchar
 	public static final Token.Factory[] skipSpace =Factories.genericLook(Token.WildChar.dontPassFactory); 
 	

@@ -96,6 +96,7 @@ public class MakeTmLanguage extends Regexes.Strs{
 	
 	//shoehorned:
 	private static final String bool = keyword; 
+	private static final String nulls = keyword; 
 	private static final String selector = struct; // this is what mcf does
 	private static final String color_x = invalid;
 	private static final String color_y = comment;
@@ -171,8 +172,9 @@ public class MakeTmLanguage extends Regexes.Strs{
 		addToRepo(stringLits,patterns(List.of(strings_double,strings_single)));
 		//bools
 		addToRepo("bools",namedMatch(bool,BOOL));
+		addToRepo("nulls",namedMatch(nulls,NULL));
 		//selector
-		//TODO split into @ and non-@ cases
+		// split into @ and non-@ cases
 		//addToRepo("targetselectors",namedMatch(selector,SELECTOR,italic));
 		//addToRepo("targetselectors_at",namedMatch(selector,SELECTOR_ATONLY,italic)); //was replaced by new thing
 		//addToRepo("targetselectors_noat",namedMatch(selector,SELECTOR_NOAT,italic));

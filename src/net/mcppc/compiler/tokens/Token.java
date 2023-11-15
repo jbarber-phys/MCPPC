@@ -325,7 +325,12 @@ public abstract class Token {
 		public String literal() {
 			return this.literal;
 		}
-		public String getJsonText() {
+		
+		@Override
+		public String getJsonText() throws CompileError {
+			return "{\"text\": %s}".formatted(this.literal());
+		}
+		public String getJsonArg() {
 			return this.literal();
 		}
 		@Override

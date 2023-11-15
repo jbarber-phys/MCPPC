@@ -116,6 +116,10 @@ public class Selector {
 		public String textInHdr() {
 			return this.selector().toHDR();
 		}
+		@Override
+		public String getJsonText() throws CompileError {
+			return this.selector().getJsonText();
+		}
 
 		@Override
 		public String resSuffix() {

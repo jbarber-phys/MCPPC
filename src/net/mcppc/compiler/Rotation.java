@@ -34,7 +34,7 @@ public class Rotation {
 		}
 		@Override
 		public ConstType constType() {
-			return ConstType.COORDS;
+			return ConstType.ROT;
 		}
 		@Override
 		public String textInHdr() {
@@ -58,6 +58,10 @@ public class Rotation {
 		@Override
 		public String textInMcf() {
 			return this.rot.inCMD();
+		}
+		@Override
+		public String getJsonText() throws CompileError {
+			throw new CompileError("cannot print an %s".formatted(this.constType().name));
 		}
 		@Override
 		public boolean canCast(VarType type) {

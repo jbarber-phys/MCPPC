@@ -108,7 +108,8 @@ public class Num extends Const.ConstLiteralToken implements INbtValueProvider{
 	//do not use this one in equations
 	public static final Factory factoryneg = new Factory(Regexes.NUM_NEG) ;
 
-	public static final Token.Factory nullfactory = new Token.Factory(Regexes.NULL_KEYWORD) {
+	@Deprecated private static final Token.Factory nullfactory = new Token.Factory(Regexes.NULL_KEYWORD) {
+		//null vales are their own token now: NullToken
 		@Override
 		public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
 			c.cursor=matcher.end();
@@ -300,5 +301,11 @@ public class Num extends Const.ConstLiteralToken implements INbtValueProvider{
 		Const.registerBiOp(num, BiOperator.OpType.ADD, num, (a,b) ->{ return addsub((Num)a,(Num)b,true);});
 		
 		Const.registerUniOp(UnaryOp.UOType.UMINUS, num, (a)->{return minus((Num) a);});
+	}
+
+	@Override
+	public String getJsonText() throws CompileError {
+		String txt = this.textInMcf();
+		return "{\"text\": \"%s\"}".formatted(txt);
 	}
 }

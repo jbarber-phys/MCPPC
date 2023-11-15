@@ -3,6 +3,7 @@ package net.mcppc.compiler.tokens;
 import java.util.Objects;
 import java.util.regex.Matcher;
 
+import net.mcpp.vscode.JsonMaker;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Const;
 import net.mcppc.compiler.INbtValueProvider;
@@ -52,6 +53,18 @@ public class Bool extends Const.ConstLiteralToken implements INbtValueProvider{
 	public String textInMcf() {
 		return this.type.boolToStringNumber(this.val);//should always appear as data of 0b or 1b
 	}
+	@Override
+	public String getJsonText() throws CompileError {
+		String txt = this.type.boolToStringTrueFalse(val);
+		return "{\"text\": \"%s\"}".formatted(txt);//true or false
+	}
+	@Override
+	public String getJsonArg() throws CompileError {
+		String txt = this.type.boolToStringTrueFalse(val);
+		return txt;//true or false
+	}
+	
+	
 	@Override
 	public VarType getType() {
 		return this.type;

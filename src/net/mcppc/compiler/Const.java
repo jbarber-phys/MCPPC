@@ -16,6 +16,7 @@ import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Bool;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Keyword;
+import net.mcppc.compiler.tokens.NullToken;
 import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
@@ -228,6 +229,20 @@ public class Const {
 		 * @throws CompileError 
 		 */
 		public abstract String textInMcf() throws CompileError;
+		/**
+		 * returns a json text element for this value (with enclosing brackets)
+		 * @return
+		 * @throws CompileError
+		 */
+		public abstract String getJsonText() throws CompileError;
+		/**
+		 * returns a json value (no brackets) for what to print as an argument value for a format specifier;
+		 * @return
+		 * @throws CompileError
+		 */
+		public String getJsonArg() throws CompileError {
+			throw new CompileError("a %s is never a valid format argument".formatted(this.constType().name));
+		};
 
 		public abstract boolean canCast(VarType type);
 		public abstract ConstExprToken constCast(VarType type) throws CompileError;
@@ -325,6 +340,14 @@ public class Const {
 		@Override public ConstExprToken constCast(VarType type) throws CompileError{
 			return this.constv.value.constCast(type);
 		}
+		@Override
+		public String getJsonText() throws CompileError {
+			return this.constv.getValue().getJsonText();
+		}
+		@Override
+		public String getJsonArg() throws CompileError {
+			return this.constv.getValue().getJsonArg();
+		};
 	}
 	public enum ConstType{
 		//values are in order that prevents conflict
@@ -336,6 +359,7 @@ public class Const {
 		SELECTOR("selector",Selector.SelectorToken.factory),
 		NBT("nbt",NbtPath.NbtPathToken.factory),
 		ROT("rot",Rotation.RotToken.factory), // not accessible in a find any operation
+		NULL("none",NullToken.factory)//call it a "none" to avoid conflict with "null"
 		;
 		//all calls to the factories should now be const-safe
 		//refs are not known at precomp-time

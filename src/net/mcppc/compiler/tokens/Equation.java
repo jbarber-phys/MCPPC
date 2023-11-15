@@ -152,6 +152,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	static final Token.Factory[] lookForValue= Factories.genericLook(
 			UnaryOp.factory,
 			Bool.factory,
+			NullToken.factory,//this is new
 			Selector.SelectorToken.factory,//new edition; may interfere with indexing
 			MemberName.factory,Num.factory,CommandToken.factory,
 			Token.Paren.factory,//sub-eq or caste
@@ -962,7 +963,9 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 								((nextval instanceof INbtValueProvider && ((INbtValueProvider) nextval).hasData())
 								? (INbtValueProvider) nextval : null) : newVar;
 						boolean didDirect = false;
+						
 						if(prevVar !=null && newVar !=null) {
+							
 							if(prevVar.getType().isStruct() && prevVar.getType().struct.canDoBiOpDirect(op, prevVar.getType(), newVar.getType(), true)) {
 								if(hasHome1) stack.pop();
 								this.homeReg=Variable.directOp(p, c, s, prevVar, op, newVar, stack);
@@ -1199,6 +1202,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	}
 	
 	public static ConstExprToken constifyAndGet(Equation eq,Compiler c,Scope s,ConstType... ctypes) throws CompileError{
+		if(eq==null)return null;
 		eq.constify(c, s);
 		if(!eq.isConstable()) throw new CompileError("equation at line %s col %s failed to constify when needed".formatted(eq.line,eq.col));
 		ConstExprToken ct = eq.getConst();
