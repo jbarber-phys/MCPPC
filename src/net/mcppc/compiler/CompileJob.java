@@ -34,11 +34,9 @@ import net.mcppc.compiler.tokens.Import;
 
 
 /*list of language editions TODO ::
+ * improve printf: add builtinfunction format(...) for sub formats;
+ *  * allow it to constify to a string if needed, but be carefull about whether to escape it
  * add stdlib for attacking entities / hitbox/raycast testing
- * improve printf, add format functions for: color,formatting, click events 
- * 		use syntax format(printfargs..., thing=thing,color=color), add one for onclick
- * 		make format a BuiltinFunction that implements IPrintable somehow
- * 		make a headsupf(...) function for title function
  * 
  * add java edition targeting : Version -> format ID; Target -> min version AND max version;
  * incorperate new 1.20.3 commands: return, tick, random, damage;

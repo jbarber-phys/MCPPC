@@ -40,6 +40,15 @@ import net.mcppc.compiler.tokens.TreePrintable;
  * @author RadiumE13
  *
  */
+
+/*
+ * TODO s:
+ * format(...) function (as well as formatLit() to output a string literal of the json text for Lore / book tags)
+ * add printscope: "printf"."$with1"."$1"
+ * bossbar name
+ * objective name
+ * 
+ */
 public class PrintF extends BuiltinFunction{
 	public static interface IPrintable {
 		public String getJsonTextSafe();
@@ -97,6 +106,9 @@ public class PrintF extends BuiltinFunction{
 		BuiltinFunction.register(stdout);
 		BuiltinFunction.register(stderr);
 		BuiltinFunction.register(stdwarn);
+		BuiltinFunction.register(TitleF.titlef);
+		BuiltinFunction.register(TitleF.subtitlef);
+		BuiltinFunction.register(TitleF.actionbarf);
 	}
 	public final String color;
 	public PrintF(String name,String color) {
@@ -385,11 +397,17 @@ public class PrintF extends BuiltinFunction{
 		p.printf("%s\t)\n",s.toString(), this.name);
 	}
 	
-	
+	/**
+	 * similar to printf but makes a /title command instead (with a fade in/out);
+	 * can add durations as if they were format args;
+	 * note that action bar is affected differently by the fade parameters
+	 * @author RadiumE13
+	 *
+	 */
 	public static class TitleF extends PrintF {
-		public static final PrintF title = new TitleF("title",TextColors.WHITE,"title",5,30,20);
-		public static final PrintF subtitle = new TitleF("subtitle",TextColors.WHITE,"subtitle",5,30,20);
-		public static final PrintF actionbar = new TitleF("actionbar",TextColors.WHITE,"actionbar",5,30,20);
+		public static final PrintF titlef = new TitleF("titlef",TextColors.WHITE,"title",5,30,20);
+		public static final PrintF subtitlef = new TitleF("subtitlef",TextColors.WHITE,"subtitle",5,30,20);
+		public static final PrintF actionbarf = new TitleF("actionbarf",TextColors.WHITE,"actionbar",5,30,20);
 		public final String location;
 		public final int fadeInDefault;
 		public final int stayDefault;
@@ -420,7 +438,7 @@ public class PrintF extends BuiltinFunction{
 					,this.location
 					,json
 					);
-			p.printf("%stellraw %s times %s %s %s\n"
+			p.printf("%stitle %s times %s %s %s\n"
 					,prefix
 					,pargs.s.toCMD()
 					,fadeIn,stay,fadeOut
