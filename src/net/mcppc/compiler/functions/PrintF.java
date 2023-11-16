@@ -14,7 +14,9 @@ import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Function.FuncCallToken;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.struct.Entity;
+import net.mcppc.compiler.struct.NbtCompound;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.MemberName;
@@ -41,15 +43,24 @@ import net.mcppc.compiler.tokens.TreePrintable;
  *
  */
 
-/*
- * TODO s:
- * format(...) function (as well as formatLit() to output a string literal of the json text for Lore / book tags)
- * add printscope: "printf"."$with1"."$1"
- * bossbar name
- * objective name
- * 
- */
 public class PrintF extends BuiltinFunction{
+	public static void registerAll() {
+		BuiltinFunction.register(stdout);
+		BuiltinFunction.register(stderr);
+		BuiltinFunction.register(stdwarn);
+		
+		BuiltinFunction.register(TitleF.titlef);
+		BuiltinFunction.register(TitleF.subtitlef);
+		BuiltinFunction.register(TitleF.actionbarf);
+
+		BuiltinFunction.register(FormatF.format);
+		BuiltinFunction.register(FormatF.formatLit);
+	}
+	/**
+	 * anything that can be turned into a json text element; common examples would be variables and const values;
+	 * @author RadiumE13
+	 *
+	 */
 	public static interface IPrintable {
 		public String getJsonTextSafe();
 		public static PString string(String s) {return new PString(s);}
@@ -63,6 +74,67 @@ public class PrintF extends BuiltinFunction{
 				return "{\"text\": \"%s\"}".formatted(lit);
 			}
 			
+		}
+	}
+	/**
+	 * contains information about the current json text element being created;
+	 * this is used to prevent name collisions between buffer variables, and about when to use them;
+	 * @author RadiumE13
+	 *
+	 */
+	public static class PrintContext{
+		final String base;
+		final List<Integer> withs = new ArrayList<Integer>();
+		final boolean varCopy;
+		public PrintContext(String base,boolean varCopy) {
+			this.base=base;
+			this.varCopy= varCopy;
+		}
+		public PrintContext(PrintContext parent,int withIndex) {
+			this.base=parent.base;
+			this.withs.addAll(parent.withs);
+			this.withs.add(withIndex);
+			this.varCopy = parent.varCopy;
+		}
+		/**
+		 * returns a variable to be used by a printing statement as a buffer for values;
+		 * this is done to maintain the values at their position in the execution order even if later
+		 * functions in the format elements alter them;
+		 * note that {@link FormatF.formatLit} will not use this (it will issue a warning if required to) because the buffer values are temporary, but
+		 * a literal json text might not be resolved until later;
+		 * @param index
+		 * @param c
+		 * @param s
+		 * @param type
+		 * @return
+		 * @throws CompileError
+		 */
+		public Variable getPrintVar(int index,Compiler c,Scope s,VarType type) throws CompileError{
+			if(!this.varCopy) Warnings.warning("attempted to copy data in a non-copying format function; possible loss of buffered variable values;", c);
+			//ResourceLocation res = c.resourcelocation;// this could lead to conflict
+			ResourceLocation res =s.getSubResNoTemplate();
+			StringBuffer path = new StringBuffer();
+			path.append("\"$%s\"".formatted(this.base));
+			for(int withi : this.withs) path.append(".\"$with_%d\"".formatted(withi));
+			path.append(".\"$%d\"".formatted(index));
+			NbtPath anonvn=new NbtPath(path.toString());
+			Variable anon=new Variable("anon",type,null,c).maskStorageAllocatable(res, anonvn);
+			return anon;
+		}
+		public boolean isTopLevel() {
+			return this.withs.isEmpty();
+		}
+		private boolean allocated = false;
+		public void ensureAllocate(PrintStream p,Compiler c,Scope s) throws CompileError {
+			//only allocate the top level var as an empty compound; all subvars can auto generate from tag {}
+			//still must make sure it is a compound;
+			if(allocated) return;//never allocate twice;
+			allocated=true;
+			if(!this.isTopLevel()) return;//only allocate at top level
+			ResourceLocation res =s.getSubResNoTemplate();//TODO test this
+			NbtPath anonvn=new NbtPath("\"$%s\"".formatted(this.base));//the outermost thing
+			Variable anon=new Variable("anon",NbtCompound.TAG_COMPOUND,null,c).maskStorageAllocatable(res, anonvn);
+			anon.allocateLoad(p, true);
 		}
 	}
 	public static abstract class TextColors{
@@ -102,14 +174,7 @@ public class PrintF extends BuiltinFunction{
 	public static final PrintF stderr = new PrintF("errorf",TextColors.DARK_RED);//TODO consider adding a default click statement to open file that errors
 	
 	
-	public static void registerAll() {
-		BuiltinFunction.register(stdout);
-		BuiltinFunction.register(stderr);
-		BuiltinFunction.register(stdwarn);
-		BuiltinFunction.register(TitleF.titlef);
-		BuiltinFunction.register(TitleF.subtitlef);
-		BuiltinFunction.register(TitleF.actionbarf);
-	}
+	
 	public final String color;
 	public PrintF(String name,String color) {
 		super(name);
@@ -166,17 +231,25 @@ public class PrintF extends BuiltinFunction{
 			c.cursor = begin;
 			return null;
 		}
-		//System.err.printf("found a format arg: %s\n", t.asString());//TODO debug this
-		//found an arg: x
+		//System.err.printf("found a format arg: %s\n", t.asString());
 		return (BasicName) t;
 	}
 	public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line,int col, RStack stack)throws CompileError {
 		return PrintF.tokenizeFormatArgs(c, s, matcher, line, col, stack,true);
 	}
-
+	/**
+	 * tokenizes args of a format similar to printf, but with the argument for a reciever of the text being optional
+	 * @param c
+	 * @param s
+	 * @param matcher
+	 * @param line
+	 * @param col
+	 * @param stack
+	 * @param hasReciver
+	 * @return
+	 * @throws CompileError
+	 */
 	public static Args tokenizeFormatArgs(Compiler c, Scope s, Matcher matcher, int line,int col, RStack stack,boolean hasReciver)throws CompileError {
-		//TODO make this static for format(...) func
-		//TODO test this
 		Selector reciver=null;
 		ConstExprToken t;
 		if(hasReciver) {
@@ -205,7 +278,7 @@ public class PrintF extends BuiltinFunction{
 			if(!BuiltinFunction.findArgsep(c))new CompileError("not enough args in printf(...)");
 			t=Const.checkForExpression(c,s, matcher, line, col,ConstType.STRLIT);
 		}
-		reciver=reciver.playerify();
+		if(reciver!=null)reciver=reciver.playerify();
 		String litFstring=((StringToken) t).literal();
 		//CompileJob.compileMcfLog.printf("printf: %s, %s;\n",s,litFstring);
 		PrintfArgs args=new PrintfArgs(reciver,litFstring);
@@ -268,14 +341,27 @@ public class PrintF extends BuiltinFunction{
 	}
 	public void call(PrintStream p, Compiler c, Scope s, Args args, RStack stack,String prefix) throws CompileError {
 		PrintfArgs pargs=(PrintfArgs) args;
-		String json = compileJsonTextElement(p, c, s, pargs, stack, this.color);
+		PrintContext context = new PrintContext("printf",true);
+		String json = compileJsonTextElement(p, c, s, pargs, stack, this.color,context);
 		p.printf("%stellraw %s %s\n"
 				,prefix
 				,pargs.s.toCMD()
 				,json
 				);
 	}
-	public static String compileJsonTextElement(PrintStream p, Compiler c, Scope s, PrintfArgs pargs, RStack stack,String color)  throws CompileError{
+	/**
+	 * compiles all the commands needed to get a json text and then returns said component;
+	 * @param p
+	 * @param c
+	 * @param s
+	 * @param pargs
+	 * @param stack
+	 * @param color
+	 * @param context
+	 * @return
+	 * @throws CompileError
+	 */
+	public static String compileJsonTextElement(PrintStream p, Compiler c, Scope s, PrintfArgs pargs, RStack stack,String color,PrintContext context)  throws CompileError{
 		//PrintfArgs pargs=(PrintfArgs) args;
 		List<String> jsonargs=new ArrayList<String>();
 		int index=1;
@@ -283,6 +369,7 @@ public class PrintF extends BuiltinFunction{
 		boolean REFARGS=false;
 		final String COLOR = "color";
 		//CompileJob.compileMcfLog.printf("printf compile begun;\n");
+		//boolean toallocate = true;this is inside the context
 		for(Token t:pargs.targs) {
 			if(t instanceof Selector.SelectorToken) {
 				jsonargs.add(((Selector.SelectorToken) t).selector().getJsonText());
@@ -294,23 +381,34 @@ public class PrintF extends BuiltinFunction{
 					ConstExprToken cs = eq.getConst();
 					jsonargs.add(cs.getJsonText());
 				}
-				else if(REFARGS && eq.isRefable() && !eq.retype.isLogical()) {
+				else if((!context.varCopy) && eq.isRefable() && !eq.retype.isLogical()) {
 					//DO NOT take a const-only ref as later args may edit it;
+					//UNLESS if this is a formatLit, then copied data could be edited later so instead use direct refs
 					Variable ref=eq.getVarRef();
 					jsonargs.add(ref.getJsonText());
 				}else {
-					//TODO if eq is printable, then bind a context for anon vars
+					context.ensureAllocate(p, c, s);
+					PrintContext subcontext = new PrintContext(context,index);
+					eq.bindPrintContext(subcontext);
 					eq.compileOps(p, c, s, null);
-					//TODO add a context arg to prevent problems with sub format collision
-					NbtPath anonvn=new NbtPath("\"$printf\".\"$%d\"".formatted(index));
-					Variable anon=new Variable("anon",eq.retype,null,c).maskStorageAllocatable(c.resourcelocation, anonvn);
-					//anon vars must think they are being loaded
-					if(anon.willAllocateOnLoad(false))anon.allocateLoad(p, false);
-					eq.setVar(p, c, s, anon);
-					if(eq.retype.isLogical() && !eq.retype.isNumeric()) {
-						convertBoolToStr(p,anon,s,stack);
+					if(eq.didBFMakeJsonText()) {
+						//for format(...) statements
+						//TODO test this;
+						String json = eq.getGeneratedJsonText(p, c, s);
+						jsonargs.add(json);
+					} else {
+						//NbtPath anonvn=new NbtPath("\"$printf\".\"$%d\"".formatted(index));
+						//Variable anon=new Variable("anon",eq.retype,null,c).maskStorageAllocatable(c.resourcelocation, anonvn);
+						Variable anon=context.getPrintVar(index, c, s, eq.retype);
+						//anon vars must think they are being loaded
+						//if(anon.willAllocateOnLoad(false))anon.allocateLoad(p, false);//this is redundant and inefficient
+						eq.setVar(p, c, s, anon);
+						if(eq.retype.isLogical() && !eq.retype.isNumeric()) {
+							convertBoolToStr(p,anon,s,stack);
+						}
+						jsonargs.add(anon.getJsonText());
 					}
-					jsonargs.add(anon.getJsonText());
+					
 				}
 				
 			}
@@ -425,13 +523,14 @@ public class PrintF extends BuiltinFunction{
 		@Override
 		public void call(PrintStream p, Compiler c, Scope s, Args args, RStack stack,String prefix) throws CompileError {
 			PrintfArgs pargs=(PrintfArgs) args;
-			Num fin =  (Num) Equation.constifyAndGet((Equation) pargs.fkwargs.remove(FADE_IN), c, s, ConstType.NUM);
-			Num sty =  (Num) Equation.constifyAndGet((Equation) pargs.fkwargs.remove(STAY), c, s, ConstType.NUM);
-			Num fot =  (Num) Equation.constifyAndGet((Equation) pargs.fkwargs.remove(FADE_OUT), c, s, ConstType.NUM);
+			Num fin =  (Num) Equation.constifyAndGet(p, (Equation) pargs.fkwargs.remove(FADE_IN), c, s, stack, ConstType.NUM);
+			Num sty =  (Num) Equation.constifyAndGet(p, (Equation) pargs.fkwargs.remove(STAY), c, s, stack, ConstType.NUM);
+			Num fot =  (Num) Equation.constifyAndGet(p, (Equation) pargs.fkwargs.remove(FADE_OUT), c, s, stack, ConstType.NUM);
 			int fadeIn = fin!=null?fin.value.intValue():this.fadeInDefault;
 			int stay = sty!=null?sty.value.intValue():this.stayDefault;
 			int fadeOut = fot!=null?fot.value.intValue():this.fadeOutDefault;
-			String json = compileJsonTextElement(p, c, s, pargs, stack, this.color);
+			PrintContext context = new PrintContext("titlef",true);
+			String json = compileJsonTextElement(p, c, s, pargs, stack, this.color,context);
 			p.printf("%stitle %s %s %s\n"
 					,prefix
 					,pargs.s.toCMD()

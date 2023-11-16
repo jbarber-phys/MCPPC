@@ -19,7 +19,7 @@ public class JsonMaker {
 		  }
 		  return "";
 		}
-	private static String escapeJson(String s){
+	public static String escapeJson(String s){
 		  return s.replace("\\", "\\\\")
 		          .replace("\t", "\\t")
 		          .replace("\b", "\\b")

@@ -142,12 +142,12 @@ public abstract class Particles extends BuiltinFunction {
 			BasicArgs args = (BasicArgs) token.getArgs();
 			int start = this.getStartindex(c, s, token);
 			if(args.nargs() < start + 3 + 2) throw new CompileError("not enough args in %s(...) call".formatted(this.name));
-			Coordinates.CoordToken v1 = (CoordToken) Equation.constifyAndGet((Equation)args.arg(start), c, s, ConstType.COORDS);
-			Coordinates.CoordToken v2 = (CoordToken) Equation.constifyAndGet((Equation)args.arg(start+1), c, s, ConstType.COORDS);
-			Num num = (Num) Equation.constifyAndGet((Equation)args.arg(start+2), c, s, ConstType.NUM);
+			Coordinates.CoordToken v1 = (CoordToken) Equation.constifyAndGet(p, (Equation)args.arg(start), c, s, stack, ConstType.COORDS);
+			Coordinates.CoordToken v2 = (CoordToken) Equation.constifyAndGet(p, (Equation)args.arg(start+1), c, s, stack, ConstType.COORDS);
+			Num num = (Num) Equation.constifyAndGet(p, (Equation)args.arg(start+2), c, s, stack, ConstType.NUM);
 			Number speed;
 			if(args.nargs() > start + 3 + 2) {
-				Num spd = (Num) Equation.constifyAndGet((Equation)args.arg(start+3), c, s, ConstType.NUM);
+				Num spd = (Num) Equation.constifyAndGet(p, (Equation)args.arg(start+3), c, s, stack, ConstType.NUM);
 				speed = spd.value;
 			}else speed = 0;
 			int n = num.value.intValue();
@@ -183,9 +183,9 @@ public abstract class Particles extends BuiltinFunction {
 			BasicArgs args = (BasicArgs) token.getArgs();
 			int start = this.getStartindex(c, s, token);
 			if(args.nargs() < start + 3 + 2) throw new CompileError("not enough args in %s(...) call".formatted(this.name));
-			Num rad = (Num) Equation.constifyAndGet((Equation)args.arg(start+0), c, s, ConstType.NUM);
-			Coordinates.CoordToken v = (CoordToken) Equation.constifyAndGet((Equation)args.arg(start+1), c, s, ConstType.COORDS);
-			Num num = (Num) Equation.constifyAndGet((Equation)args.arg(start+2), c, s, ConstType.NUM);
+			Num rad = (Num) Equation.constifyAndGet(p, (Equation)args.arg(start+0), c, s, stack, ConstType.NUM);
+			Coordinates.CoordToken v = (CoordToken) Equation.constifyAndGet(p, (Equation)args.arg(start+1), c, s, stack, ConstType.COORDS);
+			Num num = (Num) Equation.constifyAndGet(p, (Equation)args.arg(start+2), c, s, stack, ConstType.NUM);
 
 			int n = num.value.intValue();
 			for(int i=0;i<n;i++) {
@@ -241,9 +241,9 @@ public abstract class Particles extends BuiltinFunction {
 			BasicArgs args = (BasicArgs) token.getArgs();
 			int start = this.getStartindex(c, s, token);
 			if(args.nargs() < start + 3 + 2) throw new CompileError("not enough args in %s(...) call".formatted(this.name));
-			Num rad = (Num) Equation.constifyAndGet((Equation)args.arg(start+0), c, s, ConstType.NUM);
-			Coordinates.CoordToken v = (CoordToken) Equation.constifyAndGet((Equation)args.arg(start+1), c, s, ConstType.COORDS);
-			Num num = (Num) Equation.constifyAndGet((Equation)args.arg(start+2), c, s, ConstType.NUM);
+			Num rad = (Num) Equation.constifyAndGet(p, (Equation)args.arg(start+0), c, s, stack, ConstType.NUM);
+			Coordinates.CoordToken v = (CoordToken) Equation.constifyAndGet(p, (Equation)args.arg(start+1), c, s, stack, ConstType.COORDS);
+			Num num = (Num) Equation.constifyAndGet(p, (Equation)args.arg(start+2), c, s, stack, ConstType.NUM);
 			double r = rad.value.doubleValue();
 			int n = num.value.intValue();
 			List<LatLong> points = this.points(n);

@@ -73,7 +73,20 @@ public abstract class CMath {
 		return in.replaceAll("%", "%%");
 	}
 	
-	
+	public static String getStringLiteral(String text) {
+		String s2=text.replace("\\", "\\\\")
+		          .replace("\t", "\\t")
+		          .replace("\b", "\\b")
+		          .replace("\n", "\\n")
+		          .replace("\r", "\\r")
+		          .replace("\f", "\\f")
+		          //.replace("\'", "\\'")
+		          .replace("\"", "\\\"")
+		          //DO NOT ESCAPE ESCAPE CHARS
+		          //.replace("%", "%%")
+		          ;
+		return String.format("\"%s\"",s2);
+	}
 	
 	
 	

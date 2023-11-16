@@ -37,10 +37,11 @@ public abstract class UnsafeThreadCommand extends BuiltinFunction {
 			BasicArgs args = (BasicArgs) token.getArgs();
 			if(args.nargs()<1) return true;
 			Equation arg = (Equation) args.arg(0);
-			arg.constify(c, s);
-			if(!arg.isConstable()) arg.throwNotConstError();
-			ConstExprToken cst = arg.getConst();
-			if(cst.constType()!=ConstType.SELECTOR) throw new CompileError("arg of kill must be selector-equivalent");
+			//arg.constify(c, s);
+			//if(!arg.isConstable()) arg.throwNotConstError();
+			//ConstExprToken cst = arg.getConst();
+			ConstExprToken cst = Equation.constifyAndGet(p, arg, c, s, stack, ConstType.SELECTOR);
+			//if(cst.constType()!=ConstType.SELECTOR) throw new CompileError("arg of kill must be selector-equivalent");
 			Selector sf = ((Selector.SelectorToken)cst).selector();
 			return s.getThread().isSelectorMySelf(sf);
 		}
@@ -53,10 +54,11 @@ public abstract class UnsafeThreadCommand extends BuiltinFunction {
 				//skip
 			}else {
 				Equation arg = (Equation) args.arg(0);
-				arg.constify(c, s);
-				if(!arg.isConstable()) arg.throwNotConstError();
-				ConstExprToken cst = arg.getConst();
-				if(cst.constType()!=ConstType.SELECTOR) throw new CompileError("arg of kill must be selector-equivalent");
+				//arg.constify(c, s);
+				//if(!arg.isConstable()) arg.throwNotConstError();
+				//ConstExprToken cst = arg.getConst();
+				ConstExprToken cst = Equation.constifyAndGet(p, arg, c, s, stack, ConstType.SELECTOR);
+				//if(cst.constType()!=ConstType.SELECTOR) throw new CompileError("arg of kill must be selector-equivalent");
 				sf = ((Selector.SelectorToken)cst).selector();
 			}
 			if(sf==null) p.printf("kill\n");

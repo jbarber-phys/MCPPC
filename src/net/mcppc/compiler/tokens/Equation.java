@@ -17,6 +17,7 @@ import net.mcppc.compiler.Function.FuncCallToken;
 import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
+import net.mcppc.compiler.functions.PrintF.PrintContext;
 import net.mcppc.compiler.struct.*;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.Equation.End;
@@ -300,8 +301,14 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		Function.FuncCallToken core=(Function.FuncCallToken) this.elements.get(0);
 		return core.getRetConstRef();
 	}
-	private Variable getConstVarRef(Token t) throws CompileError{
+	private INbtValueProvider getConstVarRef(Token t) throws CompileError{
 		if((t instanceof MemberName)) return getVarRef(t);
+		if(t instanceof BuiltinFunction.BFCallToken) {
+			if(!((BuiltinFunction.BFCallToken) t).didYieldConst())return null;
+			ConstExprToken bfc=((BuiltinFunction.BFCallToken) t).getYieldedConst();
+			if(bfc instanceof INbtValueProvider)return (INbtValueProvider) bfc;
+			else return null;
+		}
 		if(!(t instanceof Function.FuncCallToken)) return null;
 		Function.FuncCallToken core=(Function.FuncCallToken) t;
 		return core.getRetConstRef();
@@ -689,6 +696,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	private boolean hasSetToReg=false;
 	private Integer homeReg=null;
 	public VarType retype=VarType.VOID;
+	private PrintContext printContext = null;
 	// register is added by putTokenToRegister if !(in instanceof Equation) (then the sub_equation will do it)
 	private int putTokenToRegister(PrintStream p,Compiler c,Scope s,VarType typeWanted,Token in) throws CompileError {
 		//the cast flag is not yet used;
@@ -728,6 +736,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			VarType type = ((BuiltinFunction.BFCallToken) in).getRetType();
 			
 			regnum=stack.setNext(type);
+			if(this.printContext!=null) ;((BuiltinFunction.BFCallToken) in).bindPrintContext(this.printContext);
 			((BuiltinFunction.BFCallToken) in).call(p, c, s, stack);
 			((BuiltinFunction.BFCallToken) in).getRet(p, c, s, stack,regnum, typeWanted);
 			this.stack.estmiate(regnum, ((BuiltinFunction.BFCallToken) in).getEstimate());
@@ -939,7 +948,10 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 				List<Number> exponents=new ArrayList<Number>(); 
 				Number prevNum=null;if(first instanceof Num) prevNum=((Num) first).value;
 				//prevNum and nextnum are nonnull if there are const nums in the Equation;
-				
+				if(nostack1!=null && first instanceof BuiltinFunction.BFCallToken && ((BuiltinFunction.BFCallToken) first).willYieldConstOrJson(s)) {
+					if(this.printContext!=null) ;((BuiltinFunction.BFCallToken) first).bindPrintContext(this.printContext);
+					((BuiltinFunction.BFCallToken) first).call(p, c, s, stack);
+				}
 				INbtValueProvider prevVar = this.getConstVarRef(first); prevVar = (prevVar==null) ?
 						((first instanceof INbtValueProvider && ((INbtValueProvider) first).hasData())
 						? (INbtValueProvider) first : null) : prevVar;
@@ -959,13 +971,16 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 						exponents.add(e);
 					}else {
 						Number newnum=null;if(nextval instanceof Num) newnum=((Num) nextval).value;
+						if(nostack1!=null && nextval instanceof BuiltinFunction.BFCallToken && ((BuiltinFunction.BFCallToken) nextval).willYieldConstOrJson(s)) {
+							if(this.printContext!=null) ;((BuiltinFunction.BFCallToken) nextval).bindPrintContext(this.printContext);
+							((BuiltinFunction.BFCallToken) nextval).call(p, c, s, stack);
+						}
 						INbtValueProvider newVar = this.getConstVarRef(nextval); newVar = (newVar==null) ?
 								((nextval instanceof INbtValueProvider && ((INbtValueProvider) nextval).hasData())
 								? (INbtValueProvider) nextval : null) : newVar;
 						boolean didDirect = false;
-						
 						if(prevVar !=null && newVar !=null) {
-							
+							//System.err.printf("attempting direct op %s %s %s\n", prevVar.getType(),op.asString(),newVar.getType());
 							if(prevVar.getType().isStruct() && prevVar.getType().struct.canDoBiOpDirect(op, prevVar.getType(), newVar.getType(), true)) {
 								if(hasHome1) stack.pop();
 								this.homeReg=Variable.directOp(p, c, s, prevVar, op, newVar, stack);
@@ -1061,6 +1076,8 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 				((Function.FuncCallToken)e).call(p, c,s,this.stack);
 				this.retype=((Function.FuncCallToken)e).getFunction().retype;
 			} else if(e instanceof BuiltinFunction.BFCallToken) {
+
+				if(this.printContext!=null) ;((BuiltinFunction.BFCallToken) e).bindPrintContext(this.printContext);
 				((BuiltinFunction.BFCallToken)e).call(p, c,s,this.stack);
 				this.retype=((BuiltinFunction.BFCallToken)e).getRetType();
 			} else  if (e instanceof CommandToken){
@@ -1126,6 +1143,58 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			
 		}
 		return this.homeReg;
+	}
+	public void bindPrintContext(PrintContext context) {
+		this.printContext = context;
+	}
+	/**
+	 * some builtin functions yield a json text element (such as {@link FormatF#format});
+	 * this is currently different from a const;
+	 * the equation must be able to give it to whatever printer needs it;
+	 * 
+	 * @param p
+	 * @param c
+	 * @param s
+	 * @return
+	 * @throws CompileError
+	 */
+	public String getGeneratedJsonText(PrintStream p,Compiler c,Scope s) throws CompileError{
+		if(this.elements.size()!=1) throw new CompileError("Equation yielded no json text");
+		if(!(this.elements.get(0) instanceof BuiltinFunction.BFCallToken)) throw new CompileError("Equation yielded no json text");
+		BuiltinFunction.BFCallToken e =((BuiltinFunction.BFCallToken)this.elements.get(0));
+		String json = e.getYieldedJsonText();
+		e.dumpRet(p, c, s, stack);
+		return json;
+	}
+	public boolean didBFMakeJsonText() {
+		if(this.elements.size()!=1) return false;
+		if(!(this.elements.get(0) instanceof BuiltinFunction.BFCallToken)) return false;
+		BuiltinFunction.BFCallToken e =((BuiltinFunction.BFCallToken)this.elements.get(0));
+		return e.didYieldJsonText();
+	}
+	/**
+	 * some builtin functions yield a const return value(such as {@link FormatF#formatLit});
+	 * the equation must be able to return these directly so that const-demanding functions dont get confused;
+	 * 
+	 * @param p
+	 * @param c
+	 * @param s
+	 * @return
+	 * @throws CompileError
+	 */
+	public ConstExprToken getYieldedConst(PrintStream p,Compiler c,Scope s) throws CompileError{
+		if(this.elements.size()!=1) throw new CompileError("Equation yielded no json text");
+		if(!(this.elements.get(0) instanceof BuiltinFunction.BFCallToken)) throw new CompileError("Equation yielded no json text");
+		BuiltinFunction.BFCallToken e =((BuiltinFunction.BFCallToken)this.elements.get(0));
+		ConstExprToken conste = e.getYieldedConst();
+		e.dumpRet(p, c, s, stack);
+		return conste;
+	}
+	public boolean didBFMakeConst() {
+		if(this.elements.size()!=1) return false;
+		if(!(this.elements.get(0) instanceof BuiltinFunction.BFCallToken)) return false;
+		BuiltinFunction.BFCallToken e =((BuiltinFunction.BFCallToken)this.elements.get(0));
+		return e.didYieldConst();
 	}
 	public void ignoreGet(PrintStream p,Compiler c,Scope s) throws CompileError {
 		if(this.hasSetToReg) {
@@ -1201,11 +1270,22 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		return null;
 	}
 	
-	public static ConstExprToken constifyAndGet(Equation eq,Compiler c,Scope s,ConstType... ctypes) throws CompileError{
+	public static ConstExprToken constifyAndGet(PrintStream p,Equation eq,Compiler c,Scope s, RStack stack, ConstType... ctypes) throws CompileError{
 		if(eq==null)return null;
 		eq.constify(c, s);
-		if(!eq.isConstable()) throw new CompileError("equation at line %s col %s failed to constify when needed".formatted(eq.line,eq.col));
-		ConstExprToken ct = eq.getConst();
+		ConstExprToken ct;
+		if(!eq.isConstable()) {
+			eq.compileOps(p, c, s, null);
+			if (eq.didBFMakeConst()) {
+				ct = eq.getConst();
+			}else {
+				eq.throwNotConstError();
+				 throw new CompileError("equation at line %s col %s failed to constify when needed".formatted(eq.line,eq.col));//avoids confusing compiler
+			}
+		}else {
+			ct = eq.getConst();
+		}
+		
 		Set<ConstType> ctps = Set.<ConstType>of(ctypes);
 		if(ctps.contains(ct.constType())) return ct;
 		else throw new CompileError("equation at line %s col %s had a wrong const type %s, wanted %s;".formatted(eq.line,eq.col,ct.constType(),ctps));

@@ -166,15 +166,26 @@ public class CommandToken extends Token{
 			//System.err.printf("%s\n", s1);
 		}
 		if(this.hasFormat()) {
-			//TODO test
-			//constify all eqs
 			Object[] args = new Object[this.formatting.size()];
 			for (int i=0;i<args.length;i++) {
 				Equation eq = this.formatting.get(i);
 				eq.constify(c, s);
-				if(!eq.isConstable()) eq.throwNotConstError();
-				ConstExprToken cst = eq.getConst();
-				args[i] = cst.textInMcf();
+				if(!eq.isConstable()) {
+					//eq.printTree(System.err);
+					eq.compileOps(p, c, s, null);
+					if(eq.didBFMakeJsonText()) {
+						String json = eq.getGeneratedJsonText(p, c, s);
+						args[i]=json;
+					}else if (eq.didBFMakeConst()) {
+						ConstExprToken cs = eq.getYieldedConst(p, c, s);
+						args[i] = cs.textInMcf();
+					}else {
+						eq.throwNotConstError();
+					}
+				}else {
+					ConstExprToken cst = eq.getConst();
+					args[i] = cst.textInMcf();
+				}
 			}
 			s1 = s1.formatted(args);//unpack
 		}

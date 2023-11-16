@@ -462,11 +462,12 @@ public class Bossbar extends Struct {
 				p.printf("bossbar set %s %s %s\n",struct.getBossBarId(self), this.field,this.defaultValue(c, s, token, stack));
 			}else if (!this.hasArg) throw new CompileError("too many args in %s.%s()".formatted(struct.name,this.name));
 			Equation val = (Equation) args.arg(0);
-			val.constify(c, s);
-			if(!val.isConstable()) throw new CompileError("could not get const value for arg to %s.%s(...)".formatted(struct.name,this.name));
-			ConstExprToken ce = val.getConst();
-			if(ce.constType()!=this.ctype) throw new CompileError("arg to %s.%s(...) had wrong type %s, needed %s"
-					.formatted(struct.name,this.name,ce.constType().name,ctype.name));
+			//val.constify(c, s);
+			//if(!val.isConstable()) throw new CompileError("could not get const value for arg to %s.%s(...)".formatted(struct.name,this.name));
+			//ConstExprToken ce = val.getConst();
+			ConstExprToken ce = Equation.constifyAndGet(p, val, c, s, stack, this.ctype);
+			//if(ce.constType()!=this.ctype) throw new CompileError("arg to %s.%s(...) had wrong type %s, needed %s"
+			//		.formatted(struct.name,this.name,ce.constType().name,ctype.name));
 			String str = ce.textInMcf();
 			p.printf("bossbar set %s %s %s\n",struct.getBossBarId(self), this.field,str);
 		}

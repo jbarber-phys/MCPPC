@@ -18,6 +18,7 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.AbstractCallToken;
 import net.mcppc.compiler.functions.PrintCode;
 import net.mcppc.compiler.functions.PrintF;
+import net.mcppc.compiler.functions.PrintF.PrintContext;
 import net.mcppc.compiler.functions.Tp;
 import net.mcppc.compiler.functions.UnsafeThreadCommand;
 import net.mcppc.compiler.struct.Struct;
@@ -35,9 +36,6 @@ import net.mcppc.compiler.tokens.Token;
  *
  */
 public abstract class BuiltinFunction {
-	/*
-	 * TODO: hypot, trigs, raycast,printf
-	 */
 	/*
 	 * registration must be done here; standalone classes will never be loaded
 	 */
@@ -126,15 +124,31 @@ public abstract class BuiltinFunction {
 		}
 		Args args;
 		private TemplateArgsToken tempArgs=null;
+		private ConstExprToken yieldedConst = null;
+		private String yieldedJsonText = null;
+		private PrintContext boundPrintContext = null;
+		public boolean didYieldConst() {return this.yieldedConst!=null;}
+		public boolean didYieldJsonText() {return this.yieldedJsonText!=null;}
+		public PrintContext getPrintContext() {return this.boundPrintContext;}
 		public BFCallToken(int line, int col,BuiltinFunction f) {
 			super(line, col);
 			this.f=f;
+		}
+		public void yieldConst(ConstExprToken cs) {
+			this.yieldedConst=cs;
+		}
+		public void yieldJsonText(String json) {
+			this.yieldedJsonText=json;
 		}
 		@Override
 		public String asString() {
 			String ths=this.hasThisBound()?this.getThisBound().name+".":"";
 			return "%s%s(...)".formatted(ths,f.name);
 		}
+		public void bindPrintContext(PrintContext context) {this.boundPrintContext = context;}
+		public ConstExprToken getYieldedConst() { return this.yieldedConst; }
+		public String getYieldedJsonText() { return this.yieldedJsonText; }
+		
 		@Override
 		public void call(PrintStream p, Compiler c, Scope s,RStack stack) throws CompileError {
 			this.f.call(p, c, s, this,stack);
@@ -157,6 +171,9 @@ public abstract class BuiltinFunction {
 		@Override
 		public Number getEstimate() {
 			return this.f.getEstimate(this);
+		}
+		public boolean willYieldConstOrJson( Scope s) {
+			return this.f.willYieldConstOrJson(s, this);
 		}
 		@Override
 		public boolean hasTemplate() {
@@ -304,7 +321,7 @@ public abstract class BuiltinFunction {
 	 * tokenizes the type arguments, leaving cursor after the closing paren;
 	 * can be used to take unexpected objects like tags + selectors as args (not allowed for normal functions)
 	 * @param c
-	 * @param s TODO
+	 * @param s
 	 * @param matcher
 	 * @param line
 	 * @param col
@@ -319,6 +336,9 @@ public abstract class BuiltinFunction {
 	public void dumpRet(PrintStream p,Compiler c,Scope s, BFCallToken token,RStack stack) throws CompileError  {
 		//default to doing nothing
 	}
+	public boolean willYieldConstOrJson( Scope s,BFCallToken token) {
+		return false;
+	}
 	public abstract Number getEstimate(BFCallToken token);
 	
 	
@@ -326,7 +346,7 @@ public abstract class BuiltinFunction {
 	/**
 	 * serializes argis in a basic way; if t
 	 * @param c
-	 * @param s TODO
+	 * @param s 
 	 * @param matcher
 	 * @param line
 	 * @param col

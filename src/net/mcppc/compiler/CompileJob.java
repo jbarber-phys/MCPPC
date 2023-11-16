@@ -34,9 +34,7 @@ import net.mcppc.compiler.tokens.Import;
 
 
 /*list of language editions TODO ::
- * improve printf: add builtinfunction format(...) for sub formats;
- *  * allow it to constify to a string if needed, but be carefull about whether to escape it
- * add stdlib for attacking entities / hitbox/raycast testing
+ * add stdlib for attacking entities / hitbox/raycast testing; also maybe add a safe-explode
  * 
  * add java edition targeting : Version -> format ID; Target -> min version AND max version;
  * incorperate new 1.20.3 commands: return, tick, random, damage;
@@ -651,7 +649,7 @@ public class CompileJob {
 		this.warnings = this.compile2_warnings;
 		boolean success=true;
         for(ResourceLocation res:this.compilers.keySet()) if (res.namespace.equals(ns.name)) {
-        	fileLog.println("genHeaders %s".formatted(res));
+        	fileLog.println("genMcf %s".formatted(res));
         	Compiler c=this.compilers.get(res);
         	if(c.hasCompiled) {
         		compileMcfLog.printf("src file %s was already compiled\n",res);

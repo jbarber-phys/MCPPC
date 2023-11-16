@@ -109,8 +109,9 @@ public class NbtCompound extends Struct {
 			Equation eq = (Equation) args.arg(0);
 			eq.constify(c, s);
 			if(eq.isConstable()) {
-				ConstExprToken tg = eq.getConst();
-				if(tg.constType()!=ConstType.NBT) throw new CompileError("cannot merge a %s value into a tag".formatted(tg.constType().name));
+				//ConstExprToken tg = eq.getConst();
+				ConstExprToken tg = Equation.constifyAndGet(p, eq, c, s, stack, ConstType.NBT);
+				//if(tg.constType()!=ConstType.NBT) throw new CompileError("cannot merge a %s value into a tag".formatted(tg.constType().name));
 				mergeTags(p,s,self,(NbtPath.NbtPathToken)tg);
 			}else if (eq.isConstRefable()) {
 				Variable other = eq.getConstVarRef();
