@@ -1080,6 +1080,7 @@ public class CompileJob {
 		while(!this.externalImportsStrict.empty()) {
 			ResourceLocation res=this.externalImportsStrict.pop();
 			copyStrictLinkToDatapack(res);
+			//System.err.printf("linked %s\n",res.toString());//appears to work now
 		}
 		return true;
 		

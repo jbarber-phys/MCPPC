@@ -382,6 +382,9 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 					BuiltinFunction bf=struct.getStaticBuiltinMethod((((MemberName) name).names.get(0)), ((Type)v).type);
 					BuiltinFunction.open(c);
 					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, s, m, v.line,v.col, this.stack, bf);
+					//TODO debug here; call in stdlib has problem;
+					//System.err.printf("static method of %s\n", v.asString());
+					//System.err.printf("scope res: %s\n", s.getSubRes());
 					sub.withTemplate(((Type)v).type.getTemplateArgs(s));//transfer template from arg to function
 					if(sub.canConvert()) {
 						v=sub.convert(c, s, this.stack);
@@ -490,10 +493,18 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			//check for function template 
 			TemplateArgsToken tempargs=null;
 			if(v instanceof MemberName) {
+				//must check that it is a function-like or it will be confused for < operator
 				Function f=c.myInterface.checkForFunctionWithTemplate(((MemberName) v).names, s);
 				if(f!=null) {
 					tempargs=TemplateArgsToken.checkForArgs(c, s, m);
 					if(tempargs==null)c.cursor=pc;
+				} else {
+					//TODO new; test this;
+					BuiltinFunction bf=BuiltinFunction.getBuiltinFunc(((MemberName) v).names, c, s);
+					if(bf!=null) {
+						tempargs=TemplateArgsToken.checkForArgs(c, s, m);
+						if(tempargs==null)c.cursor=pc;
+					}
 				}
 			}
 
@@ -511,13 +522,16 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 						List<String> nms=((MemberName) v).names;nms=nms.subList(0, nms.size()-1);
 						Variable self = c.myInterface.identifyVariable(nms, s);
 						sub.withThis(self);
+						//TODO template not bound yet
 						TemplateArgsToken typetemp = self.type.getTemplateArgs(s);
 						sub.prependTemplate(typetemp);
 					}
 					if(sub.canConvert()) {
 						v=sub.convert(c, s, this.stack);
 						if(v instanceof FuncCallToken)
+							//this is too early; do this later
 							((FuncCallToken) v).linkMeByForce(c, s);
+							;
 						if (v instanceof Equation)
 							this.doesAnyOps=true;
 					}
@@ -774,6 +788,17 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		if(in instanceof ConstExprToken) return (ConstExprToken) in;
 		return null;
 	}
+	private void bindTemplates(Compiler c,Scope s) throws CompileError {
+		for(Token t: this.elements) {
+			if(t instanceof Equation) {
+				((Equation) t).bindTemplates(c, s);
+			}else if (t instanceof Function.FuncCallToken) {
+				((Function.FuncCallToken) t).rebindTemplatesBeforeCompile(c, s);
+			} else if (t instanceof BuiltinFunction.BFCallToken) {
+				((BuiltinFunction.BFCallToken) t).rebindTemplatesBeforeCompile(c, s);
+			}
+		}
+	}
 	
 	/**
 	 * determines if it is possible to collapse this Equation into a const expression, and does so if true
@@ -781,6 +806,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	 * @throws CompileError
 	 */
 	public boolean constify (Compiler c,Scope s) throws CompileError {
+		this.bindTemplates(c, s);//this is done before compiling
 		if(this.isConstable()) {
 			this.doesAnyOps=false;
 			return true;
@@ -899,6 +925,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	@SuppressWarnings("unused")
 	public void compileOps(PrintStream p,Compiler c,Scope s,VarType typeWanted) throws CompileError {
 		boolean consted = this.constify(c,s);	
+		//TODO resolve any unbound templates;
 		//System.err.printf("line=%d, toplevel = %b, isArg = %b,doesanyops = %b, address %s\n", this.line,this.isTopLevel,this.isAnArg,this.doesAnyOps,this);
 		if (c.resourcelocation.toString().equals("mcpptest:entity/selector_equation") && false) {
 			//this.printTree(System.err);

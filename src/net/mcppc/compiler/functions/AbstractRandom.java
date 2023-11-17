@@ -48,19 +48,8 @@ public abstract class AbstractRandom extends BuiltinFunction{
 	VarType readType(BFCallToken token) {
 		if(token.hasTemplate() ) {
 			TemplateArgsToken tp = token.getTemplate();
-			if(tp.values.size()!=1) return DEFAULT_TYPE;
-			Token t = tp.values.get(0);
-			if(t instanceof Type) {
-				return ((Type) t).type;
-			}else if (t instanceof Num) {
-				int p = ((Num) t).value.intValue();
-				try {
-					return DEFAULT_FLOAT_P.withPrecision(p);
-				} catch (CompileError e) {
-					e.printStackTrace();
-					return null;
-				}
-			}
+			if(tp.size()!=1) return DEFAULT_TYPE;
+			return tp.typeOrPrecision(DEFAULT_FLOAT_P, 0);
 		}
 		return DEFAULT_TYPE;
 	}

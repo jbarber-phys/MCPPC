@@ -143,6 +143,22 @@ public final class Factories {
 			}
 			//its a normal name
 			MemberName nm=(MemberName) MemberName.factory.createToken(c, matcher, line, col);
+			
+			TemplateArgsToken tempargs=null;
+			{
+				int pc=c.cursor;
+				Function f=c.myInterface.checkForFunctionWithTemplate(nm.names, c.currentScope);
+				if(f!=null) {
+					tempargs=TemplateArgsToken.checkForArgs(c, c.currentScope, matcher);
+					if(tempargs==null)c.cursor=pc;
+				} else {
+					BuiltinFunction bf=BuiltinFunction.getBuiltinFunc(nm.names, c, c.currentScope);
+					if(bf!=null) {
+						tempargs=TemplateArgsToken.checkForArgs(c, c.currentScope, matcher);
+						if(tempargs==null)c.cursor=pc;
+					}
+				}
+			}
 			Token par=c.nextNonNullMatch(checkForParenOrIndexBracket);
 			if (par instanceof Token.Paren && ((Token.Paren) par).forward) {
 				//function call

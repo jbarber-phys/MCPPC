@@ -12,6 +12,12 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Num.Numrange;
 import net.mcppc.compiler.tokens.Token.Assignlike.Kind;
 
+/**
+ * represents a token that defines the template of a function, similar to funnction args but constant types;
+ * each term gives a default value or range;
+ * @author RadiumE13
+ *
+ */
 public class TemplateDefToken extends Token{
 	public static TemplateDefToken checkForDef(Compiler c,Scope s, Matcher matcher) throws CompileError {
 		Token open=c.nextNonNullMatch(AbstractBracket.checkForTypeargBracket);
@@ -67,12 +73,13 @@ public class TemplateDefToken extends Token{
 	}
 
 	public TemplateDefToken bind(TemplateArgsToken args) throws CompileError {
+		assert !args.dependsOnOtherTemplate();
 		if(args==null)throw new CompileError("function requires a template of form %s".formatted(this.inHDR()));
 		TemplateDefToken tp=new TemplateDefToken(args.line,args.col);
-		if(args.values.size()>this.params.size()) throw new CompileError.UnexpectedToken(args, "smaller template", "too many template args");
+		if(args.size()>this.params.size()) throw new CompileError.UnexpectedToken(args, "smaller template", "too many template args");
 		for(int i=0;i<this.params.size();i++) {
 			Const old = this.params.get(i);
-			ConstExprToken value =args.values.size()>i? args.values.get(i):old.getValue();
+			ConstExprToken value =args.size()>i? args.getAssumingComplete(i):old.getValue();
 			if(value==null) throw new CompileError("Template param %s left unbound;".formatted(old.name));
 			Const c = new Const(old.name,old.path,old.ctype,old.access,value);
 			tp.params.add(c);
@@ -93,7 +100,7 @@ public class TemplateDefToken extends Token{
 			for(Num n:range.getAll()) {
 				//System.err.printf("int loop\n");
 				TemplateArgsToken a= this.defaultArgs();
-				a.values.set(rangeat, n);
+				a.setArg(rangeat, n);
 				binds.add(a);
 			}
 		}
@@ -115,10 +122,11 @@ public class TemplateDefToken extends Token{
 		return "<%s>".formatted(String.join(" , ", argss));
 	}
 	public TemplateArgsToken defaultArgs() throws CompileError {
-		TemplateArgsToken args = new TemplateArgsToken(this.line, this.col);
+		TemplateArgsToken args = new TemplateArgsToken(this.line, this.col,this.defaultvalues);
 		//this.params.forEach(cv -> args.values.add(cv.getValue()));
-		args.values.addAll(this.defaultvalues);
-		for(ConstExprToken t:args.values)if(t==null)throw new CompileError("template args on line %s col %s not binded in time".formatted(this.line,this.col));
+		//args.values.addAll(this.defaultvalues);
+		//for(ConstExprToken t:args.values)if(t==null)throw new CompileError("template args on line %s col %s not binded in time".formatted(this.line,this.col));
+		for(ConstExprToken t:this.defaultvalues)if(t==null)throw new CompileError("template args on line %s col %s not binded in time".formatted(this.line,this.col));
 		return args;
 	}
 }

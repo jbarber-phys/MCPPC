@@ -24,6 +24,7 @@ public abstract class AbstractCallToken extends Token {
 	abstract public Number getEstimate();
 	abstract public AbstractCallToken withTemplate(TemplateArgsToken tgs) ;
 	abstract public boolean hasTemplate() ;
+	public abstract void rebindTemplatesBeforeCompile(Compiler c,Scope s) throws CompileError;
 	
 	Variable thisBound=null;
 	public boolean hasThisBound() {return thisBound!=null;

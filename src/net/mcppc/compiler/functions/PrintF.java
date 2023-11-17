@@ -419,6 +419,7 @@ public class PrintF extends BuiltinFunction{
 		if(pargs.runFunc!=null) {
 			//call a function as a click event
 			FuncCallToken ft = pargs.runFunc;
+			ft.rebindTemplatesBeforeCompile(c, s);
 			ResourceLocation mcf = ft.getMyMCF();
 			clickEvent = ", \"clickEvent\": {\"action\": \"run_command\", \"value\": \"/function %s\"}".formatted(mcf.toString());
 			//skip the args

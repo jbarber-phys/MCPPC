@@ -99,11 +99,39 @@ public class Function {
 			this.isIdentified=true;
 			return 0;
 		}
-		public void linkMe(Compiler c,Scope s) throws CompileError {
+		private Boolean ifLinkWillForce = null;
+		@Override
+		public void rebindTemplatesBeforeCompile(Compiler c,Scope s) throws CompileError {
+			if(this.tempArgs==null) return;
+			//before call, must identify all templates
+			if(this.ifLinkWillForce!=null) {
+				this.tempArgs.rebind(c,s);
+				if(this.ifLinkWillForce) {
+					this.linkMeByForceNow(c, s);
+				} else {
+					this.linkMeNow(c, s);
+				}
+			}
+		}
+		private void linkMeNow(Compiler c,Scope s) throws CompileError {
 			c.myInterface.linkFunction(this,c,s);
 		}
-		public void linkMeByForce(Compiler c,Scope s) throws CompileError {
+		public void linkMe(Compiler c,Scope s) throws CompileError {
+			if(this.tempArgs==null || !this.tempArgs.dependsOnOtherTemplate()) {
+				this.linkMeNow(c, s);
+			} else {
+				this.ifLinkWillForce = false;
+			}
+		}
+		private void linkMeByForceNow(Compiler c,Scope s) throws CompileError {
 			c.myInterface.linkFunction(this,c,s,true);
+		}
+		public void linkMeByForce(Compiler c,Scope s) throws CompileError {
+			if(this.tempArgs==null || !this.tempArgs.dependsOnOtherTemplate()) {
+				this.linkMeByForceNow(c, s);
+			} else {
+				this.ifLinkWillForce = true;
+			}
 		}
 		private Variable getTempArg(PrintStream p,Compiler c,Scope s,RStack stack,int index) throws CompileError   {
 			String nm = "\"$temp_%d\"".formatted(index);
@@ -361,6 +389,13 @@ public class Function {
 	public String getTemplateInH() {
 		return this.template.inHDR();
 	}
+	/**
+	 * requests a new template to be made that is not in the default range;
+	 * @param args
+	 * @param s
+	 * @return
+	 * @throws CompileError
+	 */
 	public boolean requestTemplate(TemplateArgsToken args,Scope s)throws CompileError {
 		//not needed for default args
 		if(s!=null &&s.getFunction()==this) {

@@ -66,9 +66,6 @@ public<num n = 1 .. 6> Vec3d<n> looking(Entity me) {
 	
 }
 public<num n = 1 .. 6> Vec3d<n> Vec3d<n>.norm() final {
-	//TODO test
-	//TODO may be inlinable
-	///i was here
 	private Entity e;
 	private Entity e2;
 	private Vec3d<n> pos -> e.Pos;
@@ -84,8 +81,7 @@ public<num n = 1 .. 6> Vec3d<n> Vec3d<n>.norm() final {
 	e2.kill();
 	
 }
-public<num n = 1 .. 6> double<n> Vec3d<n>.mag() final {//TODO test
-	//TODO may be inlinable
+public<num n = 1 .. 6> double<n> Vec3d<n>.mag() final {
 	private Entity e;
 	private Entity e2;
 	private Vec3d<n> pos -> e.Pos;

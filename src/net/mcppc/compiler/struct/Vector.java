@@ -614,7 +614,7 @@ public class Vector extends Struct {
 		VarType type=Vector.myMembType(varType);
 		if(this.defaulttype==null) {
 			TemplateArgsToken tp=new TemplateArgsToken(-1, -1);
-			tp.values.add(new Type(-1,-1,type));
+			tp.add(new Type(-1,-1,type));
 			return tp;
 		}else {
 			return type.getTemplateArgs(s);

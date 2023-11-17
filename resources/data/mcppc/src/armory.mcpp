@@ -1,0 +1,19 @@
+/// a library for dealing damage to entities
+/** attacks another entity knocking back in the direction;
+* works by summoning an arrow;
+*/
+public<num n = 1 .. 6> void attackFacing(Entity target,double<n> damage){
+    //TODO does on damage; debug this
+    private Vec3d<n> norm = Vec3d<n>.looking();
+    private Entity arrow;
+    private Uuid selfUuid -> @s.UUID;
+    private Uuid owner = selfUuid;
+    execute at (target){arrow.summon(minecraft:arrow,~ ~0.2 ~);}
+    execute as(arrow){
+        private bool noGravity -> @s.NoGravity = true;
+        private double<n> mydamage -> @s.damage = damage; 
+        private Vec3d<n> vel -> @s.Motion = norm * 2.;
+        private Uuid owner -> @s.Owner = selfUuid;
+    }
+}
+

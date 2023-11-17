@@ -439,23 +439,34 @@ public class VarType {
 	public String boolToStringTrueFalse(boolean n) {
 		return n?"true":"false";
 	}
+	/** transfers my struct-args and converts them to template args; 
+	 * this is only called during tokenization, so other template vars may be passed;
+	 * 
+	 * @param s
+	 * @return
+	 * @throws CompileError
+	 */
 	public TemplateArgsToken getTemplateArgs(Scope s) throws CompileError{
+		//called during compile2 tokenize
 		if(this.isStruct())
 			return this.struct.getTemplateArgs(this,s);
 		if(!this.isFloatP())return null;
 		if(this.isReady()) {
 			TemplateArgsToken tp=new TemplateArgsToken(-1, -1);
-			tp.values.add(new Num(-1,-1,this.precision,VarType.INT));
+			tp.add(new Num(-1,-1,this.precision,VarType.INT));
 			return tp;
 		}else {
+			TemplateArgsToken tp=new TemplateArgsToken(-1, -1);
 			Const c=s.checkForTemplateOrLocalConst(this.precisionTemplateName);
 			if(c==null) {
-				throw new CompileError("Vartype %s nont binded in time".formatted(this.asString()));
+				//throw new CompileError("Vartype %s not binded in time".formatted(this.asString()));
+				tp.addOtherTemplate(this.precisionTemplateName);
+			}else {
+				if(c.ctype!=ConstType.NUM) throw new CompileError("Vartype %s binded to a non-number const".formatted(this.asString()));
+				Const.ConstVarToken cvar = new Const.ConstVarToken(-1,-1,c,this.precisionTemplateName);
+				
+				tp.add(cvar);
 			}
-			if(c.ctype!=ConstType.NUM) throw new CompileError("Vartype %s binded to a non-number const".formatted(this.asString()));
-			Const.ConstVarToken cvar = new Const.ConstVarToken(-1,-1,c,this.precisionTemplateName);
-			TemplateArgsToken tp=new TemplateArgsToken(-1, -1);
-			tp.values.add(cvar);
 			return tp;
 		}
 		

@@ -187,13 +187,20 @@ public abstract class BuiltinFunction {
 		public BFCallToken prependTemplate(TemplateArgsToken tgs) {
 			if(this.tempArgs==null)this.tempArgs=tgs;
 			else if(tgs!=null){
-				this.tempArgs.values.addAll(0, tgs.values);
+				//this.tempArgs.values.addAll(0, tgs.values);
+				this.tempArgs.prependOther(tgs);
 			}
 			
 			return this;
 		}
 		public TemplateArgsToken getTemplate() {
 			return this.tempArgs;
+		}
+		@Override
+		public void rebindTemplatesBeforeCompile(Compiler c,Scope s) throws CompileError {
+			if(this.tempArgs==null) return;
+			if(!this.tempArgs.dependsOnOtherTemplate()) return;
+			this.tempArgs.rebind(c, s);
 		}
 		public boolean canConvert() {
 			return this.getBF().canConvert(this);

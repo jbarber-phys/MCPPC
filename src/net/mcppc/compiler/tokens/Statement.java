@@ -335,6 +335,7 @@ public abstract class Statement extends Token implements TreePrintable{
 		@Override
 		public void compileMe(PrintStream f,Compiler c,Scope s) throws CompileError {
 			RStack stack=s.getStackFor();
+			this.token.rebindTemplatesBeforeCompile(c, s);
 			this.token.call(f, c, s, stack);
 			this.token.dumpRet(f, c, s, stack);
 			stack.finish(c.job);
