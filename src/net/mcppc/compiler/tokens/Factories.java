@@ -144,21 +144,7 @@ public final class Factories {
 			//its a normal name
 			MemberName nm=(MemberName) MemberName.factory.createToken(c, matcher, line, col);
 			
-			TemplateArgsToken tempargs=null;
-			{
-				int pc=c.cursor;
-				Function f=c.myInterface.checkForFunctionWithTemplate(nm.names, c.currentScope);
-				if(f!=null) {
-					tempargs=TemplateArgsToken.checkForArgs(c, c.currentScope, matcher);
-					if(tempargs==null)c.cursor=pc;
-				} else {
-					BuiltinFunction bf=BuiltinFunction.getBuiltinFunc(nm.names, c, c.currentScope);
-					if(bf!=null) {
-						tempargs=TemplateArgsToken.checkForArgs(c, c.currentScope, matcher);
-						if(tempargs==null)c.cursor=pc;
-					}
-				}
-			}
+			TemplateArgsToken tempargs = TemplateArgsToken.checkForTemplateAfterName(c, c.currentScope, matcher, nm, false);
 			Token par=c.nextNonNullMatch(checkForParenOrIndexBracket);
 			if (par instanceof Token.Paren && ((Token.Paren) par).forward) {
 				//function call
@@ -171,6 +157,7 @@ public final class Factories {
 					//static and nonstatic members
 					RStack stack=c.currentScope.getStackFor();
 					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, c.currentScope, matcher, nm.line,nm.col, stack, bf);
+					if(tempargs!=null)sub.withTemplate(tempargs);
 					if(bf.isNonstaticMember()) {
 						List<String> nms=((MemberName) nm).names;nms=nms.subList(0, nms.size()-1);
 						Variable self = c.myInterface.identifyVariable(nms, c.currentScope);
@@ -196,6 +183,7 @@ public final class Factories {
 					//a normal function
 					Function.FuncCallToken ft=Function.FuncCallToken.make(c, c.currentScope, nm.line, nm.col, matcher, nm, new RStack(c.resourcelocation,c.currentScope));
 					ft.identify(c,c.currentScope);
+					if(tempargs!=null)ft.withTemplate(tempargs);
 					ft.linkMe(c, c.currentScope);
 					Token end=c.nextNonNullMatch(Factories.nextIsLineEnd);
 					if(!(end instanceof Token.LineEnd))new CompileError.UnexpectedToken(end, ";","code block after builtin func not yet supported");

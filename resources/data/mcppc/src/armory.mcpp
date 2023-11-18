@@ -1,19 +1,25 @@
 /// a library for dealing damage to entities
-/** attacks another entity knocking back in the direction;
-* works by summoning an arrow;
+/** shoots an arrow in the facing direction and returns it;
 */
-public<num n = 1 .. 6> void attackFacing(Entity target,double<n> damage){
-    //TODO does on damage; debug this
+public<num n = 1 .. 6> Entity shootForward(Entity target,double<n> damage,double<n> speed){
+    //dealt-damage = damage * vel.mag()
     private Vec3d<n> norm = Vec3d<n>.looking();
+    //TODO arrows deal more damage than expected (by ~50%)
+    private const num CORRECTIONFACTOR = 0.667;
     private Entity arrow;
     private Uuid selfUuid -> @s.UUID;
-    private Uuid owner = selfUuid;
-    execute at (target){arrow.summon(minecraft:arrow,~ ~0.2 ~);}
+    private Uuid shooter = selfUuid;
+    arrow.summon(minecraft:arrow,~ ~1 ~);
     execute as(arrow){
         private bool noGravity -> @s.NoGravity = true;
-        private double<n> mydamage -> @s.damage = damage; 
-        private Vec3d<n> vel -> @s.Motion = norm * 2.;
-        private Uuid owner -> @s.Owner = selfUuid;
+        private double<n> mydamage -> @s.damage = damage/speed * CORRECTIONFACTOR; 
+        private Vec3d<n> vel -> @s.Motion = norm* speed;
+        private Uuid owner -> @s.Owner = shooter;
+        return = @s;
+        printf(@a,"vel,mydamage  = %s , %s",vel,mydamage);//debug output, which checks out
     }
+    arrow.clear();
 }
+
+//execute at (target){arrow.summon(minecraft:arrow,^ ^ ^-1);}
 

@@ -38,12 +38,90 @@ public class TemplateArgsToken extends Token {
 				//System.err.printf("othertemplate %s\n", c.getNextChars());
 				Token bn = c.nextNonNullMatch(Factories.checkForBasicName);
 				if(!(bn instanceof BasicName)) throw new CompileError("failed to parse template arg on line %s, col %s".formatted(c.line(),c.column()));
+				//make sure that the basicName isn't a varaible;
+				boolean wasVar=false;
+				try{
+					c.myInterface.identifyVariable(((BasicName) bn).name, s);
+					//if this does not throw, then the tokenization should fail
+					wasVar=true;
+				}catch  (CompileError e){
+					//this is supposed to happen
+				}
+				if(wasVar) throw new CompileError("template arg %s collides with a variable".formatted(((BasicName) bn).name));
 				template.otherTemplateVars.put(template.values.size(), ((BasicName) bn).name);
 				//then let a null be added
 			}
 			template.values.add(t);
 		}
 		return template;
+	}
+	/**
+	 * safely checks for a template after a MemberName only if the name matches a function/builtinFunction
+	 * @param c
+	 * @param s
+	 * @param m
+	 * @param name
+	 * @param inEquation
+	 * @return
+	 * @throws CompileError
+	 */
+	public static TemplateArgsToken checkForTemplateAfterName(Compiler c,Scope s, Matcher m,MemberName name,boolean inEquation) throws CompileError {
+		boolean ctue = true;
+		TemplateArgsToken tempargs=null;
+		int pc = c.cursor;
+		if(ctue) {
+			Function f=c.myInterface.checkForFunctionWithTemplate(name.names, s);
+			if(f!=null) {
+				ctue=false;
+				tempargs=TemplateArgsToken.checkForArgs(c, s, m);
+				if(tempargs==null)c.cursor=pc;
+			} 
+		}
+		if(ctue) {
+			BuiltinFunction bf=BuiltinFunction.getBuiltinFunc(name.names, c, s);
+			if(bf!=null) {
+				ctue=false;
+				tempargs=TemplateArgsToken.checkForArgs(c, s, m);
+				if(tempargs==null)c.cursor=pc;
+			}
+		}
+		if(ctue) {
+			try{
+				c.myInterface.identifyConst(name, s);
+				ctue=false;
+			}catch  (CompileError e){
+				//do nothing
+			}
+		}
+		if(ctue) {
+			try{
+				c.myInterface.identifyVariable(name, s);
+				ctue=false;
+			}catch  (CompileError e){
+				//do nothing
+			}
+		}
+		if(ctue) {
+			//placeholder
+			//if classes are added then they should be identified here;
+			//if pass1, then classes might not be loaded yet;
+			if(tempargs==null)tempargs=TemplateArgsToken.checkForArgs(c, s, m);
+			if(tempargs!=null) {
+				Factory[] classoplook = inEquation? Factories.genericCheck(Token.Paren.factory,Token.Member.factory) : 
+					Factories.genericCheck(Token.Member.factory);
+				Token t = c.nextNonNullMatch(classoplook);
+				if(t instanceof Token.WildChar) {
+					tempargs=null;
+				}
+				//else it could be an unidentified class:
+				//'.' : static member
+				//'(':  constructor (equation only)
+				//')': cast (equation only)
+			}
+			if(tempargs==null)c.cursor=pc;
+			else throw new CompileError("could not identify %s and classes have not been added yet".formatted(name.asString()));
+		}
+		return tempargs;
 	}
 	private final List<ConstExprToken> values = new ArrayList<ConstExprToken>();
 	

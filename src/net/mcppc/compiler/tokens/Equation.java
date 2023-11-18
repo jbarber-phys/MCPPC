@@ -493,20 +493,9 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			//check for function template 
 			TemplateArgsToken tempargs=null;
 			if(v instanceof MemberName) {
-				//must check that it is a function-like or it will be confused for < operator
-				Function f=c.myInterface.checkForFunctionWithTemplate(((MemberName) v).names, s);
-				if(f!=null) {
-					tempargs=TemplateArgsToken.checkForArgs(c, s, m);
-					if(tempargs==null)c.cursor=pc;
-				} else {
-					//TODO new; test this;
-					BuiltinFunction bf=BuiltinFunction.getBuiltinFunc(((MemberName) v).names, c, s);
-					if(bf!=null) {
-						tempargs=TemplateArgsToken.checkForArgs(c, s, m);
-						if(tempargs==null)c.cursor=pc;
-					}
-				}
+				tempargs = TemplateArgsToken.checkForTemplateAfterName(c, s, m, (MemberName) v, true);
 			}
+			
 
 			Token op=c.nextNonNullMatch(lookForOperation);
 			if (op instanceof Token.Paren && ((Token.Paren) op).forward) {
