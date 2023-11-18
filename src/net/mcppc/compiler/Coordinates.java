@@ -6,19 +6,22 @@ import java.util.regex.Pattern;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
 
-/**
- * coordinates that could appear in a command; there are 3; in mcpp they can be extra spaced but no newlines
- * coordinates move with the at/facing, they are not fixed
- * NOTE: integer absolute coordinates will actually center on the block (add a half integer to x and/or z):
- * 			 0 0 0 = 0.5 0 0.5
- * 			0 0 0.1 = 0.5 0 0.1
+/** represents coordinates; can be in absolute, tilde, or caret notation;
+
  * @author RadiumE13
  *
  */
+/*
+ * NOTE: integer absolute coordinates will actually center on the block (add a half integer to x and/or z):
+ * 			 0 0 0 = 0.5 0 0.5
+ * 			0 0 0.1 = 0.5 0 0.1
+ */
+@Targeted
 public class Coordinates {
 	public static final CoordToken ZERO =new CoordToken(-1,-1, new Coordinates("0.0","0.0","0.0"));
 	public static final CoordToken ZEROBLOCK =new CoordToken(-1,-1, new Coordinates("0","0","0"));
@@ -130,6 +133,7 @@ public class Coordinates {
 	public String inHDR() {
 		return "%s %s %s".formatted(vec[0],vec[1],vec[2]);
 	}
+	@Targeted 
 	public String inCMD() {
 		return this.inHDR();
 	}

@@ -20,6 +20,7 @@ import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.BuiltinFunction.BasicArgs;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Execute.Subexecute;
 import net.mcppc.compiler.tokens.Execute.Subgetter;
 import net.mcppc.compiler.tokens.Statement.CodeBlockOpener;
@@ -281,6 +282,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		
 	}
 	@Override
+	@Targeted
 	public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
 		if(this.isInSequence()) {
 			ThreadStm afterStm = this.getAfterMe();
@@ -533,6 +535,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		public void addToEndOfAfterBlock(PrintStream p, Compiler c, Scope s, ThreadStm stm) throws CompileError {
 			this.add(p, c, s, stm,false,false);
 		}
+		@Targeted
 		public void add(PrintStream p, Compiler c, Scope s, ThreadStm stm,boolean isBefore,boolean isStart) throws CompileError {
 			//System.err.printf("loop compiling %s, %s\n" ,isBefore,isStart);
 			Variable block = stm.myThread.myGoto().attemptSelfify(s);

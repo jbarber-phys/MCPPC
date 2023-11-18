@@ -9,6 +9,7 @@ import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.NbtObject;
+import net.mcppc.compiler.target.Targeted;
 
 public class NullToken extends ConstExprToken implements INbtValueProvider{
 	public static String NULL_STR = "null";
@@ -46,6 +47,7 @@ public class NullToken extends ConstExprToken implements INbtValueProvider{
 	}
 
 	@Override
+	@Targeted
 	public String getJsonText() throws CompileError {
 		//not the same as what an Obj would print if null
 		return "{\"text\": \"%s\"}".formatted(NULL_STR); 

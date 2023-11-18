@@ -7,6 +7,7 @@ import java.util.regex.Matcher;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.target.Targeted;
 
 public class While extends Statement implements Statement.CodeBlockOpener,Statement.Flow {
 	private static final MemberName name=new MemberName(-1, -1, "$while");
@@ -57,6 +58,7 @@ public class While extends Statement implements Statement.CodeBlockOpener,Statem
 		return "<while(...)>";
 	}
 	@Override
+	@Targeted
 	public void compileMe(PrintStream p, Compiler c, Scope s) throws CompileError {
 		RStack stack=mystack;
 		ResourceLocation mcf=this.mySubscope.getSubRes();
@@ -96,6 +98,7 @@ public class While extends Statement implements Statement.CodeBlockOpener,Statem
 		//do nothing
 	}
 	@Override
+	@Targeted
 	public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
 		RStack stack=mystack;
 		ResourceLocation mcf=this.mySubscope.getSubRes();

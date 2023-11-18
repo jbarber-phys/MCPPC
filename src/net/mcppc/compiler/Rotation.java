@@ -7,11 +7,18 @@ import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.Coordinates.CoordToken;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.Token.Factory;
 
+/**
+ * represents a facing direction; can be in absolute or tilde notation;
+ * @author RadiumE13
+ *
+ */
+@Targeted
 public class Rotation {
 	public static class RotToken extends Const.ConstExprToken{
 		public static final Factory factory=new Factory(Regexes.ROTATION) {

@@ -23,6 +23,7 @@ import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.StructTypeParams.MembType;
 import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Type;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
@@ -182,10 +183,12 @@ public class Bossbar extends Struct {
 	public String getBossBarField(Variable self) {
 		return this.isValue? "value": "max";
 	}
+	@Targeted
 	public String getBossbarGet(Variable self,Scope s) {
 		
 		return "bossbar get %s %s".formatted(this.getBossBarId(self),this.getBossBarField(self));
 	}
+	@Targeted
 	public String getBossbarStore(Variable self,Scope s) {
 		
 		return "execute store result bossbar %s %s".formatted(this.getBossBarId(self),this.getBossBarField(self));
@@ -202,6 +205,7 @@ public class Bossbar extends Struct {
 	}
 
 	@Override
+	@Targeted
 	public void setMe(PrintStream p, Scope s, RStack stack, int home, Variable me) throws CompileError {
 		String store = this.getBossbarStore(me, s);
 		VarType regType = stack.getVarType(home);
@@ -227,6 +231,7 @@ public class Bossbar extends Struct {
 	}
 
 	@Override
+	@Targeted
 	public void getMeDirect(PrintStream p,Scope s,RStack stack,Variable to, Variable me)throws CompileError{
 		//int ptot = -regType.getPrecision(s)+myType.getPrecision(s);
 		int ptot;
@@ -278,6 +283,7 @@ public class Bossbar extends Struct {
 		}
 	}
 	@Override
+	@Targeted
 	public void setMeDirect(PrintStream p,Scope s,RStack stack,Variable me, Variable from)throws CompileError{
 		String bossbarStore = this.getBossbarStore(me, s);
 		int ptot;
@@ -318,6 +324,7 @@ public class Bossbar extends Struct {
 	@Override public boolean canSetToExpr(ConstExprToken e) {
 		return e.constType()==ConstType.NUM;
 	}
+	@Targeted
 	@Override public void setMeToExpr(PrintStream p,Scope s,RStack stack,Variable v, ConstExprToken t) throws CompileError {
 		Number num = ((Num)t).value;
 		int pc = this.getPrecision(v.type, null);
@@ -325,6 +332,7 @@ public class Bossbar extends Struct {
 		int value = (int)(num.doubleValue()*mult);
 		p.printf("bossbar set %s %s %d\n", this.getBossBarId(v),this.getBossBarField(v),value);
 	}
+	@Targeted
 	public void setVarToNumber(PrintStream p,Scope s,RStack stack, Number val,Variable self) throws CompileError {
 		int pc = this.getPrecision(self.type, s);
 		double mult = Math.pow(10, pc);
@@ -367,6 +375,7 @@ public class Bossbar extends Struct {
 	}
 	
 	@Override
+	@Targeted
 	public void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
 		p.printf("bossbar remove %s\n", this.getBossBarId(var));
 		p.printf("bossbar add %s %s\n", this.getBossBarId(var),this.getBossBarNameLiteral(var));
@@ -383,7 +392,7 @@ public class Bossbar extends Struct {
 		// should never be used
 		return null;
 	}
-	private static final String MAX = "max";
+	@Targeted private static final String MAX = "max";
 	@Override
 	public boolean hasField(Variable self, String name) {
 		if (!this.isValue) return false;
@@ -418,18 +427,20 @@ public class Bossbar extends Struct {
 		return bfs.get(name);
 	}
 	public static abstract class SetConstMember extends BuiltinFunction{
-		public static final SetConstMember setName = new SetConstMember("setName","field",true,ConstType.STRLIT) {
+		
+		@Targeted public static final SetConstMember setName = new SetConstMember("setName","field",true,ConstType.STRLIT) {
+			//TODO allow raw json elements; if strlit, create json element from it
 			@Override protected String defaultValue(Compiler c, Scope s, BFCallToken token, RStack stack) {
 				BasicArgs args = (BasicArgs) token.getArgs();
 				Variable self = token.getThisBound();
 				Bossbar struct = (Bossbar) self.type.struct;
 				return struct.getBossBarNameLiteral(self);
 			}};
-		public static final SetConstMember setVisible = new SetConstMember("setVisible","visible",true,ConstType.BOOLIT) {
+			@Targeted public static final SetConstMember setVisible = new SetConstMember("setVisible","visible",true,ConstType.BOOLIT) {
 			@Override protected String defaultValue(Compiler c, Scope s, BFCallToken token, RStack stack) {
 				return "true";
 			}};
-		public static final SetConstMember setPlayers = new SetConstMember("setPlayers","players",true,ConstType.SELECTOR) {
+			@Targeted public static final SetConstMember setPlayers = new SetConstMember("setPlayers","players",true,ConstType.SELECTOR) {
 			@Override protected String defaultValue(Compiler c, Scope s, BFCallToken token, RStack stack) {
 				return Selector.AT_A.toCMD();
 			}};
@@ -454,6 +465,7 @@ public class Bossbar extends Struct {
 
 		protected abstract String defaultValue(Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError;
 		@Override
+		@Targeted
 		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 			BasicArgs args = (BasicArgs) token.getArgs();
 			Variable self = token.getThisBound();
@@ -487,10 +499,10 @@ public class Bossbar extends Struct {
 		
 	}
 	public static class SetMember extends BuiltinFunction{
-		public static final SetMember show = new SetMember("show","visible","true",null);
-		public static final SetMember hide = new SetMember("hide","visible","false",null);
-		public static final SetMember color = new SetMember("color","color",null,Bossbar.BOSSBAR_COLORS);
-		public static final SetMember style = new SetMember("style","style",null,Bossbar.BOSSBAR_STYLES);
+		@Targeted public static final SetMember show = new SetMember("show","visible","true",null);
+		@Targeted public static final SetMember hide = new SetMember("hide","visible","false",null);
+		@Targeted public static final SetMember color = new SetMember("color","color",null,Bossbar.BOSSBAR_COLORS);
+		@Targeted public static final SetMember style = new SetMember("style","style",null,Bossbar.BOSSBAR_STYLES);
 		private final String value;
 		private final String field;
 		private final Set<String> allowed;
@@ -516,6 +528,7 @@ public class Bossbar extends Struct {
 		}
 
 		@Override
+		@Targeted
 		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 			Args args =  token.getArgs();
 			Variable self = token.getThisBound();

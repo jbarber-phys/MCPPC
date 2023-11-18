@@ -35,6 +35,7 @@ import net.mcppc.compiler.Rotation;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Entity;
 import net.mcppc.compiler.struct.Vector;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.Statement.CodeBlockOpener;
 
@@ -163,6 +164,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 	}
 
 	@Override
+	@Targeted
 	public void compileMe(PrintStream p, Compiler c, Scope s) throws CompileError {
 		int index=0;
 		for(Subexecute sub:this.terms) {
@@ -221,6 +223,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 	}
 	public static record Swizzle (boolean x,boolean y,boolean z){
 		@Override public String toString() { return inCMD(); }
+		@Targeted
 		public String inCMD() {
 			return (x?"x":"") + (y?"y":"") + (z?"z":"");
 		}
@@ -238,9 +241,9 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 			return s;
 		}
 	}
-	public static final ResourceLocation OVERWORLD = new ResourceLocation("overworld");
-	public static final ResourceLocation NETHER = new ResourceLocation("the_nether");
-	public static final ResourceLocation END = new ResourceLocation("the_end");
+	@Targeted public static final ResourceLocation OVERWORLD = new ResourceLocation("overworld");
+	@Targeted public static final ResourceLocation NETHER = new ResourceLocation("the_nether");
+	@Targeted public static final ResourceLocation END = new ResourceLocation("the_end");
 	// The standard dimensions in the minecraft namespace are "overworld", "the_nether", and "the_end".
 	public static final Map<String,ResourceLocation> DIMENSIONS = 
 			Map.of("overworld",OVERWORLD
@@ -273,6 +276,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		} @Override public void finish(PrintStream p, Compiler c, Scope s, int index) throws CompileError {
 			//do nothing
 		}
+		@Targeted
 		@Override public String getPrefix(Compiler c, Scope s,Anchor previous, int index) throws CompileError {
 			return "align %s".formatted(this.axes);
 		}
@@ -301,6 +305,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		} @Override public void finish(PrintStream p, Compiler c, Scope s, int index) throws CompileError {
 			//do nothing
 		}
+		@Targeted
 		@Override public String getPrefix(Compiler c, Scope s,Anchor previous, int index) throws CompileError {
 			return "anchored %s".formatted(this.anchor);
 		}
@@ -339,6 +344,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		} @Override public void finish(PrintStream p, Compiler c, Scope s, int index) throws CompileError {
 			//do nothing
 		}
+		@Targeted
 		@Override public String getPrefix(Compiler c, Scope s,Anchor previous, int index) throws CompileError {
 			return "in %s".formatted(this.dim);
 		}
@@ -368,6 +374,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		} @Override public void finish(PrintStream p, Compiler c, Scope s, int index) throws CompileError {
 			//do nothing
 		}
+		@Targeted
 		@Override public String getPrefix(Compiler c, Scope s,Anchor previous, int index) throws CompileError {
 			return "as %s".formatted(this.entity.toCMD());
 		}
@@ -401,6 +408,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		} @Override public void finish(PrintStream p, Compiler c, Scope s, int index) throws CompileError {
 			//do nothing
 		}
+		@Targeted
 		@Override public String getPrefix(Compiler c, Scope s,Anchor previous, int index) throws CompileError {
 			return "at %s".formatted(this.entity.toCMD());
 		}
@@ -430,6 +438,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		} @Override public void finish(PrintStream p, Compiler c, Scope s, int index) throws CompileError {
 			//do nothing
 		}
+		@Targeted
 		@Override public String getPrefix(Compiler c, Scope s,Anchor previous, int index) throws CompileError {
 			//Selector second = this.entity;//old behavior
 			Selector second = Selector.AT_S;//as resets s
@@ -558,6 +567,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		}
 
 		@Override
+		@Targeted
 		public String getPrefix(Compiler c, Scope s,Anchor previous, int index) throws CompileError {
 			if (this.entity!=null)return "%s as %s".formatted(NAME,this.entity.toCMD());
 			else return "%s %s".formatted(NAME,this.coords.inCMD());
@@ -657,6 +667,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		}
 
 		@Override
+		@Targeted
 		public String getPrefix(Compiler c, Scope s,Anchor previous, int index) throws CompileError {
 			Anchor anchor = this.anchor==null?previous:this.anchor;
 			if (this.entity!=null)return "%s entity %s %s".formatted(NAME,this.entity.toCMD(),anchor);
@@ -752,6 +763,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		}
 
 		@Override
+		@Targeted
 		public String getPrefix(Compiler c, Scope s,Anchor previous, int index) throws CompileError {
 			if (this.entity!=null)return "%s as %s".formatted(NAME,this.entity.toCMD());
 			else return "%s %s".formatted(NAME,this.rot.inCMD());

@@ -7,6 +7,7 @@ import java.util.TreeMap;
 import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.PrintF;
+import net.mcppc.compiler.target.Targeted;
 
 public class RStack {
 	int maxSizeEver=0;
@@ -201,6 +202,7 @@ public class RStack {
 	public String getTempRamInCmd() {
 		return getTempRamInCmd(0);
 	}
+	@Targeted
 	public String getTempRamInCmd(int index) {
 		return "%s %s%d".formatted(this.res,"\"$tempram\".ram",index);
 	}

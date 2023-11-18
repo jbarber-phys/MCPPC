@@ -16,6 +16,7 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.NbtCollection;
 import net.mcppc.compiler.struct.NbtMap;
 import net.mcppc.compiler.struct.Struct;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Equation.End;
 import net.mcppc.main.Main;
 
@@ -153,6 +154,7 @@ public class ForIterate extends Statement implements Statement.CodeBlockOpener,S
 	}
 
 	@Override
+	@Targeted
 	public void compileMe(PrintStream p, Compiler c, Scope s) throws CompileError {
 		ResourceLocation mcf=this.mySubscope.getSubRes();
 		Variable mybreak=this.mySubscope.getBreakVarInMe(c);
@@ -190,6 +192,7 @@ public class ForIterate extends Statement implements Statement.CodeBlockOpener,S
 		}
 	}
 	@Override
+	@Targeted
 	public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
 		Variable mybreak=this.mySubscope.getBreakVarInMe(c);
 		ResourceLocation mcf=this.mySubscope.getSubRes();

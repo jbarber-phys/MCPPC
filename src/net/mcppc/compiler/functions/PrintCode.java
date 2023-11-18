@@ -15,6 +15,7 @@ import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Entity;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.Token.CodeLine;
 
@@ -50,7 +51,7 @@ public class PrintCode extends BuiltinFunction {
 		c.cursor=cursor;
 		return args;
 	}
-
+	@Targeted
 	@Override
 	public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 		BasicArgs args = (BasicArgs) token.getArgs();

@@ -13,6 +13,7 @@ import net.mcppc.compiler.Scope;
 import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.Token.Factory;
 
@@ -83,6 +84,7 @@ public class UnaryOp extends Token {
 	public UOType getOpType() {
 		return this.op;
 	}
+	@Targeted //the operator
 	public static void unaryNegatize(PrintStream p,Compiler c,Scope s, RStack stack,Integer home) throws CompileError {
 		VarType type=stack.getVarType(home);
 		if(!type.isNumeric())Warnings.warning("tried to negatize non-numeric type", c);
@@ -92,6 +94,7 @@ public class UnaryOp extends Token {
 		fr.setValue(p, -1);
 		hr.operation(p, "*=", fr);
 	}
+	@Targeted
 	public static void unaryNot(PrintStream p,Compiler c,Scope s, RStack stack,Integer home) throws CompileError {
 		VarType type=stack.getVarType(home);
 		if(!type.isLogical())Warnings.warning("tried to not non-logical type", c);

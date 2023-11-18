@@ -11,6 +11,7 @@ import java.util.regex.Matcher;
 
 import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
@@ -20,6 +21,8 @@ import net.mcppc.compiler.tokens.Token;
  * @author RadiumE13
  *
  */
+
+@Targeted 
 public class ResourceLocation {
 	@FunctionalInterface
 	public static interface IPathGetter{
@@ -114,13 +117,16 @@ public class ResourceLocation {
 		//this is needed to be a key in a hashmap
 		return this.toString().hashCode();
 	}
-	
+
+	@Targeted
 	public void run(PrintStream p) {
 		p.printf("function %s\n",this.toString());
 	}
+	@Targeted
 	public void runIf(PrintStream p,Register r) {
 		p.printf("execute if %s run function %s\n", r.testMeInCMD(),this.toString());
 	}
+	@Targeted
 	public void runUnless(PrintStream p,Register r) {
 		p.printf("execute unless %s run function %s\n", r.testMeInCMD(),this.toString());
 	}

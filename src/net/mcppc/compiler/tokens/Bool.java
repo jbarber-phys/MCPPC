@@ -11,6 +11,7 @@ import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Token.Factory;
 
 public class Bool extends Const.ConstLiteralToken implements INbtValueProvider{
@@ -54,6 +55,7 @@ public class Bool extends Const.ConstLiteralToken implements INbtValueProvider{
 		return this.type.boolToStringNumber(this.val);//should always appear as data of 0b or 1b
 	}
 	@Override
+	@Targeted // the op strings are printed to an mcf
 	public String getJsonText() throws CompileError {
 		String txt = this.type.boolToStringTrueFalse(val);
 		return "{\"text\": \"%s\"}".formatted(txt);//true or false

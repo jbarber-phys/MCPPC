@@ -27,6 +27,7 @@ import net.mcppc.compiler.functions.FunctionMask;
 import net.mcppc.compiler.functions.Size;
 import net.mcppc.compiler.functions.FunctionMask.MCFArgs;
 import net.mcppc.compiler.struct.Vector.Constructor;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.Type;
@@ -245,7 +246,7 @@ public class NbtCollection extends Struct {
 	public Variable getFirstElement(Variable self) throws CompileError {
 		return this.getIndexRef(self, 0);
 	}
-	
+	@Targeted
 	public static void endpend(PrintStream p, Compiler c, Scope s, RStack stack,
 			Variable self,Equation ell,String pend) throws CompileError {
 		Variable temp = new Variable("\"$temp\"",NbtCollection.myMembType(self.type), null, Mask.STORAGE, "mcpp:nbtcollection", "\"$temp\"");
@@ -255,8 +256,8 @@ public class NbtCollection extends Struct {
 		p.printf("data modify %s %s from %s\n", self.dataPhrase(),pend,temp.dataPhrase());
 	}
 	public static class EndPend extends BuiltinFunction {
-		public static final String APPEND = "append";
-		public static final String PREPEND = "prepend";
+		@Targeted public static final String APPEND = "append";
+		@Targeted public static final String PREPEND = "prepend";
 		public static final EndPend append = new EndPend("append",APPEND);
 		public static final EndPend prepend = new EndPend("prepend",PREPEND); //may multi-alias
 		final String pend;
@@ -343,6 +344,7 @@ public class NbtCollection extends Struct {
 		public void dumpRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 			postcall(p, c, s, token, stack);
 		}
+		@Targeted
 		public void postcall(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 			Variable start = token.getThisBound().indexMyNBTPath(0);
 			p.printf("data remove %s\n", start.dataPhrase());//remove first index tag

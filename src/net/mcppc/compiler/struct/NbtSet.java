@@ -18,6 +18,7 @@ import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.Size;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Equation;
 
 public class NbtSet  extends NbtCollection{
@@ -74,6 +75,7 @@ public class NbtSet  extends NbtCollection{
 		Variable setbuff2 = null;
 		Variable valuebuff = null;
 		@Override
+		@Targeted
 		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 
 			Equation value = (Equation) ((BasicArgs)token.getArgs()).arg(0);
@@ -149,6 +151,7 @@ public class NbtSet  extends NbtCollection{
 				return stack.getRegister(home2); 
 			}
 			@Override
+			@Targeted
 			public void build(PrintStream p, CompileJob job, Namespace ns) throws CompileError {
 				RStack stack = new RStack(this.res);
 				VarType elltype = VarType.BOOL;//internal only
@@ -174,6 +177,7 @@ public class NbtSet  extends NbtCollection{
 				
 			}
 			private boolean registered=false;
+			@Targeted
 			public void call(PrintStream p) throws CompileError {
 				RStack stack = new RStack(this.res);
 				int home = stack.setNext(VarType.INT);

@@ -19,6 +19,7 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.functions.PrintF.PrintContext;
 import net.mcppc.compiler.struct.*;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.Equation.End;
 import net.mcppc.compiler.tokens.UnaryOp.UOType;
@@ -754,6 +755,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		}
 		return regnum;
 	}
+	@Targeted // the op strings are printed to an mcf
 	public int storeCMD(PrintStream p,Compiler c,Scope s,VarType typeWanted,Token in) throws CompileError {
 		int regnum;
 		VarType mtype=typeWanted.isLogical()?VarType.BOOL:VarType.LONG;
@@ -815,14 +817,12 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 				this.elements.add(((ConstExprToken) in).constCast(cast.type));
 				return true;
 			}
-			//TODO examine comparisons and ops; todo add casts to ops in ln
 			return false;
 		}
 		for(int i=0;i<this.elements.size();i++) {
 			Token t = this.elements.get(i);
 			if(t instanceof Equation && ((Equation) t).constify(c, s))
 				this.elements.set(i, ((Equation) t).getConst());
-			//TODO test old stuff; make sure it didn't break
 		}
 		if(this.elements.get(0) instanceof UnaryOp) {
 			UnaryOp op=(UnaryOp) this.elements.get(0);
@@ -913,13 +913,8 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	//flag for if to attempt to do inline mult for literal numbers
 	@SuppressWarnings("unused")
 	public void compileOps(PrintStream p,Compiler c,Scope s,VarType typeWanted) throws CompileError {
-		boolean consted = this.constify(c,s);	
-		//TODO resolve any unbound templates;
-		//System.err.printf("line=%d, toplevel = %b, isArg = %b,doesanyops = %b, address %s\n", this.line,this.isTopLevel,this.isAnArg,this.doesAnyOps,this);
-		if (c.resourcelocation.toString().equals("mcpptest:entity/selector_equation") && false) {
-			//this.printTree(System.err);
-			//System.err.printf("isconst: %b\n", this.isConstable());
-		}
+		boolean consted = this.constify(c,s);//resolves unbound templates as well	
+		
 		if(s.hasThread()) for (Token t:this.elements) if (t instanceof MemberName){
 			//aprove of all thread locals
 			s.getThread().approveVar(((MemberName) t).getVar(), s);

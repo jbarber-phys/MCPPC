@@ -3,6 +3,8 @@ package net.mcppc.compiler;
 import java.util.Arrays;
 import java.util.List;
 
+import net.mcppc.compiler.target.Targeted;
+
 public abstract class CMath {
 	public static Number uminus(Number n) {
 		if(n instanceof Byte)return -n.byteValue();
@@ -42,15 +44,18 @@ public abstract class CMath {
 	 * @param num
 	 * @return
 	 */
+	@Targeted 
 	public static String getMultiplierFor(double num) {
 		//TODO there is a bug in MC: SCI NOT works in tag values but not in multipliers for /data get ... # ;  and /execute store ... # ;
 		return removeSciNot(num);
 		//String s="%s".formatted(num);
 		//return s;
 	}
+	@Targeted 
 	public static String getMultiplierFor(long num) {
 		return "%d".formatted(num);
 	}
+	@Targeted 
 	public static String removeSciNot(double num) {
 		int MAX_DIGITS=(int) Math.ceil(Register.SCORE_BITS*Math.log10(2));
 		String f="%%-%d.%df".formatted(MAX_DIGITS,MAX_DIGITS);

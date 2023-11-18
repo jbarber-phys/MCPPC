@@ -14,6 +14,7 @@ import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.INbtValueProvider;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Token.Factory;
 
 public class Num extends Const.ConstLiteralToken implements INbtValueProvider{
@@ -226,6 +227,7 @@ public class Num extends Const.ConstLiteralToken implements INbtValueProvider{
 	 * it is not fit for use as a multiplier in a /scoreboard statement
 	 */
 	@Override
+	@Targeted
 	public String textInMcf() {
 		if(this.value==null)return "null";
 		return this.type.numToString(this.value);
@@ -304,6 +306,7 @@ public class Num extends Const.ConstLiteralToken implements INbtValueProvider{
 	}
 
 	@Override
+	@Targeted
 	public String getJsonText() throws CompileError {
 		String txt = this.textInMcf();
 		return "{\"text\": \"%s\"}".formatted(txt);

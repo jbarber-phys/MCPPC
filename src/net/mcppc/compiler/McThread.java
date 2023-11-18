@@ -18,6 +18,7 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.struct.Entity;
 import net.mcppc.compiler.struct.NbtMap;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Declaration;
 import net.mcppc.compiler.tokens.Execute;
 import net.mcppc.compiler.tokens.Execute.Subexecute;
@@ -70,6 +71,7 @@ import net.mcppc.compiler.tokens.Token;
  * @author RadiumE13
  *
  */
+@Targeted 
 public class McThread {
 	public static final String TAG_CURRENT = "mcpp+thread+current_executor";
 	public static final Selector SELF = new Selector("@e", TAG_CURRENT,1);
@@ -540,7 +542,7 @@ public class McThread {
 	public static String getObjBreak(int block) {return OBJ_BREAK_F.formatted(block);};
 	public static String getBreak(int block) {return BREAK_F.formatted(block);};
 	
-	
+	@Targeted 
 	public Selector summonMe(PrintStream p) {
 		p.printf("summon minecraft:marker 0 0 0 {Tags: [\"%s\"]}\n", TEMPTAG);
 		return SELFTEMP.limited(1);
@@ -983,16 +985,19 @@ public class McThread {
 		}
 	}
 	//
+	@Targeted 
 	public void decrementDelaySync(PrintStream p) throws CompileError {
 		Variable wait = this.wait(null);
 		String score = wait.scorePhrase();
 		p.printf("execute if score %s matches 1.. run scoreboard players remove %s 1\n",score,score);
 	}
+	@Targeted 
 	public static void decrementDelayEntity(PrintStream p) throws CompileError {
 		Variable wait = McThread.waitStaticEntity(Selector.AT_S);
 		String score = wait.scorePhrase();
 		p.printf("execute if score %s matches 1.. run scoreboard players remove %s 1\n",score,score);
 	}
+	@Targeted 
 	public void executeTick(PrintStream p,CompileJob job,Namespace ns) {
 		//clock is handled before this
 		//as entity
@@ -1008,12 +1013,14 @@ public class McThread {
 	public boolean isGlobal() {
 		return this.isSynchronized && this.executeAs==null ;
 	}
+	@Targeted 
 	public void tickManage(PrintStream p,Compiler c,Scope s,RStack stack) throws CompileError {
 		//is writen to threads tick block
 		//tag me so subscopes know how to flow properly
 		boolean isGlobal = this.isGlobal();
 		//String me = isGlobal? this.path.toString() : Selector.AT_S.toCMD();
-		if(!isGlobal)p.printf("tag @s add %s\n", McThread.TAG_CURRENT);
+		
+		if(!isGlobal)Selector.AT_S.addTag(p, McThread.TAG_CURRENT);
 		//skip delay, it was already done
 		//p.printf("#this.numBlocks = %d;\n", this.numBlocks);
 		Selector self = isGlobal? null : Selector.AT_S;
@@ -1026,13 +1033,14 @@ public class McThread {
 					,waitv.scorePhrase(),gotov.scorePhrase(),i);
 				this.pathBlock(i).run(p);
 		}
-		
-		if(!isGlobal)p.printf("tag @s remove %s\n", McThread.TAG_CURRENT);
+		Selector.AT_S.removeTag(p, McThread.TAG_CURRENT);
+		if(!isGlobal)Selector.AT_S.removeTag(p, McThread.TAG_CURRENT);
 	}
 	public void tickManageEvery(PrintStream p,Compiler c,Scope s,RStack stack) throws CompileError {
 		//is written to new manageEverTick
 		boolean isGlobal = this.isGlobal();
-		if(!isGlobal)p.printf("tag @s add %s\n", McThread.TAG_CURRENT);
+		
+		if(!isGlobal)Selector.AT_S.addTag(p, McThread.TAG_CURRENT);
 
 		if(!isGlobal && this.isSynchronized && this.deathBlock!=null) {
 			//executing as entity
@@ -1045,8 +1053,9 @@ public class McThread {
 			this.pathBlockTick().run(p);
 		}
 		
-		if(!isGlobal)p.printf("tag @s remove %s\n", McThread.TAG_CURRENT);
+		if(!isGlobal)Selector.AT_S.removeTag(p, McThread.TAG_CURRENT);
 	}
+	@Targeted
 	public static void onLoad(PrintStream p, CompileJob job,Namespace ns) {
 		p.printf("scoreboard objectives add %s dummy\n", OBJ_GOTO);
 		p.printf("scoreboard objectives add %s dummy\n", OBJ_EXIT);
@@ -1057,6 +1066,7 @@ public class McThread {
 			p.printf("scoreboard objectives add %s dummy\n", getObjBreak(i));
 		}
 	}
+	@Targeted
 	public static boolean onTick(PrintStream p, CompileJob job,Namespace ns) throws CompileError {
 		//System.out.printf("making %d threads in namespace %s;\n", ns.threads.size(),ns.name);
 		if(ns.threads.isEmpty()) return false;

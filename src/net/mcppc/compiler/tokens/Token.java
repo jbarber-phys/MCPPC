@@ -13,6 +13,7 @@ import net.mcppc.compiler.INbtValueProvider;
 import net.mcppc.compiler.VarType.Builtin;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Str;
+import net.mcppc.compiler.target.Targeted;
 
 public abstract class Token {
 	public static abstract class Factory {
@@ -327,6 +328,7 @@ public abstract class Token {
 		}
 		
 		@Override
+		@Targeted
 		public String getJsonText() throws CompileError {
 			return "{\"text\": %s}".formatted(this.literal());
 		}
@@ -338,6 +340,7 @@ public abstract class Token {
 			return this.literal();
 		}
 		@Override
+		@Targeted
 		public String textInMcf() {
 			return this.literal();
 		}

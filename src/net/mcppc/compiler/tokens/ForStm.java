@@ -9,6 +9,7 @@ import java.util.regex.Matcher;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Equation.End;
 
 /**
@@ -200,6 +201,7 @@ public class ForStm extends Statement implements Statement.CodeBlockOpener,State
 	}
 
 	@Override
+	@Targeted
 	public void compileMe(PrintStream p, Compiler c, Scope s) throws CompileError {
 		ResourceLocation mcf=this.mySubscope.getSubRes();
 		Variable mybreak=this.mySubscope.getBreakVarInMe(c);

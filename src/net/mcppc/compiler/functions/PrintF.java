@@ -17,6 +17,7 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.struct.Entity;
 import net.mcppc.compiler.struct.NbtCompound;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.MemberName;
@@ -69,6 +70,7 @@ public class PrintF extends BuiltinFunction{
 			public PString(String s) {
 				this.lit=Regexes.escape(s);
 			}
+			@Targeted
 			@Override
 			public String getJsonTextSafe() {
 				return "{\"text\": \"%s\"}".formatted(lit);
@@ -137,6 +139,7 @@ public class PrintF extends BuiltinFunction{
 			anon.allocateLoad(p, true);
 		}
 	}
+	@Targeted
 	public static abstract class TextColors{
 		public static final String RESET="reset";
 		
@@ -339,6 +342,7 @@ public class PrintF extends BuiltinFunction{
 	public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 		this.call(p, c, s, token.getArgs(), stack, "");
 	}
+	@Targeted
 	public void call(PrintStream p, Compiler c, Scope s, Args args, RStack stack,String prefix) throws CompileError {
 		PrintfArgs pargs=(PrintfArgs) args;
 		PrintContext context = new PrintContext("printf",true);
@@ -361,6 +365,7 @@ public class PrintF extends BuiltinFunction{
 	 * @return
 	 * @throws CompileError
 	 */
+	@Targeted
 	public static String compileJsonTextElement(PrintStream p, Compiler c, Scope s, PrintfArgs pargs, RStack stack,String color,PrintContext context)  throws CompileError{
 		//PrintfArgs pargs=(PrintfArgs) args;
 		List<String> jsonargs=new ArrayList<String>();
@@ -454,6 +459,7 @@ public class PrintF extends BuiltinFunction{
 				clickEvent,
 				formats);
 	}
+	@Targeted
 	public static void convertBoolToStr(PrintStream p,Variable var,Scope s,RStack stack) throws CompileError {
 		//p.printf("execute unless %s run data modify %s set value \"true\"\n", var.matchesPhrase("0"),var.dataPhrase());
 		//p.printf("execute unless %s run data modify %s set value \"false\"\n", var.matchesPhrase("\"true\""),var.dataPhrase());
@@ -472,6 +478,7 @@ public class PrintF extends BuiltinFunction{
 	public void printf(PrintStream p, Selector subject, String format,IPrintable... args) throws CompileError {
 		this.printf(p,"", subject, format, args);
 	}
+	@Targeted
 	public void printf(PrintStream p, String prefix,Selector subject, String format,IPrintable... args) throws CompileError {
 		
 		String argstr=String.join(" , ",   List.of(args).stream().map(var ->var.getJsonTextSafe()).toList());//
@@ -521,6 +528,7 @@ public class PrintF extends BuiltinFunction{
 			this.stayDefault = stay;
 			this.fadeOutDefault = fadeOut;
 		}
+		@Targeted
 		@Override
 		public void call(PrintStream p, Compiler c, Scope s, Args args, RStack stack,String prefix) throws CompileError {
 			PrintfArgs pargs=(PrintfArgs) args;
@@ -544,6 +552,7 @@ public class PrintF extends BuiltinFunction{
 					,fadeIn,stay,fadeOut
 					);
 		}
+		@Targeted
 		@Override
 		public void printf(PrintStream p, String prefix,Selector subject, String format,IPrintable... args) throws CompileError {
 			//this is for internal use by the compiler; this one should probably not be used

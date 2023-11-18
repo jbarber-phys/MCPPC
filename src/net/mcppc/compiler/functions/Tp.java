@@ -12,6 +12,7 @@ import net.mcppc.compiler.Coordinates.CoordToken;
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Entity;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Execute;
 import net.mcppc.compiler.tokens.Token;
 
@@ -88,7 +89,7 @@ public class Tp extends BuiltinFunction{
 		}
 		throw new CompileError("too many args in tp (...,anchor,***BAD...;");
 	}
-
+	@Targeted
 	@Override
 	public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 		BasicArgs bargs=(BasicArgs) token.getArgs();

@@ -30,11 +30,13 @@ import net.mcppc.compiler.errors.COption;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.OutputDump;
 import net.mcppc.compiler.errors.Warnings;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Import;
 
 
 /*list of language editions TODO ::
  * add stdlib for attacking entities / hitbox/raycast testing; also maybe add a safe-explode
+ * 	for now, wait on this until 
  * 
  * add java edition targeting : Version -> format ID; Target -> min version AND max version;
  * incorperate new 1.20.3 commands: return, tick, random, damage;
@@ -364,8 +366,8 @@ public class CompileJob {
 		Path p=this.rootDatapack.resolve(CompileJob.DATA).resolve(pack).resolve("tags/functions").resolve(sub+"."+CompileJob.EXT_JSON);
 		return p;
 	}
-	public static final ResourceLocation TAG_TICK = new ResourceLocation(MINECRAFT,"tick");
-	public static final ResourceLocation TAG_LOAD = new ResourceLocation(MINECRAFT,"load");
+	@Targeted public static final ResourceLocation TAG_TICK = new ResourceLocation(MINECRAFT,"tick");
+	@Targeted public static final ResourceLocation TAG_LOAD = new ResourceLocation(MINECRAFT,"load");
 	public Path pathForPackMcmeta() {
 		Path p=this.rootDatapack.resolve(CompileJob.PACK_MCMETA);
 		return p;
@@ -1089,7 +1091,7 @@ public class CompileJob {
 	//TODO target:
 	//...
 	
-	//compiler options TODO test =================
+	//compiler options =================
 	//does not include target; that is above
 	//the int grid has 10 as a large parameter
 	public int safety = 0;

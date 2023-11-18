@@ -16,6 +16,7 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.CompileError.UnsupportedCast;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.functions.FunctionMask;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Num;
@@ -42,6 +43,7 @@ import net.mcppc.compiler.tokens.UnaryOp.UOType;
  * @author RadiumE13
  *
  */
+@Targeted
 public abstract class Struct {
 	
 	protected static final Map<String,Struct> STRUCTS=new HashMap<String,Struct>();
@@ -272,6 +274,7 @@ public abstract class Struct {
 	 * @param to
 	 * @param from
 	 */
+	@Targeted
 	public static void basicSetDirect(PrintStream p,Variable to,Variable from) {
 		String dto=to.dataPhrase();
 		String dfrom=from.dataPhrase();
@@ -310,6 +313,7 @@ public abstract class Struct {
 	}
 	public int doBiOpSecondDirect(BiOperator op,VarType mytype,PrintStream p,Compiler c,Scope s, RStack stack,INbtValueProvider other,INbtValueProvider me)
 			throws CompileError{throw new CompileError.UnsupportedOperation(other.getType(), op, mytype);}
+	@Targeted
 	protected static int basicDirectEquals(PrintStream p,Compiler c,Scope s, RStack stack,INbtValueProvider first,INbtValueProvider second
 			,boolean invert) throws CompileError {
 		//compare tags for equality;
@@ -421,6 +425,7 @@ public abstract class Struct {
 	 * @param elementType
 	 * @throws CompileError 
 	 */
+	@Targeted
 	private void allocateArray(PrintStream p, Variable var, boolean fillWithDefaultvalue,int size,VarType elementType) throws CompileError {
 		//can set to empty array []
 		//then append 1 element to fix the type
@@ -469,6 +474,7 @@ public abstract class Struct {
 			this.allocateCompound(p, var, fillWithDefaultvalue, fieldNames);
 		}
 	}
+	@Targeted
 	private void allocateCompound(PrintStream p, Variable var, boolean fillWithDefaultvalue,List<String> fieldNames)  throws CompileError{
 
 		//data modify <var> set value {}
@@ -514,9 +520,9 @@ public abstract class Struct {
 		//data remove <var>
 	}
 	public abstract String getDefaultValue (VarType var) throws CompileError;
-	public static final String DEFAULT_STRING="\"\"";
-	public static final String DEFAULT_LIST="[]";
-	public static final String DEFAULT_COMPOUND="{}";
+	@Targeted public static final String DEFAULT_STRING="\"\"";
+	@Targeted public static final String DEFAULT_LIST="[]";
+	@Targeted public static final String DEFAULT_COMPOUND="{}";
 	/*
 	 * members:
 	 */
@@ -611,6 +617,7 @@ public abstract class Struct {
 	public void setMeToExpr(PrintStream p,Scope s,RStack stack, Variable me, ConstExprToken e) throws CompileError {
 		throw new CompileError.UnsupportedCast(e, me.type);
 	}
+	@Targeted
 	public void setMeToNbtExprBasic(PrintStream p,RStack stack,Variable me, ConstExprToken e) throws CompileError {
 		assert e.constType() == ConstType.NBT;
 		assert me.getMaskType().isNbt;

@@ -34,6 +34,7 @@ import net.mcppc.compiler.functions.Size;
 import net.mcppc.compiler.struct.NbtCollection.Clear;
 import net.mcppc.compiler.struct.NbtList.ChangeAt;
 import net.mcppc.compiler.struct.NbtList.GetAt;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Keyword;
 import net.mcppc.compiler.tokens.Token;
@@ -298,6 +299,7 @@ public class NbtMap extends Struct {
 		Variable mapbuff2 = null;
 		Variable entrybuff = null;
 		@Override
+		@Targeted
 		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 
 			Equation key = (Equation) ((BasicArgs)token.getArgs()).arg(0);
@@ -549,6 +551,7 @@ public class NbtMap extends Struct {
 			return stack.getRegister(home2); 
 		}
 		@Override
+		@Targeted
 		public void build(PrintStream p, CompileJob job, Namespace ns) throws CompileError {
 			RStack stack = new RStack(this.res);
 			VarType elltype = VarType.BOOL;//internal only
@@ -581,6 +584,7 @@ public class NbtMap extends Struct {
 			
 		}
 		private boolean registered=false;
+		@Targeted
 		public void call(PrintStream p) throws CompileError {
 			RStack stack = new RStack(this.res);
 			int home = stack.setNext(VarType.INT);
@@ -735,6 +739,7 @@ public class NbtMap extends Struct {
 			for(Variable v:this.varAllocators) v.allocateLoad(p, true);
 			
 		}
+		@Targeted
 		public void initMyVars(Compiler c,Scope s,PrintStream p,RStack stack) throws CompileError {
 
 			VarType compound = NbtCompound.TAG_COMPOUND;
@@ -751,6 +756,7 @@ public class NbtMap extends Struct {
 			p.printf("data modify %s prepend from %s\n",this.lookupTable.dataPhrase(), this.myEntry.dataPhrase());
 			this.myEntry.deallocateLoad(p);
 		}
+		@Targeted
 		public void retrieve(Compiler c,Scope s,PrintStream p,RStack stack) throws CompileError {
 			
 			VarType keytype = NbtMap.myKeyType(lookupTable.type);
@@ -796,6 +802,7 @@ public class NbtMap extends Struct {
 			Variable.directSet(p, s, this.lookupTable, mapbuff2, stack);
 			//RuntimeError.printf(p,"", "finished pull");
 		}
+		@Targeted
 		public void reinsert(Compiler c,Scope s,PrintStream p,RStack stack) throws CompileError {
 			p.printf("data modify %s prepend from %s\n",this.lookupTable.dataPhrase(), this.myEntry.dataPhrase());
 			//RuntimeError.printf(p, "", "entry pushed: %s", this.myEntry);

@@ -13,6 +13,7 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.functions.AbstractCallToken;
 import net.mcppc.compiler.struct.StackStorage;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.*;
 import net.mcppc.compiler.tokens.Equation.End;
 
@@ -198,7 +199,7 @@ public class Function {
 			}
 			//actually call the function
 			this.requestTemplate(s);
-			p.printf("function %s\n", this.getMyMCF());
+			this.getMyMCF().run(p);
 			
 			if(this.func.canRecurr) {
 				StackStorage.restoreStack(p, c, s, stack, this.func.stackBackup,stacksize);
@@ -444,10 +445,8 @@ public class Function {
 	public static final String RET_TAG="\"$return\"";
 	public static final String THIS_TAG="\"$this\"";
 	public static final String STACK_TAG="\"$stack\"";
-	@Deprecated public String returnDataPhrase() {
-		//use this.
-		return "storage %s %s.%s".formatted(this.resoucrelocation,this.name,RET_TAG);
-	}
+
+
 	public void collectFlowVars (Compiler c,Scope s) {
 		
 		//System.err.printf("collectFlowVars : %s\n", this.localFlowVars.stream().map(v ->v.holder + "."+v.getAddressToPrepend()).toList());

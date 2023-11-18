@@ -1,5 +1,6 @@
 package net.mcppc.compiler.struct;
 import net.mcppc.compiler.struct.*;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.Token;
@@ -105,6 +106,7 @@ public class Str extends Struct{
 		return e.constType()==ConstType.STRLIT;
 	}
 	@Override
+	@Targeted
 	public void setMeToExpr(PrintStream p, Scope s, RStack stack, Variable me, ConstExprToken e) throws CompileError {
 		p.printf("data modify %s set value %s\n",me.dataPhrase(), ((Token.StringToken)e).literal());
 	}

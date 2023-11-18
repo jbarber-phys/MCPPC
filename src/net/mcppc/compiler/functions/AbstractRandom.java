@@ -17,6 +17,7 @@ import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Entity;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Num;
@@ -99,13 +100,14 @@ public abstract class AbstractRandom extends BuiltinFunction{
 	}
 	
 	public boolean hasLoad() {return true;}
-	
+	@Targeted
 	public void setSeed(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack,Equation toset) throws CompileError {
 		Variable seed = this.getSeed(p, c, s, token, stack);
 		if(seed==null)return;
 		toset.compileOps(p, c, s, this.getRetType(token));
 		toset.setVar(p, c, s, seed);
 	}
+	@Targeted
 	public static void uuidRandInt(PrintStream p,Scope s, RStack stack,Variable toset) throws CompileError {
 		String mytag = "mcpp:random+uuid";
 		Selector me = new Selector("@e", mytag,1);

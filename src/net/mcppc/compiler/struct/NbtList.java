@@ -20,6 +20,7 @@ import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.Size;
 import net.mcppc.compiler.struct.NbtCollection.Clear;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Token;
 /**
@@ -176,6 +177,7 @@ public class NbtList extends NbtCollection{
 				index.transferRegValue(p, home, idxr);
 			}
 			@Override
+			@Targeted
 			public void build(PrintStream p, CompileJob job, Namespace ns) throws CompileError {
 				RStack stack = new RStack(this.res);
 				int indexhome = stack.setNext(VarType.INT);
@@ -191,6 +193,7 @@ public class NbtList extends NbtCollection{
 				
 			}
 			private boolean registered=false;
+			@Targeted
 			public void call(PrintStream p) throws CompileError {
 				RStack stack = new RStack(this.res);
 				int indexhome = stack.setNext(VarType.INT);
@@ -237,6 +240,7 @@ public class NbtList extends NbtCollection{
 		Variable listbuff2 = null;
 		Variable valuebuff = null;
 		@Override
+		@Targeted
 		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 
 			Equation index = (Equation) ((BasicArgs)token.getArgs()).arg(0);
@@ -327,6 +331,7 @@ public class NbtList extends NbtCollection{
 				
 			}
 			@Override
+			@Targeted
 			public void build(PrintStream p, CompileJob job, Namespace ns) throws CompileError {
 				RStack stack = new RStack(this.res);
 				int indexhome = stack.setNext(VarType.INT);
@@ -359,6 +364,7 @@ public class NbtList extends NbtCollection{
 				
 			}
 			private boolean registered=false;
+			@Targeted
 			public void call(PrintStream p) throws CompileError {
 				RStack stack = new RStack(this.res);
 				int indexhome = stack.setNext(VarType.INT);

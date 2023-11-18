@@ -14,6 +14,7 @@ import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.NullToken;
@@ -128,8 +129,8 @@ public class NbtObject extends Struct {
 		Variable meval = this.getValue(me, from.type);
 		Variable.directSet(p, s, meval, from, stack);
 	}
+	@Targeted
 	public void deleteIfFromNull(PrintStream p, Scope s, RStack stack, Variable to, Variable from) {
-		//TODO test this
 		Variable tov = this.getValue(to, VarType.VOID);//type does not matter
 		Variable fromv = this.getValue(from, VarType.VOID);//type does not matter
 		p.printf("execute unless data %s run data remove %s\n", fromv.dataPhrase(),tov.dataPhrase());
@@ -213,6 +214,7 @@ public class NbtObject extends Struct {
 		Variable value = this.getValue((Variable) me, other.getType());
 		return super.basicDirectEquals(p, c, s, stack, other, value, op.op == OpType.NEQ);
 	}
+	@Targeted
 	public int getIsNull(PrintStream p, Compiler c, Scope s, RStack stack,
 			Variable self,boolean invert) throws CompileError {
 		int home=stack.setNext(VarType.BOOL);

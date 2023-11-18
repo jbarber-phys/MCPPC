@@ -6,6 +6,7 @@ import java.util.regex.Matcher;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.target.Targeted;
 
 public class Size extends BuiltinFunction{
 	//gets the size of a String or list (nbt tag)
@@ -36,12 +37,13 @@ public class Size extends BuiltinFunction{
 		
 		Size.lengthOf(p,  stack.getRegister(stackstart), token.getThisBound());
 	}
+	@Targeted
 	public static void lengthOf(PrintStream p, Register to,Variable var) {
 		String cmd = "data get %s".formatted(var.dataPhrase());
 		String line = "execute store result score %s run %s\n".formatted(to.inCMD(),cmd);
 		p.printf(line);
 	}
-
+	@Targeted
 	@Override
 	public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
 			throws CompileError {

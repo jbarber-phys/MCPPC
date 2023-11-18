@@ -19,6 +19,7 @@ import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.BFReturnVoid;
 import net.mcppc.compiler.functions.Size;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
@@ -119,6 +120,7 @@ public class NbtCompound extends Struct {
 			}else throw new CompileError("could not merge expression");
 			
 		}
+		@Targeted
 		public static void mergeTags(PrintStream p,Scope s,Variable self,Variable other) {
 			if(other.isStruct() && other.type.struct instanceof NbtObject) {
 				NbtObject clazz = (NbtObject) other.type.struct;
@@ -130,6 +132,7 @@ public class NbtCompound extends Struct {
 			p.printf("data modify %s merge from %s\n",dto,dfrom);
 			
 		}
+		@Targeted
 		public static void mergeTags(PrintStream p,Scope s,Variable self,NbtPath.NbtPathToken tag) {
 			String dto=self.dataPhrase();
 			p.printf("data modify %s merge value %s\n",dto,tag.textInMcf());

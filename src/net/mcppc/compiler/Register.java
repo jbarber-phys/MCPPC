@@ -4,7 +4,14 @@ import java.io.PrintStream;
 
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.PrintF;
-
+import net.mcppc.compiler.target.Targeted;
+/** represents a score of a known holder and objective;
+ * used extensively by the compiler for things like math operations;
+ * 
+ * @author RadiumE13
+ *
+ */
+@Targeted //almost every method
 public class Register implements Comparable<Register>,PrintF.IPrintable{
 	/**
 	 * constant equal to the number of bits in an mc score; currently is 32 (sad);
@@ -28,9 +35,11 @@ public class Register implements Comparable<Register>,PrintF.IPrintable{
 		this.index=index;
 		this.estimate=estimate;
 	}
+	@Targeted
 	public String inCMD() {
 		return "%s %s".formatted(holder,getScoreAt(index));
 	}
+	@Targeted
 	public String testMeInCMD() {
 		return "score %s matches 1..".formatted(this.inCMD());
 	}

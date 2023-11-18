@@ -1,4 +1,7 @@
 package net.mcppc.compiler;
+
+import net.mcppc.compiler.target.Targeted;
+
 /**
  * interface for something that can give an nbt value;
  * also caries information about whether to get it using from or value
@@ -13,9 +16,9 @@ public interface INbtValueProvider {
 	//super Variable and some ConstExprs
 	//data phrase:
 	// from {...}
-	static final String FROM = "from %s";
+	@Targeted static final String FROM = "from %s";
 	// value ###
-	static final String VALUE = "value %s";
+	@Targeted static final String VALUE = "value %s";
 	public String fromCMDStatement();
 	public VarType getType();
 }

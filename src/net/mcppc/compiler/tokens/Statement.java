@@ -12,6 +12,7 @@ import net.mcppc.compiler.*;
 import net.mcppc.compiler.BuiltinFunction.BFCallToken;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.AbstractCallToken;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Equation.End;
 import net.mcppc.compiler.tokens.Token.Assignlike;
 import net.mcppc.compiler.tokens.Token.Assignlike.Kind;
@@ -175,6 +176,7 @@ public abstract class Statement extends Token implements TreePrintable{
 					:"///%s"
 					).formatted(this.message);
 		}
+		@Targeted
 		public String inCMD() {
 			String msg = this.message;
 			if(this.isMultiLine) {

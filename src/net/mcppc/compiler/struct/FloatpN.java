@@ -19,6 +19,7 @@ import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.RuntimeError;
 import net.mcppc.compiler.errors.Warnings;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.Num;
@@ -33,6 +34,7 @@ import net.mcppc.compiler.tokens.UnaryOp.UOType;
  *
  */
 @Deprecated
+@Targeted
 public class FloatpN extends Struct {
 	public static FloatpN doubleN = new FloatpN("DoubleN",VarType.DOUBLE);
 

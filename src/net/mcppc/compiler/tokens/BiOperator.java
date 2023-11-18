@@ -17,12 +17,15 @@ import net.mcppc.compiler.errors.COption;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.CompileError.UnsupportedOperation;
 import net.mcppc.compiler.errors.Warnings.OneTimeWarnings;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.tokens.Token.Factory;
 import net.mcppc.compiler.tokens.Token.LineEnd;
 
+@Targeted // the op strings are printed to an mcf
 public class BiOperator extends Token{
-	//TODO add seperate class for custom operator types;
+	//would add separate class for custom operator types;
+	
 	public static enum OpType{
 		//flops:
 		ADD("+",OperationOrder.ADD,true,false) {
@@ -316,6 +319,7 @@ public class BiOperator extends Token{
 			stack.estmiate(home1, stack.getEstimate(home1).doubleValue()*stack.getEstimate(home2).doubleValue());
 		else stack.estmiate(home1, null);
 	}
+	@Targeted // the op strings are printed to an mcf
 	public void literalMultOrDiv(PrintStream p, Compiler c, Scope s, RStack stack, Integer in, Integer dest,Num other ) throws CompileError {
 		VarType itype=stack.getVarType(in);
 		if(itype.isStruct()) {
@@ -499,6 +503,7 @@ public class BiOperator extends Token{
 		this.compareGen(p, c, s, stack, home1, home2, cpopnot, true);
 		
 	}
+	@Targeted // the op strings are printed to an mcf
 	private void compareGen(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2,String cpop,boolean invert) throws CompileError {
 		VarType type1=stack.getVarType(home1);
 		VarType type2=stack.getVarType(home2);
@@ -541,6 +546,7 @@ public class BiOperator extends Token{
 		stack.setVarType(home1, typef);
 	}
 	//Note: xor, and, or; are all commutitive+asociative with themselves
+	@Targeted // the op strings are printed to an mcf
 	private void xor(PrintStream p, Compiler c, Scope s, RStack stack, Integer home1, Integer home2) throws CompileError {
 		VarType type1=stack.getVarType(home1);
 		VarType type2=stack.getVarType(home2);

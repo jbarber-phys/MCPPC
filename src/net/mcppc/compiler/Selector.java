@@ -21,6 +21,7 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.struct.Entity;
 import net.mcppc.compiler.struct.Struct;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Regexes;
@@ -45,6 +46,7 @@ import net.mcppc.compiler.tokens.Token.Factory;
  * @author RadiumE13
  *
  */
+@Targeted
 public class Selector {
 
 	//replace on group 3
@@ -349,8 +351,9 @@ public class Selector {
 		this.tag.add("");
 		this.tag.add("!");
 	}
-	private static final String ARGSEP = ",";
-	private static final String SUBARGS = "{%s}";
+	@Targeted private static final String ARGSEP = ",";
+	@Targeted private static final String SUBARGS = "{%s}";
+	@Targeted
 	protected String argsToString() {
 		List<String> args = new ArrayList<String>();
 		for(String tg : this.tag) {
@@ -370,6 +373,7 @@ public class Selector {
 		String[] arr = new String[args.size()]; args.toArray(arr);
 		return String.join(",", (String[])arr);
 	}
+	@Targeted
 	public String toCMD() {
 		if(this.hasArgs())return "%s[%s]".formatted(player,this.argsToString());
 		else return player;
@@ -378,7 +382,7 @@ public class Selector {
 		if(this.hasArgs())return "%s[%s]".formatted(player,this.argsToString());
 		else return player;
 	}
-	
+	@Targeted
 	public String getJsonText() {
 		return "{\"selector\": \"%s\"}".formatted(Regexes.escape(this.toCMD()));
 	}
@@ -386,6 +390,7 @@ public class Selector {
 	public String toString() {
 		return this.toHDR();
 	}
+	@Targeted
 	private static boolean isTypePlayer(String type) {
 		return type.equals("player") 
 				|| type.equals("minecraft:player");
@@ -458,19 +463,24 @@ public class Selector {
 		l.tag.add(tag);
 		return l;
 	}
+	@Targeted
 	public void kill(PrintStream p) {
 		p.printf("kill %s\n", this.toCMD());
 	}
+	@Targeted
 	public void addTag(PrintStream p, String tag) {
 		p.printf("tag %s add %s\n", this.toCMD(),tag);
 	}
+	@Targeted
 	public void removeTag(PrintStream p, String tag) {
 		p.printf("tag %s remove %s\n", this.toCMD(),tag);
 	}
+	@Targeted
 	public void run(PrintStream p,ResourceLocation fun) {
 		p.printf("execute as %s run ", this.toCMD());
 			fun.run(p);
 	}
+	@Targeted
 	public void runAt(PrintStream p,ResourceLocation fun) {
 		p.printf("execute as %s at @s run ", this.toCMD());
 			fun.run(p);

@@ -12,6 +12,7 @@ import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.functions.PrintF;
 import net.mcppc.compiler.struct.Entity;
 import net.mcppc.compiler.struct.Struct;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Bool;
 import net.mcppc.compiler.tokens.Equation;
@@ -40,6 +41,7 @@ import net.mcppc.main.Main;
  * @author RadiumE13
  *
  */
+@Targeted
 public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	public final String name;
 	public final VarType type;
@@ -362,6 +364,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 			setMe(f,s,reg,regtype);
 		}
 	}
+	@Targeted
 	public void setMe(PrintStream f,Scope s,Register reg,VarType regType) throws CompileError {
 		if(this.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
 		if(!VarType.areBasicTypesCompadible(this.type, regType)) throw new CompileError.UnsupportedCast(this.type, regType);
@@ -399,6 +402,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		}break;
 		}
 	}
+	@Targeted
 	public void setMeToCmd(PrintStream f,Scope s,String cmd) throws CompileError {
 		if(this.isStruct()) {
 			this.type.struct.setMeToCmd(f,s,this,cmd);
@@ -408,6 +412,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		this.setMeToCmdBasic(f, s, cmd, resultsuccess);
 		
 	}
+	@Targeted
 	public void setMeToCmdBasic(PrintStream f,Scope s,String cmd,String resultsuccess) throws CompileError {
 		if(this.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
 		VarType cmdType = this.type;
@@ -448,6 +453,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		}
 		
 	}
+	@Targeted
 	public void getMe(PrintStream f,Scope s,Register reg) throws CompileError {
 		if(this.type.isVoid())throw new CompileError("Varaible.setMe() not for voids.");
 
@@ -472,10 +478,12 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		}break;
 		}
 	}
+	@Targeted
 	public String scorePhrase() {
 		if(this.getMaskType()!=Mask.SCORE)return null;
 		return "%s %s".formatted(this.holder,this.getAddressToGetset());
 	}
+	@Targeted
 	public String dataPhrase() {
 		switch (this.pointsTo) {
 		case STORAGE:{
@@ -492,11 +500,12 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		} default:return null;
 		}
 	}
+	@Targeted
 	public String dataGetCmd(double mult) {
 		assert this.getMaskType().isNbt;
 		return "data get %s %s".formatted(this.dataPhrase(),CMath.getMultiplierFor(mult));
 	}
-
+	@Targeted
 	public String scoreGetCmd() {
 		assert this.getMaskType()==Mask.SCORE;
 		return "scoreboard players get %s".formatted(this.scorePhrase());
@@ -517,6 +526,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		} default:return null;
 		}
 	}
+	@Targeted
 	public String matchesPhrase(String matchtag) {
 		//TODO bug {"$printf"."$1": 0} -> {"$printf": {"$1": 0}}
 		//also TODO {array[1]: 123} ->? (not array[2]: val)
@@ -544,6 +554,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		} default:return null;
 		}
 	}
+	@Targeted
 	public String isTrue() throws CompileError {
 		switch (this.pointsTo) {
 		case SCORE:return "score %s %s matches 1..".formatted(this.holder,this.getAddressToGetset());
@@ -558,6 +569,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		
 		}
 	}
+	@Targeted
 	@Override //IPrintable
 	public String getJsonTextSafe() {
 		try {
@@ -567,11 +579,13 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 			return null;
 		}
 	}
+	@Targeted
 	public String getJsonText() throws CompileError {
 		if(this.type.isStruct())return this.type.struct.getJsonTextFor(this);
 		if(this.type.isVoid())return "{\"text\": \"<void>\"}";
 		return this.getJsonTextBasic();
 	}
+	@Targeted
 	public String getJsonTextBasic() throws CompileError {
 		String edress = PrintF.ESCAPE_TAG_IN_JSON? Regexes.escape(this.getAddressToGetset()):this.getAddressToGetset();
 		//format string is in vartype
@@ -614,6 +628,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		
 		}
 	}
+	@Targeted
 	public void setMeToNumber(PrintStream p,Scope s,RStack stack, Number value) throws CompileError {
 		if(!this.type.isNumeric()) throw new CompileError("cannot set variable %s to a number value %s;"
 				.formatted(this.toHeader(),value));
@@ -631,6 +646,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 			}
 		}
 	}
+	@Targeted
 	public void setMeToBoolean(PrintStream p,Scope s,RStack stack, boolean value) throws CompileError {
 		if(this.type.isNumeric()) throw new CompileError("cannot set variable %s to a boolean value %s;"
 				.formatted(this.toHeader(),value));
@@ -646,6 +662,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 			}
 		}
 	}
+	@Targeted
 	public void setMeToNbtValueBasic(PrintStream p,Scope s,RStack stack, String value) throws CompileError {
 		if(this.getMaskType() != Mask.STORAGE) throw new CompileError("cannot set nbt value of a score variable %s;".formatted(this.name));
 		p.printf("data modify %s set value %s\n", this.dataPhrase(),value);
@@ -727,7 +744,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		// may be able to remove intermediary score but will still need multipliers
 		
 	}
-
+	@Targeted
 	private static void trueDirectSet(PrintStream f,Scope s,Variable to,Variable from,RStack stack) throws CompileError {
 		boolean floatp = to.type.isFloatP() || from.type.isFloatP();
 		if(to.pointsTo==Mask.SCORE) {
@@ -809,6 +826,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 			throw new CompileError("Basic type %s is not indexable;".formatted(this.type));
 		}
 	}
+	@Targeted
 	public Variable indexMyNBTPathBasic(int index,VarType membtype) {
 		return new Variable("%s[%s]".formatted(this.name,index),
 				membtype,
@@ -827,6 +845,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 				this.fieldMyNBTPathAddress(field, type) // fields revive the getset address
 				);
 	}
+	@Targeted
 	public String fieldMyNBTPathAddress(String field,VarType type) {
 		return "%s.%s".formatted(this.getAddressToGetset(),field);
 	}
@@ -836,6 +855,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	 * @param membtype
 	 * @return
 	 */
+	@Targeted
 	public Variable indexMyScoreBasic(int index,VarType membtype) {
 		return new Variable("%s[%s]".formatted(this.name,index),
 				membtype,
@@ -919,6 +939,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		this.allocateLoadBasic(p,fillWithDefaultvalue,this.type.defaultValue());
 		
 	}
+	@Targeted
 	public void allocateLoadBasic(PrintStream p,boolean fillWithDefaultvalue,String defaultValue) throws CompileError  {
 		if(!this.isbasic) {
 			Warnings.warningf(null,"attempted to allocate %s to non-basic %s;",this.name, this.pointsTo);
@@ -959,6 +980,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		
 		
 	}
+	@Targeted
 	public void allocateCallBasic(PrintStream p,boolean fillWithDefaultvalue,String defaultValue) throws CompileError {
 		if(!this.isbasic) {
 			Warnings.warningf(null,"attempted to allocate %s to non-basic %s;",this.name, this.pointsTo);
@@ -974,6 +996,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 			p.printf("data modify %s set value %s\n",this.dataPhrase(), defaultValue);
 		}
 	}
+	@Targeted
 	public void makeObjective(PrintStream p) throws CompileError {
 		if(this.type.isStruct()) {
 			Warnings.warningf(null,"attempted to make objective %s for struct %s;",this.name, this.type.asString());
@@ -1002,6 +1025,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		this.basicdeallocateBoth(p);
 		
 	}
+	@Targeted
 	public void basicdeallocateBoth(PrintStream p) throws CompileError {
 		if(this.pointsTo!=Mask.STORAGE) {
 			Warnings.warningf(null,"attempted to deallocate %s to non-storage %s;",this.name, this.pointsTo);

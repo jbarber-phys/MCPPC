@@ -27,6 +27,7 @@ import net.mcppc.compiler.Register;
 import net.mcppc.compiler.ResourceLocation;
 import net.mcppc.compiler.ResourceLocation.ResourceToken;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.MemberName;
 import net.mcppc.compiler.tokens.Regexes;
@@ -172,17 +173,20 @@ public class Entity extends Struct {
 		this.add(p, self, sl);
 	}
 	private void clear(PrintStream p,Variable self) throws CompileError {
-		
-		p.printf("tag %s remove %s\n",this.getSelectorFor(self).unlimited().toCMD(), this.getScoreTag(self));
+		this.getSelectorFor(self).unlimited().removeTag(p, this.getScoreTag(self));
+		//p.printf("tag %s remove %s\n",this.getSelectorFor(self).unlimited().toCMD(), this.getScoreTag(self));
 	}
 	private void add(PrintStream p,Variable self,Selector entity) throws CompileError {
-		p.printf("tag %s add %s\n",entity.toCMD(), this.getScoreTag(self));
+		entity.addTag(p, this.getScoreTag(self));
+		//p.printf("tag %s add %s\n",entity.toCMD(), this.getScoreTag(self));
 	}
 	private void sub(PrintStream p,Variable self,Selector entity) throws CompileError {
-		p.printf("tag %s remove %s\n",entity.toCMD(), this.getScoreTag(self));
+		entity.removeTag(p, this.getScoreTag(self));
+		//p.printf("tag %s remove %s\n",entity.toCMD(), this.getScoreTag(self));
 	}
 	private static final String TEMP="mcppc+entity+temp__";
 	private static final String TEMP2="mcppc+entity+temp2__";
+	@Targeted
 	private void compareEqual(PrintStream p, Compiler c, Scope s, RStack stack, int dest, Selector left, Selector right,boolean not) throws CompileError {
 		Register out=stack.getRegister(dest);
 		out.setValue(p, !not);
@@ -198,6 +202,7 @@ public class Entity extends Struct {
 		p.printf(prefix);out.setValue(p, not);
 		p.printf("tag * remove %s\n", TEMP);
 	}
+	@Targeted
 	private void compareOverlap(PrintStream p, Compiler c, Scope s, RStack stack, int dest, Selector left, Selector right,boolean not) throws CompileError {
 		Register out=stack.getRegister(dest);
 		out.setValue(p, not);
@@ -324,6 +329,7 @@ public class Entity extends Struct {
 	}
 	public static final ResourceLocation ENTITY_TYPE_MARKER = new ResourceLocation(CompileJob.MINECRAFT,"marker");
 	//TODO improve hash
+	@Targeted
 	public static Selector summonTemp(PrintStream p,Compiler c,Scope s,Object... hash) throws CompileError {
 		String tag = "mcppc+temp%x".formatted(Objects.hash(hash));
 		//final String type = "marker";//https://minecraft.fandom.com/wiki/Marker
@@ -380,6 +386,7 @@ public class Entity extends Struct {
 		}
 
 		@Override
+		@Targeted
 		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 			Variable v=token.getThisBound();
 			if(v==null)throw new CompileError("function %s must be called as a nonstaic member".formatted(this.name));
@@ -433,6 +440,7 @@ public class Entity extends Struct {
 		}
 
 		@Override
+		@Targeted
 		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 			Variable v=token.getThisBound();
 			if(v==null)throw new CompileError("function %s must be called as a nonstaic member".formatted(this.name));
@@ -494,6 +502,7 @@ public class Entity extends Struct {
 		 * the last bit acts as a testfor statement
 		 */
 		@Override
+		@Targeted
 		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
 			Variable self=token.getThisBound();
@@ -510,6 +519,7 @@ public class Entity extends Struct {
 		}
 
 		@Override
+		@Targeted
 		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
 				throws CompileError {
 			Variable self=token.getThisBound();

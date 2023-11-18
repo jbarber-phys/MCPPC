@@ -5,10 +5,11 @@ import java.util.regex.Matcher;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
-
+@Targeted
 public class NbtPath {
 	public static NbtPath UUID = new NbtPath("UUID");
 	public static NbtPath UUID_LAST = new NbtPath("UUID[3]");
@@ -75,7 +76,8 @@ public class NbtPath {
 			throw new CompileError("cannot print an %s".formatted(this.constType().name));
 		}
 	}
-	String path;
+
+	@Targeted String path;
 	public NbtPath(String s) {
 		path=s.trim();
 	}

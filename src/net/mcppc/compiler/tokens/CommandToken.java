@@ -13,6 +13,7 @@ import net.mcppc.compiler.Function;
 import net.mcppc.compiler.RStack;
 import net.mcppc.compiler.Scope;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Token.Factory;
 import net.mcppc.compiler.tokens.Token.LineEnd;
 
@@ -160,6 +161,7 @@ public class CommandToken extends Token{
 	public void printToCMD(PrintStream p, Compiler c,Scope s) throws CompileError {
 		this.printToCMD(p, c, s, null);
 	}
+	@Targeted // the op strings are printed to an mcf
 	public void printToCMD(PrintStream p, Compiler c,Scope s, String preamble) throws CompileError {
 		String s1 = this.cmd;
 		if(c.resourcelocation.toString().equals("mcpptest:entity/selector_equation")) {

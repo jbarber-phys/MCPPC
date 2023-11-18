@@ -16,6 +16,7 @@ import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Num;
 /**
@@ -47,6 +48,7 @@ public abstract class UnsafeThreadCommand extends BuiltinFunction {
 		}
 
 		@Override
+		@Targeted
 		public void actualCall(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 			BasicArgs args = (BasicArgs) token.getArgs();
 			Selector sf = null;
@@ -74,7 +76,9 @@ public abstract class UnsafeThreadCommand extends BuiltinFunction {
 		}
 
 		@Override
+		@Targeted
 		public void actualCall(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
+			//TODO assert target
 			Warnings.warning("Warning: function return(...) should not be used as mcpp might use '/return' it for its own thing", c);
 			BasicArgs args = (BasicArgs) token.getArgs();
 			if(args.nargs()<1) {

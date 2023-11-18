@@ -22,6 +22,7 @@ import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Singleton;
 import net.mcppc.compiler.struct.Struct;
+import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Num;
@@ -133,7 +134,7 @@ public abstract class Particles extends BuiltinFunction {
 		public Line(String name) {
 			super(name);
 		}
-
+		@Targeted
 		@Override
 		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 			ParticleTypeToken id = this.getId(token);
@@ -174,7 +175,7 @@ public abstract class Particles extends BuiltinFunction {
 		public Ring(String name) {
 			super(name);
 		}
-
+		@Targeted
 		@Override
 		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 			ParticleTypeToken id = this.getId(token);
@@ -232,7 +233,7 @@ public abstract class Particles extends BuiltinFunction {
 		public Sphere(String name) {
 			super(name);
 		}
-
+		@Targeted
 		@Override
 		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 			ParticleTypeToken id = this.getId(token);
