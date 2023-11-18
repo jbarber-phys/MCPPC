@@ -20,6 +20,7 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.FunctionMask.MCFArgs;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Token;
+import net.mcppc.compiler.tokens.Token.NullArgDefault;
 
 public class FunctionMask extends BuiltinFunction {
 	public static class MCFArgs implements Args{
@@ -66,6 +67,9 @@ public class FunctionMask extends BuiltinFunction {
 		Function.FuncCallToken.addArgs(c, s, line, col, matcher, stack, args.args);
 		if(this.defaultArgs!=null && this.defaultArgs.size()>args.args.size()) for(int i=args.args.size();i<this.defaultArgs.size();i++) {
 			Token deft=this.defaultArgs.get(i);
+			if(deft instanceof NullArgDefault) {
+				throw new CompileError("not enough args in %s".formatted(this.name));
+			}
 			if(deft!=null && !(deft instanceof Token.NullArgDefault)){
 				Equation eq = Equation.toArgueHusk(stack, this.defaultArgs.get(i));
 				if(eq!=null)

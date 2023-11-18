@@ -34,9 +34,7 @@ import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Import;
 
 
-/*list of language editions TODO ::
- * add stdlib for attacking entities / hitbox/raycast testing; also maybe add a safe-explode
- * 	for now, wait on this until 
+/*list of language editions TODO :: 
  * 
  * add java edition targeting : Version -> format ID; Target -> min version AND max version;
  * incorperate new 1.20.3 commands: return, tick, random, damage;
