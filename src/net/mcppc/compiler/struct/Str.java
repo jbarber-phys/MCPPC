@@ -1,5 +1,6 @@
 package net.mcppc.compiler.struct;
 import net.mcppc.compiler.struct.*;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
@@ -71,12 +72,12 @@ public class Str extends Struct{
 		return true;
 	}
 	@Override
-	public void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+	public void allocateLoad(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
 		var.allocateLoadBasic(p, fillWithDefaultvalue, Struct.DEFAULT_STRING);
 	}
 	@Override
-	public void allocateCall(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
-		var.allocateCallBasic(p, fillWithDefaultvalue, Struct.DEFAULT_STRING);
+	public void allocateCall(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		var.allocateCallBasic(p, tg, fillWithDefaultvalue, Struct.DEFAULT_STRING);
 	}
 	@Override
 	public String getDefaultValue(VarType var) {

@@ -160,16 +160,16 @@ public class ForIterate extends Statement implements Statement.CodeBlockOpener,S
 		Variable mybreak=this.mySubscope.getBreakVarInMe(c);
 		//do not allocate element1 or 2
 		mybreak.setMeToBoolean(p, s, mystack, false);
-		this.structbuff1.allocateCall(p, false);
+		this.structbuff1.allocateCall(p, s.getTarget(), false);
 		Variable.directSet(p, s, this.structbuff1, this.collection, mystack);
-		if(this.isByRef) this.structbuff2.allocateCall(p, false);
+		if(this.isByRef) this.structbuff2.allocateCall(p, s.getTarget(), false);
 		p.printf("execute if data %s unless %s run function %s\n",this.element1first.dataPhrase(), mybreak.isTrue(),mcf);
 		
-		this.structbuff1.deallocateAfterCall(p);
+		this.structbuff1.deallocateAfterCall(p, s.getTarget());
 		Variable.directSet(p, s, this.structbuff1, this.collection, mystack);
 		if(this.isByRef) {
 			Variable.directSet(p, s, this.collection, this.structbuff2, mystack);
-			this.structbuff2.deallocateAfterCall(p);
+			this.structbuff2.deallocateAfterCall(p, s.getTarget());
 		}
 		mystack.finish(c.job);
 	}

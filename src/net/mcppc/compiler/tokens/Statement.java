@@ -13,6 +13,7 @@ import net.mcppc.compiler.BuiltinFunction.BFCallToken;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.AbstractCallToken;
 import net.mcppc.compiler.target.Targeted;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.Equation.End;
 import net.mcppc.compiler.tokens.Token.Assignlike;
 import net.mcppc.compiler.tokens.Token.Assignlike.Kind;
@@ -162,7 +163,7 @@ public abstract class Statement extends Token implements TreePrintable{
 			this.isMultiLine=isMultiLine;
 		}
 		@Override public void compileMe(PrintStream f,Compiler c,Scope s) {
-			f.println(this.inCMD());
+			f.println(this.inCMD(s.getTarget()));
 		}
 		@Override
 		public String asString() {
@@ -177,7 +178,7 @@ public abstract class Statement extends Token implements TreePrintable{
 					).formatted(this.message);
 		}
 		@Targeted
-		public String inCMD() {
+		public String inCMD(VTarget tg) {
 			String msg = this.message;
 			if(this.isMultiLine) {
 				msg = msg.replace("\n", "\n#");//replaceAll() uses regex

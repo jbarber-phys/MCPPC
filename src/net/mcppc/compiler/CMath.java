@@ -66,7 +66,7 @@ public abstract class CMath {
 		while(size>point+SUBS+1 && s.charAt(size-1)=='0') {
 			size--;
 		}
-		//TODO there is a bug in MC: SCI NOT works in tag values but not in multipliers for /data get ... # ;  and /execute store ... # ;
+		//there is a bug in MC: SCI NOTN works in tag values but not in multipliers for /data get ... # ;  and /execute store ... # ;
 		return s.substring(0, size);
 	}
 	/**
@@ -103,8 +103,8 @@ public abstract class CMath {
 	private static final int POPPED = 2;
 	private static final int OLD = 3;
 	/**
-	 * finds circular loops in a graph
-	 * thx nits.kk https://stackoverflow.com/questions/37907339/how-to-detect-circular-reference-in-a-tree
+	 * finds circular loops in a graph;
+	 * found from nits.kk at https://stackoverflow.com/questions/37907339/how-to-detect-circular-reference-in-a-tree
 	 * @param graph
 	 * @param N
 	 * @param u

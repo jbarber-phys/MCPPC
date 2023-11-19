@@ -23,6 +23,10 @@ import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.StructTypeParams.MembType;
 import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.functions.PrintF;
+import net.mcppc.compiler.functions.PrintF.PrintContext;
+import net.mcppc.compiler.functions.PrintF.PrintfArgs;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Type;
 import net.mcppc.compiler.tokens.BiOperator;
@@ -376,14 +380,14 @@ public class Bossbar extends Struct {
 	
 	@Override
 	@Targeted
-	public void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+	public void allocateLoad(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
 		p.printf("bossbar remove %s\n", this.getBossBarId(var));
 		p.printf("bossbar add %s %s\n", this.getBossBarId(var),this.getBossBarNameLiteral(var));
 		p.printf("bossbar set %s visible false\n", this.getBossBarId(var));
 	}
 
 	@Override
-	public void allocateCall(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+	public void allocateCall(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
 		// do nothing
 	}
 
@@ -406,7 +410,7 @@ public class Bossbar extends Struct {
 		return new Variable("max",maxtype,null,Mask.BOSSBAR,self.getHolder(),self.getAddress());
 	}
 	private final Map<String,BuiltinFunction> bfs = Map.of(
-			SetConstMember.setName.name,SetConstMember.setName,
+			SetName.setName.name,SetName.setName,
 			SetConstMember.setPlayers.name,SetConstMember.setPlayers,
 			SetConstMember.setVisible.name,SetConstMember.setVisible,
 			SetMember.color.name,SetMember.color,
@@ -428,14 +432,6 @@ public class Bossbar extends Struct {
 	}
 	public static abstract class SetConstMember extends BuiltinFunction{
 		
-		@Targeted public static final SetConstMember setName = new SetConstMember("setName","field",true,ConstType.STRLIT) {
-			//TODO allow raw json elements; if strlit, create json element from it
-			@Override protected String defaultValue(Compiler c, Scope s, BFCallToken token, RStack stack) {
-				BasicArgs args = (BasicArgs) token.getArgs();
-				Variable self = token.getThisBound();
-				Bossbar struct = (Bossbar) self.type.struct;
-				return struct.getBossBarNameLiteral(self);
-			}};
 			@Targeted public static final SetConstMember setVisible = new SetConstMember("setVisible","visible",true,ConstType.BOOLIT) {
 			@Override protected String defaultValue(Compiler c, Scope s, BFCallToken token, RStack stack) {
 				return "true";
@@ -472,6 +468,7 @@ public class Bossbar extends Struct {
 			Bossbar struct = (Bossbar) self.type.struct;
 			if(args.nargs()==0) {
 				p.printf("bossbar set %s %s %s\n",struct.getBossBarId(self), this.field,this.defaultValue(c, s, token, stack));
+				return;
 			}else if (!this.hasArg) throw new CompileError("too many args in %s.%s()".formatted(struct.name,this.name));
 			Equation val = (Equation) args.arg(0);
 			//val.constify(c, s);
@@ -480,8 +477,53 @@ public class Bossbar extends Struct {
 			ConstExprToken ce = Equation.constifyAndGet(p, val, c, s, stack, this.ctype);
 			//if(ce.constType()!=this.ctype) throw new CompileError("arg to %s.%s(...) had wrong type %s, needed %s"
 			//		.formatted(struct.name,this.name,ce.constType().name,ctype.name));
-			String str = ce.textInMcf();
+			String str = ce.textInMcf(s.getTarget());
 			p.printf("bossbar set %s %s %s\n",struct.getBossBarId(self), this.field,str);
+		}
+
+		@Override
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
+				throws CompileError {}
+
+		@Override public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
+				throws CompileError {}
+
+		@Override public Number getEstimate(BFCallToken token) { return null; }
+
+		@Override public boolean isNonstaticMember() {
+			return true;
+		}
+		
+	}
+	public static class SetName extends BuiltinFunction{
+		
+		@Targeted public static final SetName setName = new SetName("setNamef");
+		private final Const.ConstType ctype=ConstType.STRLIT;
+		private final boolean hasArg = true;
+		private final String field = "name";
+		private final boolean varCopy = true;//json is evaluated immediately
+		public SetName(String name) {
+			super(name);
+		}
+		@Override
+		public VarType getRetType(BFCallToken token) {
+			return VarType.VOID;
+		}
+		@Override
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack)
+				throws CompileError {
+			return PrintF.tokenizeFormatArgs(c, s, matcher, line, col, stack, false);
+		}
+
+		@Override
+		@Targeted
+		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
+			PrintfArgs pargs=(PrintfArgs) token.getArgs();
+			PrintContext context = new PrintContext(this.name,this.varCopy);
+			String json = PrintF.compileJsonTextElement(p, c, s, pargs, stack, null,context);
+			Variable self = token.getThisBound();
+			Bossbar struct = (Bossbar) self.type.struct;
+			p.printf("bossbar set %s %s %s\n",struct.getBossBarId(self), this.field,json);
 		}
 
 		@Override

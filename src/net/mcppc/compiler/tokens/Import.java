@@ -105,8 +105,8 @@ public class Import extends Statement implements Statement.Headerable,DommentCol
 	@Override
 	public void compileMe(PrintStream f,Compiler c,Scope s) {
 		if(this.run) {
-			for(Domment d:this.dms)f.println(d.inCMD());
-			this.lib.run(f);
+			for(Domment d:this.dms)f.println(d.inCMD(s.getTarget()));
+			this.lib.run(f,s.getTarget());
 		}
 
 	}

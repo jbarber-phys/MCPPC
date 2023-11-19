@@ -17,6 +17,7 @@ import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.Size;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
@@ -91,15 +92,15 @@ public class Uuid extends Struct {
 	}
 	//allocate empty arrays
 	@Override
-	public void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
-		if(DEFAULTFILL==null) super.allocateArrayLoad(p, var, false, 0, ELEMENT_TYPE);
-		else super.allocateArrayLoad(p, var, fillWithDefaultvalue, DIM, ELEMENT_TYPE);
+	public void allocateLoad(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		if(DEFAULTFILL==null) super.allocateArrayLoad(p, tg, var, false, 0, ELEMENT_TYPE);
+		else super.allocateArrayLoad(p, tg, var, fillWithDefaultvalue, DIM, ELEMENT_TYPE);
 	}
 
 	@Override
-	public void allocateCall(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
-		if(DEFAULTFILL==null) super.allocateArrayCall(p, var, false, 0, ELEMENT_TYPE);
-		else super.allocateArrayCall(p, var, fillWithDefaultvalue, DIM, ELEMENT_TYPE);
+	public void allocateCall(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		if(DEFAULTFILL==null) super.allocateArrayCall(p, tg, var, false, 0, ELEMENT_TYPE);
+		else super.allocateArrayCall(p, tg, var, fillWithDefaultvalue, DIM, ELEMENT_TYPE);
 	}
 
 	@Override

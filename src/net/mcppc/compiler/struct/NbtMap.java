@@ -34,7 +34,7 @@ import net.mcppc.compiler.functions.Size;
 import net.mcppc.compiler.struct.NbtCollection.Clear;
 import net.mcppc.compiler.struct.NbtList.ChangeAt;
 import net.mcppc.compiler.struct.NbtList.GetAt;
-import net.mcppc.compiler.target.Targeted;
+import net.mcppc.compiler.target.*;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Keyword;
 import net.mcppc.compiler.tokens.Token;
@@ -141,14 +141,14 @@ public class NbtMap extends Struct {
 		return new VarType(NbtCompound.tag,new StructTypeParams.Blank());
 	}
 	@Override
-	public void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
-		super.allocateArrayLoad(p, var, fillWithDefaultvalue, 0, getNbtCompoundType());
+	public void allocateLoad(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		super.allocateArrayLoad(p, tg, var, fillWithDefaultvalue, 0, getNbtCompoundType());
 
 	}
 
 	@Override
-	public void allocateCall(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
-		super.allocateArrayCall(p, var, fillWithDefaultvalue, 0, getNbtCompoundType());
+	public void allocateCall(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		super.allocateArrayCall(p, tg, var, fillWithDefaultvalue, 0, getNbtCompoundType());
 
 	}
 
@@ -315,7 +315,7 @@ public class NbtMap extends Struct {
 			this.mapbuff1 = loop.getMapBuff1(self.type);
 			this.mapbuff2 = loop.getMapBuff2(self.type);
 			Variable.directSet(p, s,mapbuff1, self, stack);
-			this.mapbuff2.allocateLoad(p, true);
+			this.mapbuff2.allocateLoad(p,s.getTarget(), true);
 			key.compileOps(p, c, s, keytype);
 			key.setVar(p, c, s, this.entrybuff.fieldMyNBTPath(KEY, keytype));
 			if(value!=null) {
@@ -399,7 +399,7 @@ public class NbtMap extends Struct {
 			this.mapbuff1 = loop.getMapBuff1(self.type);
 			this.mapbuff2 = loop.getMapBuff2(self.type);
 			Variable.directSet(p, s,mapbuff1, self, stack);
-			this.mapbuff2.allocateLoad(p, true);
+			this.mapbuff2.allocateLoad(p,s.getTarget(), true);
 			key.compileOps(p, c, s, keytype);
 			key.setVar(p, c, s, this.entrybuff.fieldMyNBTPath(KEY, keytype));
 			loop.call(p);
@@ -464,7 +464,7 @@ public class NbtMap extends Struct {
 			this.mapbuff1 = loop.getMapBuff1(self.type);
 			this.mapbuff2 = loop.getMapBuff2(self.type);
 			Variable.directSet(p, s,mapbuff1, self, stack);
-			this.mapbuff2.allocateLoad(p, true);
+			this.mapbuff2.allocateLoad(p,s.getTarget(), true);
 			key.compileOps(p, c, s, keytype);
 			key.setVar(p, c, s, this.entrybuff.fieldMyNBTPath(KEY, keytype));
 			loop.call(p);
@@ -634,7 +634,7 @@ public class NbtMap extends Struct {
 			//default to storage
 			BasicArgs args = (BasicArgs)token.getArgs();
 			Variable obj=this.newobj(c,token);
-			obj.allocateLoad(p, false);//anon must think its loaded
+			obj.allocateLoad(p,s.getTarget(), false);//anon must think its loaded
 			int size = args.nargs();
 			for(int i=0;i<size;i+=2) {
 				//Variable arg=NbtCollection.componentOf(obj, i);
@@ -726,17 +726,17 @@ public class NbtMap extends Struct {
 		}
 		//internal
 		
-		public void onLoad(PrintStream p) throws CompileError {
+		public void onLoad(PrintStream p, VTarget tg) throws CompileError {
 			//clean up any leaked entries from before the reload
-			this.lookupTable.allocateLoad(p, true);
-			this.defaultVariables.allocateLoad(p, true);
+			this.lookupTable.allocateLoad(p,tg, true);
+			this.defaultVariables.allocateLoad(p,tg, true);
 			
 			//clean this as well by removing it
-			this.myEntry.deallocateLoad(p);
+			this.myEntry.deallocateLoad(p, tg);
 			
 			//then call allocate for all allocator blocks and variables
-			for(Variable b:this.privateBlockAllocators.values()) b.allocateLoad(p, true);
-			for(Variable v:this.varAllocators) v.allocateLoad(p, true);
+			for(Variable b:this.privateBlockAllocators.values()) b.allocateLoad(p,tg, true);
+			for(Variable v:this.varAllocators) v.allocateLoad(p,tg, true);
 			
 		}
 		@Targeted
@@ -746,15 +746,15 @@ public class NbtMap extends Struct {
 			VarType uuid = Uuid.uuid.getType();
 			Variable truestartUuid = new Variable("$uuidstart",uuid,null,thread.getBasePath());
 			thread.thisNbtTruestart(truestartUuid, NbtPath.UUID);
-			this.myEntry.deallocateLoad(p);
+			this.myEntry.deallocateLoad(p, s.getTarget());
 			Variable key = this.myEntry.fieldMyNBTPath(KEY, uuid);
 			Variable val = this.myEntry.fieldMyNBTPath(VALUE, compound);
 			
-			this.myEntry.allocateLoad(p, true);
+			this.myEntry.allocateLoad(p,s.getTarget(), true);
 			Variable.directSet(p, s, key, truestartUuid, stack);
 			Variable.directSet(p, s, val, this.defaultVariables, stack);
 			p.printf("data modify %s prepend from %s\n",this.lookupTable.dataPhrase(), this.myEntry.dataPhrase());
-			this.myEntry.deallocateLoad(p);
+			this.myEntry.deallocateLoad(p, s.getTarget());
 		}
 		@Targeted
 		public void retrieve(Compiler c,Scope s,PrintStream p,RStack stack) throws CompileError {
@@ -769,7 +769,7 @@ public class NbtMap extends Struct {
 			Variable.directSet(p, s,mapbuff1, lookupTable, stack);
 
 			
-			mapbuff2.allocateLoad(p, true);
+			mapbuff2.allocateLoad(p,s.getTarget(), true);
 			RuntimeError.printf(p, "execute if data %s run ".formatted(this.myEntry.dataPhrase()),
 					"error: thread failed to finish and push its local vars; values will be lost;");
 			
@@ -806,13 +806,13 @@ public class NbtMap extends Struct {
 		public void reinsert(Compiler c,Scope s,PrintStream p,RStack stack) throws CompileError {
 			p.printf("data modify %s prepend from %s\n",this.lookupTable.dataPhrase(), this.myEntry.dataPhrase());
 			//RuntimeError.printf(p, "", "entry pushed: %s", this.myEntry);
-			this.myEntry.deallocateLoad(p);
+			this.myEntry.deallocateLoad(p, s.getTarget());
 			//RuntimeError.printf(p,"", "finished push");
 		}
 		public void finalizeMe(Compiler c,Scope s,PrintStream p,RStack stack) throws CompileError {
 			//call this before calling kill command on executor
 			//prevents memory leaks
-			this.myEntry.deallocateLoad(p);
+			this.myEntry.deallocateLoad(p, s.getTarget());
 			//RuntimeError.printf(p, "", "finalized %s",this.myUuid);
 		}
 		//thread might need to generate a clean event

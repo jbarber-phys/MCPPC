@@ -13,6 +13,7 @@ import java.util.TreeMap;
 
 import net.mcppc.compiler.errors.COption;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Statement;
 import net.mcppc.compiler.tokens.TemplateArgsToken;
@@ -92,23 +93,15 @@ public class Scope {
 		TreeMap<Integer,Object> tree = this.optionsByCursor.get(option);
 		return (V)tree.put(cursor, value);
 	}
-	//sequence flag applied after command for this scope only but no others (not even subs)
-	//maybe put these in some sort of registry in the future, but be carefull to make it so that the sequence is preserved
-	//private boolean prohibitLongMult = false;
-	//private boolean debugMode=false;
-	//does not affect any subscopes
-	@Deprecated private boolean isProhibitLongMult() {
-		//boolean up=this.parent!=null ? this.parent.isProhibitLongMult()//parrent scope may not exist anymore
-		return false;//this.prohibitLongMult;
+	// ===== target info ======
+	private VTarget myTarget = null;
+	public VTarget getTarget() {
+		if(this.parent==null) return myTarget;
+		if(myTarget==null)return this.parent.getTarget();
+		else return this.parent.getTarget().intersection(myTarget);
 	}
-	@Deprecated private void setProhibitLongMult(boolean prohibitLongMult) {
-		//this.prohibitLongMult = prohibitLongMult;
-	}
-	@Deprecated private void setDebugMode(boolean b) {
-		//this.debugMode = b;
-	} 
-	@Deprecated private boolean isDebugMode() {return false;//this.debugMode;
-	}
+	
+	//
 	public boolean hasThread() {
 		return this.thread!=null;
 		
@@ -307,6 +300,7 @@ public class Scope {
 		this.resBase=c.resourcelocation;
 		this.isBreakable=false;
 		this.isDoneable = false;
+		this.myTarget=c.job.getTarget();
 	}
 	private Scope(Scope s,Function f) {
 		this.parent=s;

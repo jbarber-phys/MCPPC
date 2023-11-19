@@ -19,7 +19,7 @@ import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.BFReturnVoid;
 import net.mcppc.compiler.functions.Size;
-import net.mcppc.compiler.target.Targeted;
+import net.mcppc.compiler.target.*;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
@@ -76,7 +76,7 @@ public class NbtCompound extends Struct {
 	}
 	@Override
 	public void setMeToExpr(PrintStream p, Scope s, RStack stack, Variable me, ConstExprToken e) throws CompileError {
-		super.setMeToNbtExprBasic(p, stack, me, e);
+		super.setMeToNbtExprBasic(p, s.getTarget(), stack, me, e);
 	}
 	private Map<String,BuiltinFunction> bfs;
 	@Override
@@ -135,7 +135,7 @@ public class NbtCompound extends Struct {
 		@Targeted
 		public static void mergeTags(PrintStream p,Scope s,Variable self,NbtPath.NbtPathToken tag) {
 			String dto=self.dataPhrase();
-			p.printf("data modify %s merge value %s\n",dto,tag.textInMcf());
+			p.printf("data modify %s merge value %s\n",dto,tag.textInMcf(s.getTarget()));
 			
 		}
 		
@@ -175,13 +175,13 @@ public class NbtCompound extends Struct {
 	}
 
 	@Override
-	public void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
-		super.allocateCompoundLoad(p, var, fillWithDefaultvalue, List.of());
+	public void allocateLoad(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		super.allocateCompoundLoad(p, tg, var, fillWithDefaultvalue, List.of());
 	}
 
 	@Override
-	public void allocateCall(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
-		super.allocateCompoundCall(p, var, fillWithDefaultvalue, List.of());
+	public void allocateCall(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		super.allocateCompoundCall(p, tg, var, fillWithDefaultvalue, List.of());
 	}
 
 	@Override

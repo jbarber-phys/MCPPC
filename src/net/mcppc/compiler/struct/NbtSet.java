@@ -86,7 +86,7 @@ public class NbtSet  extends NbtCollection{
 			this.setbuff1 = loop.getSetBuff1(self.type);
 			this.setbuff2 = loop.getSetBuff2(self.type);
 			Variable.directSet(p, s,setbuff1, self, stack);
-			this.setbuff2.allocateLoad(p, true);
+			this.setbuff2.allocateLoad(p,s.getTarget(), true);
 			value.compileOps(p, c, s, memb);
 			value.setVar(p, c, s, this.valuebuff);
 			loop.call(p);
@@ -230,7 +230,7 @@ public class NbtSet  extends NbtCollection{
 			//default to storage
 			BasicArgs args = (BasicArgs)token.getArgs();
 			Variable obj=this.newobj(c,token);
-			obj.allocateLoad(p, false);//anon must think its loaded
+			obj.allocateLoad(p,s.getTarget(), false);//anon must think its loaded
 			int size = args.nargs();
 			for(int i=0;i<size;i++) {
 				//Variable arg=NbtCollection.componentOf(obj, i);

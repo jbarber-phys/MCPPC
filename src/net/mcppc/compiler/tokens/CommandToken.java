@@ -180,13 +180,13 @@ public class CommandToken extends Token{
 						args[i]=json;
 					}else if (eq.didBFMakeConst()) {
 						ConstExprToken cs = eq.getYieldedConst(p, c, s);
-						args[i] = cs.textInMcf();
+						args[i] = cs.textInMcf(s.getTarget());
 					}else {
 						eq.throwNotConstError();
 					}
 				}else {
 					ConstExprToken cst = eq.getConst();
-					args[i] = cst.textInMcf();
+					args[i] = cst.textInMcf(s.getTarget());
 				}
 			}
 			s1 = s1.formatted(args);//unpack

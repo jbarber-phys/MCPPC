@@ -576,7 +576,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		@Override
 		public void finish(PrintStream p, Compiler c, Scope s, int index) throws CompileError {
 			if(this.veceq!=null) {
-				this.entity.kill(p);
+				this.entity.kill(p, s.getTarget());
 			}
 		}
 
@@ -677,7 +677,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		@Override
 		public void finish(PrintStream p, Compiler c, Scope s, int index) throws CompileError {
 			if(this.veceq!=null) {
-				this.entity.kill(p);
+				this.entity.kill(p, s.getTarget());
 			}
 		}
 		@Override
@@ -772,7 +772,7 @@ public class Execute extends Statement implements CodeBlockOpener,Statement.Flow
 		@Override
 		public void finish(PrintStream p, Compiler c, Scope s, int index) throws CompileError {
 			if(this.eqa1!=null) {
-				this.entity.kill(p);
+				this.entity.kill(p, s.getTarget());
 			}
 		}
 		@Override

@@ -1,6 +1,7 @@
 package net.mcppc.compiler;
 
 import net.mcppc.compiler.target.Targeted;
+import net.mcppc.compiler.target.VTarget;
 
 /**
  * interface for something that can give an nbt value;
@@ -19,6 +20,6 @@ public interface INbtValueProvider {
 	@Targeted static final String FROM = "from %s";
 	// value ###
 	@Targeted static final String VALUE = "value %s";
-	public String fromCMDStatement();
+	public String fromCMDStatement(VTarget tg);
 	public VarType getType();
 }

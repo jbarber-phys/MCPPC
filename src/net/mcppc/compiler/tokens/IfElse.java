@@ -158,7 +158,7 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 		}
 		
 		//p.printf("execute if %s run function %s\n", rdo.testMeInCMD(),mcf.toString());
-		mcf.runIf(p, rdo);
+		mcf.runIf(p, rdo, s.getTarget());
 		
 		this.mystack.clear();
 		this.mystack.finish(c.job);

@@ -581,16 +581,16 @@ public class FileInterface {
 	}
 	public void allocateAll(PrintStream p,Namespace ns) throws CompileError {
 		//System.err.printf("allocate vars in %s;\n", this.path);
-		for(Variable v:this.varsPublic.values()) if (v.willAllocateOnLoad(ALLOCATE_WITH_DEFAULT_VALUES)) v.allocateLoad(p, ALLOCATE_WITH_DEFAULT_VALUES);
-		for(Variable v:this.varsPrivate.values()) if (v.willAllocateOnLoad(ALLOCATE_WITH_DEFAULT_VALUES)) v.allocateLoad(p, ALLOCATE_WITH_DEFAULT_VALUES);
+		for(Variable v:this.varsPublic.values()) if (v.willAllocateOnLoad(ALLOCATE_WITH_DEFAULT_VALUES)) v.allocateLoad(p,ns.target, ALLOCATE_WITH_DEFAULT_VALUES);
+		for(Variable v:this.varsPrivate.values()) if (v.willAllocateOnLoad(ALLOCATE_WITH_DEFAULT_VALUES)) v.allocateLoad(p,ns.target, ALLOCATE_WITH_DEFAULT_VALUES);
 		//for(Variable v:this.varsExtern.values()) if (v.willAllocateOnLoad()) v.allocate(p, ALLOCATE_WITH_DEFAULT_VALUES); //do not load externs
 
-		for(Function f:this.funcsPublic.values()) f.allocateMyLocalsLoad(p);
-		for(Function f:this.funcsPrivate.values()) f.allocateMyLocalsLoad(p);
+		for(Function f:this.funcsPublic.values()) f.allocateMyLocalsLoad(p, ns);
+		for(Function f:this.funcsPrivate.values()) f.allocateMyLocalsLoad(p, ns);
 		//for(Function f:this.funcsExtern.values()) f.allocateMyLocals(p); // do not load externs
 		
-		for(McThread td:this.threadsPublic.values()) td.allocateMyLocalsLoad(p);
-		for(McThread td:this.threadsPrivate.values()) td.allocateMyLocalsLoad(p);
-		for(McThread td:this.threadsAnonamous.values()) td.allocateMyLocalsLoad(p);
+		for(McThread td:this.threadsPublic.values()) td.allocateMyLocalsLoad(p, ns);
+		for(McThread td:this.threadsPrivate.values()) td.allocateMyLocalsLoad(p, ns);
+		for(McThread td:this.threadsAnonamous.values()) td.allocateMyLocalsLoad(p, ns);
 	}
 }

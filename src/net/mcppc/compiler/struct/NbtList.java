@@ -130,7 +130,7 @@ public class NbtList extends NbtCollection{
 			NbtList list = (NbtList) token.getThisBound().type.struct;
 			Variable get = list.getIndexRef(this.listbuff, 0);
 			get.getMe(p, s, stack,stackstart, typeWanted);
-			listbuff.deallocateLoad(p);
+			listbuff.deallocateLoad(p, s.getTarget());
 		}
 
 		@Override
@@ -143,7 +143,7 @@ public class NbtList extends NbtCollection{
 			NbtList list = (NbtList) token.getThisBound().type.struct;
 			Variable get = list.getIndexRef(this.listbuff, 0);
 			Variable.directSet(p, s, v, get, stack);
-			listbuff.deallocateLoad(p);
+			listbuff.deallocateLoad(p, s.getTarget());
 			
 		}
 
@@ -256,7 +256,7 @@ public class NbtList extends NbtCollection{
 				if(this.isInsert) {
 					value.compileOps(p, c, s, memb);
 					value.setVar(p, c, s, this.valuebuff);
-					p.printf("data modify %s insert %d %s\n", self.dataPhrase(),i,this.valuebuff.fromCMDStatement());
+					p.printf("data modify %s insert %d %s\n", self.dataPhrase(),i,this.valuebuff.fromCMDStatement(s.getTarget()));
 				}else {
 					value.compileOps(p, c, s, memb);
 					Variable ell = self.indexMyNBTPath(i);
@@ -268,11 +268,11 @@ public class NbtList extends NbtCollection{
 			this.listbuff1 = Loop.loop(this.isInsert).getListBuff1(self.type);
 			this.listbuff2 = Loop.loop(this.isInsert).getListBuff2(self.type);
 			Variable.directSet(p, s, listbuff1, self, stack);
-			this.listbuff2.allocateLoad(p, true);
+			this.listbuff2.allocateLoad(p,s.getTarget(), true);
 			loop.setIndex(p,c, s, index);
 			value.compileOps(p, c, s, memb);
 			value.setVar(p, c, s, this.valuebuff);
-			loop.call(p);
+			loop.call(p, s);
 			Variable.directSet(p, s, self, this.listbuff2, stack);
 		}
 
@@ -346,14 +346,14 @@ public class NbtList extends NbtCollection{
 					p.printf("execute if score %s matches 0 run "+
 							"data modify %s append %s\n"
 							,idxr.inCMD(),
-							listbuff2.dataPhrase(),value.fromCMDStatement()
+							listbuff2.dataPhrase(),value.fromCMDStatement(ns.target)
 							);//append inserted value
 
 				}else {
 					p.printf("execute if score %s matches 0 run "+
 							"data modify %s set %s\n"
 							,idxr.inCMD(),
-							first.dataPhrase(),value.fromCMDStatement()
+							first.dataPhrase(),value.fromCMDStatement(ns.target)
 							);//set first slot value
 				}
 				p.printf("data modify %s append from %s\n",listbuff2.dataPhrase(), first.dataPhrase());//remove first index tag
@@ -365,7 +365,7 @@ public class NbtList extends NbtCollection{
 			}
 			private boolean registered=false;
 			@Targeted
-			public void call(PrintStream p) throws CompileError {
+			public void call(PrintStream p, Scope s) throws CompileError {
 				RStack stack = new RStack(this.res);
 				int indexhome = stack.setNext(VarType.INT);
 				Register idxr = stack.getRegister(indexhome);

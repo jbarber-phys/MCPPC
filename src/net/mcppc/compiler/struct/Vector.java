@@ -18,6 +18,7 @@ import net.mcppc.compiler.errors.RuntimeError;
 import net.mcppc.compiler.functions.EquationMask;
 import net.mcppc.compiler.functions.FunctionMask;
 import net.mcppc.compiler.functions.PrintF;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Num;
@@ -203,20 +204,20 @@ public class Vector extends Struct {
 		return true;
 	}
 	@Override
-	public void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+	public void allocateLoad(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
 		if(var.getMaskType() == Mask.SCORE) {
 			for(int i=0;i<DIM;i++) {
 				Variable vi = this.getComponent(var, i);
-				vi.allocateLoad(p, fillWithDefaultvalue);
+				vi.allocateLoad(p,tg, fillWithDefaultvalue);
 			}
 		} else {
-			this.allocateArrayLoad(p, var, fillWithDefaultvalue, DIM, Vector.myMembType(var.type));
+			this.allocateArrayLoad(p, tg, var, fillWithDefaultvalue, DIM, Vector.myMembType(var.type));
 		}
 	}
 	@Override
-	public void allocateCall(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+	public void allocateCall(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
 		//do not need to support scores; used in recursion only
-		this.allocateArrayCall(p, var, fillWithDefaultvalue, DIM, Vector.myMembType(var.type));
+		this.allocateArrayCall(p, tg, var, fillWithDefaultvalue, DIM, Vector.myMembType(var.type));
 	}
 	@Override
 	public String getDefaultValue(VarType var) {
@@ -710,7 +711,7 @@ public class Vector extends Struct {
 			//default to storage
 			BasicArgs args = (BasicArgs)token.getArgs();
 			Variable obj=this.newobj(c,token);
-			obj.allocateLoad(p, false);//anon must think its loaded
+			obj.allocateLoad(p,s.getTarget(), false);//anon must think its loaded
 			for(int i=0;i<DIM;i++) {
 				Variable arg=Vector.componentOf(obj, i);
 				Equation eq=(Equation) ((BasicArgs)args).arg(i);
@@ -756,9 +757,9 @@ public class Vector extends Struct {
 		return super.getStaticBuiltinMethodBasic(name,type, this.STATICMETHODS);
 	}
 	@Override
-	public void deallocateLoad(PrintStream p, Variable var) throws CompileError {
+	public void deallocateLoad(PrintStream p, VTarget tg, Variable var) throws CompileError {
 		if(var.getMaskType().isNbt)
-			super.deallocateLoad(p, var);
+			super.deallocateLoad(p, tg, var);
 		//else done
 	}
 

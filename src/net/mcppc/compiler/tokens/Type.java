@@ -16,6 +16,7 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.CompileError.NoSuchType;
 import net.mcppc.compiler.errors.CompileError.UnexpectedToken;
 import net.mcppc.compiler.struct.Struct;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.Token.BasicName;
 import net.mcppc.compiler.tokens.Token.Factory;
 import net.mcppc.compiler.tokens.*;
@@ -182,7 +183,7 @@ public class Type extends Const.ConstLiteralToken {
 	}
 
 	@Override
-	public String textInMcf() throws CompileError {
+	public String textInMcf(VTarget tg) throws CompileError {
 		//must be identified to work
 		return this.type.getNBTTagType();
 	}

@@ -27,6 +27,7 @@ import net.mcppc.compiler.Register;
 import net.mcppc.compiler.ResourceLocation;
 import net.mcppc.compiler.ResourceLocation.ResourceToken;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.MemberName;
@@ -156,9 +157,9 @@ public class Entity extends Struct {
 		Entity st1 = (Entity) to.type.struct;
 		Entity st2 = (Entity) from.type.struct;
 		if(!st1.many && st2.many)throw new CompileError.UnsupportedCast(from.type, to.type);
-		st1.clear(p, to);
+		st1.clear(p,s.getTarget(), to);
 		Selector sl = Selector.softIntersection(st2.getSelectorFor(from), st1.selector_base);
-		st1.add(p, to, sl);
+		st1.add(p,s, to, sl);
 		
 	}
 
@@ -168,20 +169,20 @@ public class Entity extends Struct {
 	@Override public void setMeToExpr(PrintStream p,Scope s,RStack stack, Variable self, ConstExprToken e) throws CompileError {
 		if(e.constType()!=ConstType.SELECTOR)throw new CompileError.UnsupportedCast(e, self.type);
 		Selector.SelectorToken t = (SelectorToken) e;
-		this.clear(p, self);
+		this.clear(p,s.getTarget(), self);
 		Selector sl = Selector.softIntersection(t.selector(), this.selector_base);
-		this.add(p, self, sl);
+		this.add(p,s, self, sl);
 	}
-	private void clear(PrintStream p,Variable self) throws CompileError {
-		this.getSelectorFor(self).unlimited().removeTag(p, this.getScoreTag(self));
+	private void clear(PrintStream p,VTarget tg,Variable self) throws CompileError {
+		this.getSelectorFor(self).unlimited().removeTag(p, this.getScoreTag(self),tg);
 		//p.printf("tag %s remove %s\n",this.getSelectorFor(self).unlimited().toCMD(), this.getScoreTag(self));
 	}
-	private void add(PrintStream p,Variable self,Selector entity) throws CompileError {
-		entity.addTag(p, this.getScoreTag(self));
+	private void add(PrintStream p,Scope s,Variable self,Selector entity) throws CompileError {
+		entity.addTag(p, this.getScoreTag(self), s.getTarget());
 		//p.printf("tag %s add %s\n",entity.toCMD(), this.getScoreTag(self));
 	}
-	private void sub(PrintStream p,Variable self,Selector entity) throws CompileError {
-		entity.removeTag(p, this.getScoreTag(self));
+	private void sub(PrintStream p,VTarget tg,Variable self,Selector entity) throws CompileError {
+		entity.removeTag(p, this.getScoreTag(self), tg);
 		//p.printf("tag %s remove %s\n",entity.toCMD(), this.getScoreTag(self));
 	}
 	private static final String TEMP="mcppc+entity+temp__";
@@ -238,11 +239,11 @@ public class Entity extends Struct {
 		return false;
 	}
 	@Override
-	public void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
-		if(fillWithDefaultvalue)this.clear(p, var);
+	public void allocateLoad(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		if(fillWithDefaultvalue)this.clear(p,tg, var);
 	}
 	@Override
-	public void allocateCall(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+	public void allocateCall(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
 		//do nothing yet
 	}
 
@@ -398,7 +399,7 @@ public class Entity extends Struct {
 			String tag = clazz.getScoreTag(v);
 			if(!clazz.many) {
 				//free existing
-				clazz.clear(p, v);
+				clazz.clear(p,s.getTarget(), v);
 			}
 			p.printf("summon %s %s {Tags: [\"%s\"]}\n", etype.asString(),pos.pos.inCMD(),tag);
 		}
@@ -565,7 +566,7 @@ public class Entity extends Struct {
 			if(!(v.isStruct() && v.type.struct instanceof Entity))throw new CompileError("function %s must be called from an entity object".formatted(this.name));
 			Entity clazz = (Entity) v.type.struct;
 			Selector slc = clazz.getSelectorFor(v);
-			clazz.clear(p, v);
+			clazz.clear(p,s.getTarget(), v);
 		}
 
 		@Override

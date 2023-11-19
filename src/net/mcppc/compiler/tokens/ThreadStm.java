@@ -255,7 +255,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		if (this.myThread.hasLookup()) {
 			//pull data locals
 			ResourceLocation res = this.myThread.pathLookupPull();
-			res.run(p);
+			res.run(p,s.getTarget());
 		}
 		if(this.isInSequence()) {
 			ThreadStm aftr = this.getAfterMe();
@@ -312,7 +312,7 @@ public class ThreadStm extends Statement implements Statement.IFunctionMaker,
 		if (this.myThread.hasLookup()) {
 			//push data locals
 			ResourceLocation res = this.myThread.pathLookupPush();
-			res.run(p);
+			res.run(p,s.getTarget());
 		}
 	}
 	@Override

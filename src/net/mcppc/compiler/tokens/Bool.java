@@ -12,6 +12,7 @@ import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.target.Targeted;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.Token.Factory;
 
 public class Bool extends Const.ConstLiteralToken implements INbtValueProvider{
@@ -47,12 +48,12 @@ public class Bool extends Const.ConstLiteralToken implements INbtValueProvider{
 		return true;
 	}
 	@Override
-	public String fromCMDStatement() {
-		return INbtValueProvider.VALUE.formatted(this.type.boolToStringNumber(this.val));
+	public String fromCMDStatement(VTarget tg) {
+		return INbtValueProvider.VALUE.formatted(this.type.boolToStringNumber(this.val, tg));
 	}
 	@Override
-	public String textInMcf() {
-		return this.type.boolToStringNumber(this.val);//should always appear as data of 0b or 1b
+	public String textInMcf(VTarget tg) {
+		return this.type.boolToStringNumber(this.val, tg);//should always appear as data of 0b or 1b
 	}
 	@Override
 	@Targeted // the op strings are printed to an mcf

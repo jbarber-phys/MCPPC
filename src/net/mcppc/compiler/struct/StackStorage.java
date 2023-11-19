@@ -7,6 +7,7 @@ import net.mcppc.compiler.*;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.target.VTarget;
 
 /**
  * internal use only; do not use this in code; also do not register this struct;
@@ -53,14 +54,14 @@ public class StackStorage extends Struct implements Struct.IInternalOnly {
 		return true;
 	}
 	@Override
-	public void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+	public void allocateLoad(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
 		// TODO Auto-generated method stub
-		super.allocateArrayLoad(p, var, fillWithDefaultvalue, 0, SCORETYPE);
+		super.allocateArrayLoad(p, tg, var, fillWithDefaultvalue, 0, SCORETYPE);
 	}
 
 	@Override
-	public void allocateCall(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
-		super.allocateArrayCall(p, var, fillWithDefaultvalue, 0, SCORETYPE);
+	public void allocateCall(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		super.allocateArrayCall(p, tg, var, fillWithDefaultvalue, 0, SCORETYPE);
 	}
 
 	@Override

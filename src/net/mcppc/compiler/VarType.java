@@ -9,6 +9,7 @@ import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Struct;
 import net.mcppc.compiler.target.Targeted;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.TemplateArgsToken;
@@ -435,7 +436,7 @@ public class VarType {
 		return "%s%s".formatted(n,suffix);
 	}
 	@Targeted
-	public String boolToStringNumber(boolean n) {
+	public String boolToStringNumber(boolean n, VTarget tg) {
 		return n?"1b":"0b";
 	}
 	public String boolToStringTrueFalse(boolean n) {

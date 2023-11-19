@@ -12,6 +12,7 @@ import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.FunctionMask;
 import net.mcppc.compiler.functions.Particles;
+import net.mcppc.compiler.target.VTarget;
 
 /**
  * a singleton struct; by convention, make these lowercase;
@@ -85,12 +86,12 @@ public class Singleton extends Struct {
 	}
 
 	@Override
-	public void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+	public void allocateLoad(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
 		throw new NoSingletonInstance(this);
 	}
 
 	@Override
-	public void allocateCall(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+	public void allocateCall(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
 		throw new NoSingletonInstance(this);
 	}
 

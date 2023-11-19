@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 
+import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.functions.AbstractCallToken;
@@ -160,7 +161,7 @@ public class Function {
 					this.isInSelf=false;
 				}
 			}
-			if(!this.isInSelf)this.func.allocateMyLocalsCallOutside(p);
+			if(!this.isInSelf)this.func.allocateMyLocalsCallOutside(p, s);
 			for(int i=0;i<this.func.args.size();i++) {
 				Variable arg=this.isInSelf?
 						this.getTempArg(p, c, s, stack, i)
@@ -181,7 +182,7 @@ public class Function {
 			}else if(this.func.hasThis())
 					throw new CompileError("cannot call %s in a global / static context as it is a nonstatic member".formatted(func.name));
 			if(this.isInSelf) {
-				this.func.allocateMyLocalsCallOutside(p);
+				this.func.allocateMyLocalsCallOutside(p, s);
 				for(int i=0;i<this.func.args.size();i++) {
 					Variable arg=this.func.args.get(i);
 					Variable temp = this.getTempArg(p, c, s, stack, i);
@@ -199,7 +200,9 @@ public class Function {
 			}
 			//actually call the function
 			this.requestTemplate(s);
-			this.getMyMCF().run(p);
+			
+			//TODO if extern, get true return
+			this.getMyMCF().run(p,s.getTarget());
 			
 			if(this.func.canRecurr) {
 				StackStorage.restoreStack(p, c, s, stack, this.func.stackBackup,stacksize);
@@ -226,7 +229,7 @@ public class Function {
 					Variable.directSet(p, s, tempret , this.func.returnV, stack);
 					if(this.hasTemplate())s.removeTemporaryConsts();
 				}
-				this.func.deallocateLocalAfterCallOutside(p);
+				this.func.deallocateLocalAfterCallOutside(p, s);
 			}
 			for(int i=0;i<this.func.args.size();i++) {
 				if(this.func.args.get(i).isReference()) {
@@ -282,7 +285,7 @@ public class Function {
 			this.cleanupAfter(p, c, s, stack);
 		}
 		private void cleanupAfter(PrintStream p,Compiler c,Scope s,RStack stack) throws CompileError  {
-			if(!this.isInSelf)this.func.deallocateLocalAfterCallOutside(p);
+			if(!this.isInSelf)this.func.deallocateLocalAfterCallOutside(p, s);
 		}
 		public Variable getRetConstRef() {
 			return this.func.returnV;
@@ -452,58 +455,58 @@ public class Function {
 		//System.err.printf("collectFlowVars : %s\n", this.localFlowVars.stream().map(v ->v.holder + "."+v.getAddressToPrepend()).toList());
 
 	}
-	public void allocateMyLocalsLoad(PrintStream p) throws CompileError {
+	public void allocateMyLocalsLoad(PrintStream p, Namespace ns) throws CompileError {
 		if(this.canRecurr) {
 			//System.err.printf("allocateMyLocalsLoad, flowvars: %s\n", this.localFlowVars.stream().map(v ->v.holder + "."+v.getAddressToPrepend()).toList());
 		}
-		for(Variable arg:this.args)if(arg.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))arg.allocateLoad(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
-		if(this.returnV.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.returnV.allocateLoad(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
-		if(this.hasThis() &&this.self.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.self.allocateLoad(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+		for(Variable arg:this.args)if(arg.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))arg.allocateLoad(p,ns.target, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+		if(this.returnV.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.returnV.allocateLoad(p,ns.target, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+		if(this.hasThis() &&this.self.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.self.allocateLoad(p,ns.target, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
 
-		for(Variable local:this.locals.values())if(local.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))local.allocateLoad(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
-		if(this.canRecurr &&this.stackBackup.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.stackBackup.allocateLoad(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+		for(Variable local:this.locals.values())if(local.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))local.allocateLoad(p,ns.target, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+		if(this.canRecurr &&this.stackBackup.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.stackBackup.allocateLoad(p,ns.target, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
 
-		if(this.canRecurr)for(Variable local:this.localFlowVars)if(local.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))local.allocateLoad(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+		if(this.canRecurr)for(Variable local:this.localFlowVars)if(local.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))local.allocateLoad(p,ns.target, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
 
 	}
-	public void allocateMyLocalsCallOutside(PrintStream p) throws CompileError {
+	public void allocateMyLocalsCallOutside(PrintStream p, Scope s) throws CompileError {
 		if(this.canRecurr) {
 			//System.err.printf("allocateMyLocalsCallOutside, flowvars: %s\n", this.localFlowVars.stream().map(v ->v.holder + "."+v.getAddressToPrepend()).toList());
 		}
-		for(Variable arg:this.args)if(arg.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))arg.allocateCall(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
-		if(this.returnV.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.returnV.allocateCall(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
-		if(this.hasThis() &&this.self.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.self.allocateCall(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+		for(Variable arg:this.args)if(arg.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))arg.allocateCall(p, s.getTarget(), FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+		if(this.returnV.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.returnV.allocateCall(p, s.getTarget(), FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+		if(this.hasThis() &&this.self.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.self.allocateCall(p, s.getTarget(), FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
 
 
 	}
-	public void allocateMyLocalsCallInside(PrintStream p) throws CompileError {
+	public void allocateMyLocalsCallInside(PrintStream p, Scope s) throws CompileError {
 		if(this.canRecurr) {
 			//System.err.printf("allocateMyLocalsCallInside, flowvars: %s\n", this.localFlowVars.stream().map(v ->v.holder + "."+v.getAddressToPrepend()).toList());
 		}
-		for(Variable local:this.locals.values())if(local.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))local.allocateCall(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+		for(Variable local:this.locals.values())if(local.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))local.allocateCall(p, s.getTarget(), FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
 
-		if(this.canRecurr &&this.stackBackup.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.stackBackup.allocateCall(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+		if(this.canRecurr &&this.stackBackup.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.stackBackup.allocateCall(p, s.getTarget(), FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
 		
-		if(this.canRecurr)for(Variable local:this.localFlowVars)if(local.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))local.allocateCall(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+		if(this.canRecurr)for(Variable local:this.localFlowVars)if(local.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))local.allocateCall(p, s.getTarget(), FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
 
 	}
-	public void deallocateLocalAfterCallOutside(PrintStream p) throws CompileError {
+	public void deallocateLocalAfterCallOutside(PrintStream p, Scope s) throws CompileError {
 		if(this.canRecurr) {
 			//System.err.printf("deallocateAfterCallInside, flowvars: %s\n", this.localFlowVars.stream().map(v ->v.holder + "."+v.getAddressToPrepend()).toList());
 		}
-		for(Variable arg:this.args)if(arg.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))arg.deallocateAfterCall(p);
-		if(this.returnV.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.returnV.deallocateAfterCall(p);
-		if(this.hasThis() &&this.self.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.self.deallocateAfterCall(p);
+		for(Variable arg:this.args)if(arg.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))arg.deallocateAfterCall(p, s.getTarget());
+		if(this.returnV.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.returnV.deallocateAfterCall(p, s.getTarget());
+		if(this.hasThis() &&this.self.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.self.deallocateAfterCall(p, s.getTarget());
 
 	}
-	public void deallocateLocalAfterCallInside(PrintStream p) throws CompileError {
+	public void deallocateLocalAfterCallInside(PrintStream p, Scope s) throws CompileError {
 		if(this.canRecurr) {
 			//System.err.printf("deallocateAfterCallOutside, flowvars: %s\n", this.localFlowVars.stream().map(v ->v.holder + "."+v.getAddressToPrepend()).toList());
 		}
-		for(Variable local:this.locals.values())if(local.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))local.deallocateAfterCall(p);
-		if(this.canRecurr &&this.stackBackup.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.stackBackup.deallocateAfterCall(p);
+		for(Variable local:this.locals.values())if(local.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))local.deallocateAfterCall(p, s.getTarget());
+		if(this.canRecurr &&this.stackBackup.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.stackBackup.deallocateAfterCall(p, s.getTarget());
 		
-		if(this.canRecurr)for(Variable local:this.localFlowVars)if(local.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))local.deallocateAfterCall(p);
+		if(this.canRecurr)for(Variable local:this.localFlowVars)if(local.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))local.deallocateAfterCall(p,s.getTarget());
 
 	}
 }

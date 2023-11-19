@@ -14,6 +14,7 @@ import net.mcppc.compiler.VarType.Builtin;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Str;
 import net.mcppc.compiler.target.Targeted;
+import net.mcppc.compiler.target.VTarget;
 
 public abstract class Token {
 	public static abstract class Factory {
@@ -341,7 +342,7 @@ public abstract class Token {
 		}
 		@Override
 		@Targeted
-		public String textInMcf() {
+		public String textInMcf(VTarget tg) {
 			return this.literal();
 		}
 		@Override
@@ -365,7 +366,7 @@ public abstract class Token {
 			return true;
 		}
 		@Override
-		public String fromCMDStatement() {
+		public String fromCMDStatement(VTarget tg) {
 			return INbtValueProvider.VALUE.formatted(this.literal);
 		}
 

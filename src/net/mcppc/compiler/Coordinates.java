@@ -7,6 +7,7 @@ import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.target.Targeted;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
@@ -59,7 +60,7 @@ public class Coordinates {
 		public String textInHdr() {
 			return this.pos.inHDR();
 		}
-		@Override public String textInMcf() {
+		@Override public String textInMcf(VTarget tg) {
 			return this.pos.inCMD();
 		}
 		@Override

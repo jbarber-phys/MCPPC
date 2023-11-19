@@ -16,6 +16,7 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.CompileError.UnsupportedCast;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.functions.FunctionMask;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Factories;
@@ -327,8 +328,8 @@ public abstract class Struct {
 		}
 		Variable temp = new Variable("\"$temp\"",first.getType(),null,Mask.STORAGE,"mcpp:temp","\"$temp\"");
 		String dtemp=temp.dataPhrase();
-		String nbtcmd1=first.fromCMDStatement();
-		String nbtcmd2=second.fromCMDStatement();
+		String nbtcmd1=first.fromCMDStatement(s.getTarget());
+		String nbtcmd2=second.fromCMDStatement(s.getTarget());
 		p.printf("data modify %s set %s\n",dtemp,nbtcmd1);
 		//int ex = stack.reserve(1);Register rex = stack.getRegister(ex);
 		String cmd = "data modify %s set %s".formatted(dtemp,nbtcmd2);
@@ -383,42 +384,44 @@ public abstract class Struct {
 	 * example for compound tag
 	 * /data modify storage mcpptest:vectest obj set value {objfield: {subfield: {}}}
 	 * @param p
+	 * @param tg TODO
 	 * @param var
 	 * @param fillWithDefaultvalue
 	 * @throws CompileError
 	 */
-	public abstract void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError;
-	public abstract void allocateCall(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError;
+	public abstract void allocateLoad(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError;
+	public abstract void allocateCall(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError;
 	
 	//all the members of the implimentation buffet just affect the member tag;
 	//all members of self do not see the recursive nature, they are called as if on load
 
-	protected void allocateArrayLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue,int size,VarType elementType) throws CompileError {
+	protected void allocateArrayLoad(PrintStream p, VTarget tg, Variable var,boolean fillWithDefaultvalue,int size, VarType elementType) throws CompileError {
 		if(var.isRecursive())
 			var.allocateLoadBasic(p, fillWithDefaultvalue, DEFAULT_LIST);
 		else {
-			this.allocateArray(p, var, fillWithDefaultvalue, size, elementType);
+			this.allocateArray(p, tg, var, fillWithDefaultvalue, size, elementType);
 		}
 		//(could also prepend / insert)
 		Variable idxbuff = this.getIndexVarBuff(var, 0);
-		if(idxbuff!=null)idxbuff.allocateLoad(p, fillWithDefaultvalue);
+		if(idxbuff!=null)idxbuff.allocateLoad(p,tg, fillWithDefaultvalue);
 	}
-	protected void allocateArrayCall(PrintStream p, Variable var, boolean fillWithDefaultvalue,int size,VarType elementType) throws CompileError {
+	protected void allocateArrayCall(PrintStream p, VTarget tg, Variable var,boolean fillWithDefaultvalue,int size, VarType elementType) throws CompileError {
 		if(var.isRecursive()) {
-			var.allocateCallBasic(p, fillWithDefaultvalue, DEFAULT_LIST);
-			this.allocateArray(p, var, fillWithDefaultvalue, size, elementType);
+			var.allocateCallBasic(p, tg, fillWithDefaultvalue, DEFAULT_LIST);
+			this.allocateArray(p, tg, var, fillWithDefaultvalue, size, elementType);
 		}
 		else {
 			//this should never be called
-			this.allocateArray(p, var, fillWithDefaultvalue, size, elementType);
+			this.allocateArray(p, tg, var, fillWithDefaultvalue, size, elementType);
 		}
 		//(could also prepend / insert)
 		Variable idxbuff = this.getIndexVarBuff(var, 0);
-		if(idxbuff!=null)idxbuff.allocateCall(p, fillWithDefaultvalue);
+		if(idxbuff!=null)idxbuff.allocateCall(p, tg, fillWithDefaultvalue);
 	}
 	/**
 	 * an implimentation of allocate() for types stored as arrays
 	 * @param p
+	 * @param tg TODO
 	 * @param var
 	 * @param fillWithDefaultvalue
 	 * @param size
@@ -426,7 +429,7 @@ public abstract class Struct {
 	 * @throws CompileError 
 	 */
 	@Targeted
-	private void allocateArray(PrintStream p, Variable var, boolean fillWithDefaultvalue,int size,VarType elementType) throws CompileError {
+	private void allocateArray(PrintStream p, VTarget tg, Variable var,boolean fillWithDefaultvalue,int size, VarType elementType) throws CompileError {
 		//can set to empty array []
 		//then append 1 element to fix the type
 		//the type is fixed once the first element is added
@@ -446,9 +449,9 @@ public abstract class Struct {
 		String subname="\"$%s\".\"$allocate_fill\"".formatted(this.name);
 		Variable fill=new Variable(subname, elementType, null, new ResourceLocation("mcppc","load__allocate"));
 		if(fill.willAllocateOnLoad(fillWithDefaultvalue)) {
-			fill.allocateLoad(p, fillWithDefaultvalue);
+			fill.allocateLoad(p,tg, fillWithDefaultvalue);
 			for(int i=0;i<size;i++) p.printf("data modify %s append from %s\n",var.dataPhrase(), fill.dataPhrase());
-			fill.deallocateLoad(p);
+			fill.deallocateLoad(p, tg);
 		}else {
 			String fillstr = elementType.defaultValue();
 			for(int i=0;i<size;i++) p.printf("data modify %s append value %s\n",var.dataPhrase(), fillstr);
@@ -456,26 +459,26 @@ public abstract class Struct {
 		
 	}
 
-	protected void allocateCompoundLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue,List<String> fieldNames)  throws CompileError{
+	protected void allocateCompoundLoad(PrintStream p, VTarget tg, Variable var,boolean fillWithDefaultvalue, List<String> fieldNames)  throws CompileError{
 		if(var.isRecursive())
 			var.allocateLoadBasic(p, fillWithDefaultvalue, DEFAULT_LIST);
 		else {
-			this.allocateCompound(p, var, fillWithDefaultvalue, fieldNames);
+			this.allocateCompound(p, tg, var, fillWithDefaultvalue, fieldNames);
 		}
 	}
 
-	protected void allocateCompoundCall(PrintStream p, Variable var, boolean fillWithDefaultvalue,List<String> fieldNames)  throws CompileError{
+	protected void allocateCompoundCall(PrintStream p, VTarget tg, Variable var,boolean fillWithDefaultvalue, List<String> fieldNames)  throws CompileError{
 		if(var.isRecursive()) {
-			var.allocateCallBasic(p, fillWithDefaultvalue, DEFAULT_LIST);
-			this.allocateCompound(p, var, fillWithDefaultvalue, fieldNames);
+			var.allocateCallBasic(p, tg, fillWithDefaultvalue, DEFAULT_LIST);
+			this.allocateCompound(p, tg, var, fillWithDefaultvalue, fieldNames);
 		}
 		else {
 			//this should never be called
-			this.allocateCompound(p, var, fillWithDefaultvalue, fieldNames);
+			this.allocateCompound(p, tg, var, fillWithDefaultvalue, fieldNames);
 		}
 	}
 	@Targeted
-	private void allocateCompound(PrintStream p, Variable var, boolean fillWithDefaultvalue,List<String> fieldNames)  throws CompileError{
+	private void allocateCompound(PrintStream p, VTarget tg, Variable var,boolean fillWithDefaultvalue, List<String> fieldNames)  throws CompileError{
 
 		//data modify <var> set value {}
 
@@ -487,7 +490,7 @@ public abstract class Struct {
 		//or data remove <this> will also work, as sets to members will create sub-compounds
 		for(String name:fieldNames) if(this.hasField(var, name)){
 			Variable field=this.getField(var, name);
-			field.allocateLoad(p, fillWithDefaultvalue);
+			field.allocateLoad(p,tg, fillWithDefaultvalue);
 		}
 	}
 	//use //var.allocateLoadBasic(p, fillWithDefaultvalue, DEFAULT_STRING);
@@ -507,16 +510,17 @@ public abstract class Struct {
 	 * DO NOT CALL THIS FOR AN ARRAY MEMBER OR IT WILL CHANGE THE ARRAY SIZE
 	 * ALSO DO NOT CALL THIS METHOD FOR SUB FIELDS, it is not needed
 	 * @param p
+	 * @param tg TODO
 	 * @param var
 	 * @throws CompileError 
 	 */
-	public void deallocateLoad(PrintStream p, Variable var) throws CompileError {
-		var.basicdeallocateBoth(p);
+	public void deallocateLoad(PrintStream p, VTarget tg, Variable var) throws CompileError {
+		var.basicdeallocateBoth(p, tg);
 		//data remove <var>
 	}
-	public void deallocateAfterCall(PrintStream p, Variable var) throws CompileError {
+	public void deallocateAfterCall(PrintStream p, VTarget tg, Variable var) throws CompileError {
 		//this one is supposed to change the list size
-		var.basicdeallocateBoth(p);
+		var.basicdeallocateBoth(p, tg);
 		//data remove <var>
 	}
 	public abstract String getDefaultValue (VarType var) throws CompileError;
@@ -618,10 +622,10 @@ public abstract class Struct {
 		throw new CompileError.UnsupportedCast(e, me.type);
 	}
 	@Targeted
-	public void setMeToNbtExprBasic(PrintStream p,RStack stack,Variable me, ConstExprToken e) throws CompileError {
+	public void setMeToNbtExprBasic(PrintStream p,VTarget tg,RStack stack, Variable me, ConstExprToken e) throws CompileError {
 		assert e.constType() == ConstType.NBT;
 		assert me.getMaskType().isNbt;
-		p.printf("data modify %s set value %s\n",me.dataPhrase(), e.textInMcf());
+		p.printf("data modify %s set value %s\n",me.dataPhrase(), e.textInMcf(tg));
 		
 	}
 

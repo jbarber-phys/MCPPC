@@ -650,7 +650,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	public void compileMe(PrintStream f,Compiler c,Scope s) throws CompileError {
 		//do nothing
 		if(this.objType==DeclareObjType.VAR && this.assignment!=null) {
-			for(Domment d:this.domments) f.println(d.inCMD());//only if it is assigned on define
+			for(Domment d:this.domments) f.println(d.inCMD(s.getTarget()));//only if it is assigned on define
 			Assignment t=new Assignment(this.line,this.col,this.myCursor,this.variable,this.assignment);
 			t.compileMe(f, c, s);
 		}
@@ -703,14 +703,14 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	public void addToStartOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
 		//do nothing
 		if(this.objType==DeclareObjType.FUNC) {
-			this.function.allocateMyLocalsCallInside(p);
+			this.function.allocateMyLocalsCallInside(p, s);
 		}
 	}
 	@Override
 	public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
 		//do nothing
 		if(this.objType==DeclareObjType.FUNC) {
-			this.function.deallocateLocalAfterCallInside(p);
+			this.function.deallocateLocalAfterCallInside(p, s);
 		}
 	}
 	public DeclareObjType getObjType() {

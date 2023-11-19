@@ -35,11 +35,9 @@ public class Register implements Comparable<Register>,PrintF.IPrintable{
 		this.index=index;
 		this.estimate=estimate;
 	}
-	@Targeted
 	public String inCMD() {
 		return "%s %s".formatted(holder,getScoreAt(index));
 	}
-	@Targeted
 	public String testMeInCMD() {
 		return "score %s matches 1..".formatted(this.inCMD());
 	}

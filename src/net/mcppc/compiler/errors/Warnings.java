@@ -8,7 +8,6 @@ import net.mcppc.compiler.Compiler;
  * @author RadiumE13
  *
  */
-//TODO collect a copy of all errors and warnings at the end of output
 public class Warnings {
 	static PrintStream warn=System.err;
 	//eclipse shows all err output in red

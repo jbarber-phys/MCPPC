@@ -27,7 +27,7 @@ import net.mcppc.compiler.functions.FunctionMask;
 import net.mcppc.compiler.functions.Size;
 import net.mcppc.compiler.functions.FunctionMask.MCFArgs;
 import net.mcppc.compiler.struct.Vector.Constructor;
-import net.mcppc.compiler.target.Targeted;
+import net.mcppc.compiler.target.*;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.Type;
@@ -154,14 +154,14 @@ public class NbtCollection extends Struct {
 	}
 
 	@Override
-	public void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
-		super.allocateArrayLoad(p, var, fillWithDefaultvalue, 0, NbtCollection.myMembType(var.type));
+	public void allocateLoad(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		super.allocateArrayLoad(p, tg, var, fillWithDefaultvalue, 0, NbtCollection.myMembType(var.type));
 
 	}
 
 	@Override
-	public void allocateCall(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
-		super.allocateArrayCall(p, var, fillWithDefaultvalue, 0, NbtCollection.myMembType(var.type));
+	public void allocateCall(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		super.allocateArrayCall(p, tg, var, fillWithDefaultvalue, 0, NbtCollection.myMembType(var.type));
 
 	}
 
@@ -250,7 +250,7 @@ public class NbtCollection extends Struct {
 	public static void endpend(PrintStream p, Compiler c, Scope s, RStack stack,
 			Variable self,Equation ell,String pend) throws CompileError {
 		Variable temp = new Variable("\"$temp\"",NbtCollection.myMembType(self.type), null, Mask.STORAGE, "mcpp:nbtcollection", "\"$temp\"");
-		temp.allocateLoad(p, false);
+		temp.allocateLoad(p,s.getTarget(), false);
 		ell.compileOps(p, c, s, temp.type);
 		ell.setVar(p, c, s, temp);
 		p.printf("data modify %s %s from %s\n", self.dataPhrase(),pend,temp.dataPhrase());
@@ -425,7 +425,7 @@ public class NbtCollection extends Struct {
 			//default to storage
 			BasicArgs args = (BasicArgs)token.getArgs();
 			Variable obj=this.newobj(c,token);
-			obj.allocateLoad(p, false);//anon must think its loaded
+			obj.allocateLoad(p,s.getTarget(), false);//anon must think its loaded
 			int size = args.nargs();
 			for(int i=0;i<size;i++) {
 				//Variable arg=NbtCollection.componentOf(obj, i);

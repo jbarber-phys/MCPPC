@@ -14,7 +14,7 @@ import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
-import net.mcppc.compiler.target.Targeted;
+import net.mcppc.compiler.target.*;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.NullToken;
@@ -238,7 +238,7 @@ public class NbtObject extends Struct {
 			//null: delete self
 			//this is deprecated as Num is no longer nullable in value
 			Variable value = this.getValue(self, tp);
-			value.basicdeallocateBoth(p);
+			value.basicdeallocateBoth(p, s.getTarget());
 			return;
 		}
 		Variable value = this.getValue(self, tp);
@@ -286,7 +286,7 @@ public class NbtObject extends Struct {
 		case NULL:{
 			//delete my value
 			Variable value = this.getValue(me,VarType.VOID );
-			value.basicdeallocateBoth(p);
+			value.basicdeallocateBoth(p, s.getTarget());
 			return;
 		}
 		case TYPE:
@@ -298,7 +298,7 @@ public class NbtObject extends Struct {
 		
 		}
 		Variable value = this.getValue(me,type );
-		super.setMeToNbtExprBasic(p, stack, value, e);
+		super.setMeToNbtExprBasic(p, s.getTarget(), stack, value, e);
 	}
 	@Override
 	public void setMeToCmd(PrintStream p, Scope s, Variable variable, String cmd) throws CompileError {
@@ -306,13 +306,13 @@ public class NbtObject extends Struct {
 		value.setMeToCmd(p, s, cmd);
 	}
 	@Override
-	public void allocateLoad(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
-		super.allocateCompoundLoad(p, var, fillWithDefaultvalue, List.of());
+	public void allocateLoad(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		super.allocateCompoundLoad(p, tg, var, fillWithDefaultvalue, List.of());
 	}
 
 	@Override
-	public void allocateCall(PrintStream p, Variable var, boolean fillWithDefaultvalue) throws CompileError {
-		super.allocateCompoundCall(p, var, fillWithDefaultvalue, List.of());
+	public void allocateCall(PrintStream p, VTarget tg, Variable var, boolean fillWithDefaultvalue) throws CompileError {
+		super.allocateCompoundCall(p, tg, var, fillWithDefaultvalue, List.of());
 	}
 
 

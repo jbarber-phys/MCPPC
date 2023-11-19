@@ -30,6 +30,7 @@ import net.mcppc.compiler.errors.COption;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.OutputDump;
 import net.mcppc.compiler.errors.Warnings;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Import;
 
@@ -42,6 +43,7 @@ import net.mcppc.compiler.tokens.Import;
  * String: add substring method using /data .... string (block <sourcePos>|entity <source>|storage <source>) [<sourcePath>] [<start>] [<end>]
  * VERSION NOTES: see /return version changes for lots of details: added at 15, 18 removed run, 19 re-added run and fail
  * 
+ * consider adding score consts for pows of 10 to shorten math ops
  * 
  * far future:
  * add locks: invar -> outvar :: -> flag;
@@ -157,14 +159,17 @@ public class CompileJob {
 
 		final List<McThread> threads = new ArrayList<McThread>();
 		final Set<BuiltinFunction> bfLoads = new HashSet<BuiltinFunction>();
-		public Namespace(File data) {
-			this(data.getName(),false);
+		
+		public final VTarget target;
+		public Namespace(File data,VTarget tg) {
+			this(data.getName(),tg,false);
 			//this.dataDir=data;
 		}
-		public Namespace(String name,boolean isExternal) {
+		public Namespace(String name,VTarget tg,boolean isExternal) {
 			this.name=name;
 			//this.dataDir=data;
 			this.isExternal=isExternal;
+			this.target=tg;
 		}
 		public ResourceLocation getLoadFunction() {
 			return new ResourceLocation(this,"mcpp__load");
@@ -389,7 +394,7 @@ public class CompileJob {
 		Namespace ns;
 		if (!this.namespaces.containsKey(res.namespace)) {
 			System.out.printf("linked namespace %s;\n",res.namespace);
-			this.namespaces.put(res.namespace, ns=new Namespace(res.namespace,true));
+			this.namespaces.put(res.namespace, ns=new Namespace(res.namespace,this.getTarget(),true));
 		}else ns=this.namespaces.get(res.namespace);
 		return ns;
 	}
@@ -508,7 +513,7 @@ public class CompileJob {
 		//File[] fs2 = data.toFile().listFiles(FFs.dirs);
 		for(File ns:fs) {
 			fileLog.println("found namespace %s".formatted(ns.getName()));
-			this.namespaces.put(ns.getName(), new Namespace(ns));
+			this.namespaces.put(ns.getName(), new Namespace(ns,this.getTarget()));
 		}
 	}
 	public void discoverSrc(Namespace ns) {
@@ -557,7 +562,8 @@ public class CompileJob {
 	StringBuffer compile2_warnings = null;
 	StringBuffer warnings = new StringBuffer();
 	public void warn(String msg,Compiler c)  throws CompileError{
-		if(this.getOption(COption.ELEVATE_WARNINGS)) {
+		
+		if(c.currentScope.<Boolean>getOption(COption.ELEVATE_WARNINGS, this, c.cursor)) {
 			throw new Warnings.WError(msg);
 		}
 		if(warnings==null)return; 
@@ -695,7 +701,7 @@ public class CompileJob {
 			}
 		}
 		for(Variable v:ns.objectives.values()) {
-			v.makeObjective(p);
+			v.makeObjective(p, ns.target);
 		}
 		for(BuiltinFunction fc:ns.bfLoads) {
 			fc.onLoad(p, this, ns);
@@ -1088,6 +1094,10 @@ public class CompileJob {
 	
 	//TODO target:
 	//...
+	private VTarget target = VTarget.ANY;
+	public VTarget getTarget() {
+		return this.target;
+	}
 	
 	//compiler options =================
 	//does not include target; that is above

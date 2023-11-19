@@ -20,6 +20,7 @@ import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.functions.PrintF.PrintContext;
 import net.mcppc.compiler.struct.*;
 import net.mcppc.compiler.target.Targeted;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.Equation.End;
 import net.mcppc.compiler.tokens.UnaryOp.UOType;
@@ -1254,15 +1255,15 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 	
 
 	@Override
-	public String fromCMDStatement() {
+	public String fromCMDStatement(VTarget tg) {
 		if(this.isConstable()) {
 			Const.ConstExprToken c = this.getConstNbt();
 			if (c!=null && c instanceof INbtValueProvider) {
-				return ((INbtValueProvider) c).fromCMDStatement();
+				return ((INbtValueProvider) c).fromCMDStatement(tg);
 			}
 			
 		} if (this.isConstRefable()) {
-			return this.getConstVarRef().fromCMDStatement();
+			return this.getConstVarRef().fromCMDStatement(tg);
 		}
 		return null;
 	}

@@ -15,6 +15,7 @@ import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.INbtValueProvider;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.target.Targeted;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.Token.Factory;
 
 public class Num extends Const.ConstLiteralToken implements INbtValueProvider{
@@ -228,7 +229,11 @@ public class Num extends Const.ConstLiteralToken implements INbtValueProvider{
 	 */
 	@Override
 	@Targeted
-	public String textInMcf() {
+	public String textInMcf(VTarget tg) {
+		if(this.value==null)return "null";
+		return this.type.numToString(this.value);
+	}
+	private String textInJson() {
 		if(this.value==null)return "null";
 		return this.type.numToString(this.value);
 	}
@@ -260,7 +265,7 @@ public class Num extends Const.ConstLiteralToken implements INbtValueProvider{
 		return true;
 	}
 	@Override
-	public String fromCMDStatement() {
+	public String fromCMDStatement(VTarget tg) {
 		return INbtValueProvider.VALUE.formatted(this.type.numToString(this.value));
 	}
 	@Override
@@ -308,7 +313,7 @@ public class Num extends Const.ConstLiteralToken implements INbtValueProvider{
 	@Override
 	@Targeted
 	public String getJsonText() throws CompileError {
-		String txt = this.textInMcf();
+		String txt = this.textInJson();
 		return "{\"text\": \"%s\"}".formatted(txt);
 	}
 }

@@ -206,12 +206,12 @@ public class ForStm extends Statement implements Statement.CodeBlockOpener,State
 		ResourceLocation mcf=this.mySubscope.getSubRes();
 		Variable mybreak=this.mySubscope.getBreakVarInMe(c);
 		mybreak.setMeToBoolean(p, s, mystack, false);
-		if(this.newCounter)this.counter.allocateCall(p, false);
+		if(this.newCounter)this.counter.allocateCall(p, s.getTarget(), false);
 		for(Number n:this.span) {
 			this.counter.setMeToNumber(p, s, mystack, n);
 			p.printf("execute unless %s run function %s\n", mybreak.isTrue(),mcf);
 		}
-		if(this.newCounter)this.counter.deallocateAfterCall(p);
+		if(this.newCounter)this.counter.deallocateAfterCall(p, s.getTarget());
 		
 		mystack.finish(c.job);
 	}

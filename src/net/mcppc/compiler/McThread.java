@@ -309,15 +309,15 @@ public class McThread {
 		if(blockLocals.containsKey(name))return blockLocals.get(name);
 		return null;
 	}
-	public void allocateMyLocalsLoad(PrintStream p) throws CompileError {
+	public void allocateMyLocalsLoad(PrintStream p, Namespace ns) throws CompileError {
 		if(this.hasLookup()) {
-			this.uuidLookups.onLoad( p);
+			this.uuidLookups.onLoad( p, ns.target);
 		}
 		
 		for(Map<String,Variable> subBlock: this.varsPrivate.values())for(Variable v: subBlock.values()) 
-			if (v.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES)) v.allocateLoad(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+			if (v.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES)) v.allocateLoad(p,ns.target, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
 		for(Variable v: this.varsPublic.values()) 
-			if (v.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES)) v.allocateLoad(p, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
+			if (v.willAllocateOnLoad(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES)) v.allocateLoad(p,ns.target, FileInterface.ALLOCATE_WITH_DEFAULT_VALUES);
 	}
 	/**
 	 * called after the last block is added during pass 1
@@ -543,7 +543,7 @@ public class McThread {
 	public static String getBreak(int block) {return BREAK_F.formatted(block);};
 	
 	@Targeted 
-	public Selector summonMe(PrintStream p) {
+	public Selector summonMe(PrintStream p, Compiler c, Scope s) {
 		p.printf("summon minecraft:marker 0 0 0 {Tags: [\"%s\"]}\n", TEMPTAG);
 		return SELFTEMP.limited(1);
 	}
@@ -717,7 +717,7 @@ public class McThread {
 			wasrunning.setMeToBoolean(p, s, stack, true);
 		}
 		if(tagme && start) {
-			executor.addTag(p, this.getTag());
+			executor.addTag(p, this.getTag(), s.getTarget());
 		}
 		if(gotoCache==null) {
 			this.myGoto(executor).setMeToNumber(p, s, stack, this.getFirstGoto());
@@ -765,7 +765,7 @@ public class McThread {
 			boolean doGetMe = (getMe!=null);
 			boolean doSummon = (this.executeAs==null);
 			if(doSummon) {
-				me = this.summonMe(p);
+				me = this.summonMe(p, c, s);
 			}else {
 				me = this.executeAs;
 				if(this.isSynchronized) {
@@ -774,26 +774,26 @@ public class McThread {
 					this.myGoto(old).setMeToNumber(p, s, stack, 0);
 					this.wait(old).setMeToNumber(p, s, stack, (Integer)0);
 					this.exit(old).setMeToBoolean(p, s, stack, false);
-					old.removeTag(p, this.getTag());
+					old.removeTag(p, this.getTag(), s.getTarget());
 					
 					me = me.limited(1);
 				}
 				if(doGetMe) {
-					me.addTag(p, TEMPTAG);
+					me.addTag(p, TEMPTAG, s.getTarget());
 					me = SELFTEMP;
 				}
 			}
-			me.runAt(p, this.pathStart(block));
+			me.runAt(p, this.pathStart(block),s.getTarget());
 			if(doGetMe) {
 				if(getMe.isStruct() && getMe.type.struct instanceof Entity) {
 					Entity clazz = (Entity) getMe.type.struct;
 					String to = clazz.getScoreTag(getMe);
-					me.addTag(p, to);
+					me.addTag(p, to, s.getTarget());
 				}
 			}
-			if(doGetMe || doSummon) me.removeTag(p, TEMPTAG);
+			if(doGetMe || doSummon) me.removeTag(p, TEMPTAG, s.getTarget());
 		}else {
-			this.pathStart(block).run(p);
+			this.pathStart(block).run(p,s.getTarget());
 		}
 		
 	}
@@ -802,9 +802,9 @@ public class McThread {
 		//if(me!=null )me.addTag(p,McThread.TEMPTAG);
 		if(me!=null) {
 			if(!this.hasSelf()) throw new CompileError("bad call to %s for non-self thread".formatted(func.toString()));
-			me.runAt(p, func);
+			me.runAt(p, func,s.getTarget());
 		}
-		else func.run(p);
+		else func.run(p,s.getTarget());
 		//Selector out = this.truestartSelf();
 		//if(me!=null )me.removeTag(p,McThread.TEMPTAG);
 	}
@@ -816,11 +816,11 @@ public class McThread {
 			this.uuidLookups.finalizeMe(c, s, p, stack);
 		}
 		if((!this.isSynchronized && this.executeAs==null )|| kill) {
-			executor.kill(p);
+			executor.kill(p, s.getTarget());
 		}else {
 			this.myGoto(executor).setMeToNumber(p, s, stack, 0);
 			this.wait(executor).setMeToNumber(p, s, stack, (Integer)0);
-			if(executor!=null)executor.removeTag(p, this.getTag());
+			if(executor!=null)executor.removeTag(p, this.getTag(), s.getTarget());
 			if(this.hasDeathblock()) {
 				this.getWasRunningFlag().setMeToBoolean(p, s, stack, false);
 			}
@@ -986,13 +986,13 @@ public class McThread {
 	}
 	//
 	@Targeted 
-	public void decrementDelaySync(PrintStream p) throws CompileError {
+	public void decrementDelaySync(PrintStream p, CompileJob job, Namespace ns) throws CompileError {
 		Variable wait = this.wait(null);
 		String score = wait.scorePhrase();
 		p.printf("execute if score %s matches 1.. run scoreboard players remove %s 1\n",score,score);
 	}
 	@Targeted 
-	public static void decrementDelayEntity(PrintStream p) throws CompileError {
+	public static void decrementDelayEntity(PrintStream p, CompileJob job, Namespace ns) throws CompileError {
 		Variable wait = McThread.waitStaticEntity(Selector.AT_S);
 		String score = wait.scorePhrase();
 		p.printf("execute if score %s matches 1.. run scoreboard players remove %s 1\n",score,score);
@@ -1003,12 +1003,12 @@ public class McThread {
 		//as entity
 		if(this.tickBlock!=null | this.deathBlock!=null) {
 			p.printf("execute as @s[tag = %s] at @s run ",this.getTag());
-				this.pathEventTick().run(p);
+				this.pathEventTick().run(p,job.getTarget());
 		}
 		//calls this threads tick function
 		//dont do it every tick unless that is actually needed
 		p.printf("execute as @s[tag = %s,scores = {%s = 0}] at @s run ",this.getTag(),McThread.OBJ_WAIT);
-			this.pathTick().run(p);
+			this.pathTick().run(p,job.getTarget());
 	}
 	public boolean isGlobal() {
 		return this.isSynchronized && this.executeAs==null ;
@@ -1020,7 +1020,7 @@ public class McThread {
 		boolean isGlobal = this.isGlobal();
 		//String me = isGlobal? this.path.toString() : Selector.AT_S.toCMD();
 		
-		if(!isGlobal)Selector.AT_S.addTag(p, McThread.TAG_CURRENT);
+		if(!isGlobal)Selector.AT_S.addTag(p, McThread.TAG_CURRENT, s.getTarget());
 		//skip delay, it was already done
 		//p.printf("#this.numBlocks = %d;\n", this.numBlocks);
 		Selector self = isGlobal? null : Selector.AT_S;
@@ -1031,16 +1031,16 @@ public class McThread {
 			if(this.skipIndex(i)) continue;
 			p.printf("execute if score %s matches 0 if score %s matches %d run "
 					,waitv.scorePhrase(),gotov.scorePhrase(),i);
-				this.pathBlock(i).run(p);
+				this.pathBlock(i).run(p,s.getTarget());
 		}
-		Selector.AT_S.removeTag(p, McThread.TAG_CURRENT);
-		if(!isGlobal)Selector.AT_S.removeTag(p, McThread.TAG_CURRENT);
+		Selector.AT_S.removeTag(p, McThread.TAG_CURRENT, s.getTarget());
+		if(!isGlobal)Selector.AT_S.removeTag(p, McThread.TAG_CURRENT, s.getTarget());
 	}
 	public void tickManageEvery(PrintStream p,Compiler c,Scope s,RStack stack) throws CompileError {
 		//is written to new manageEverTick
 		boolean isGlobal = this.isGlobal();
 		
-		if(!isGlobal)Selector.AT_S.addTag(p, McThread.TAG_CURRENT);
+		if(!isGlobal)Selector.AT_S.addTag(p, McThread.TAG_CURRENT, s.getTarget());
 
 		if(!isGlobal && this.isSynchronized && this.deathBlock!=null) {
 			//executing as entity
@@ -1050,10 +1050,10 @@ public class McThread {
 		}
 		if(!isGlobal && this.isSynchronized && this.tickBlock!=null) {
 			//executing as entity with goto >=1
-			this.pathBlockTick().run(p);
+			this.pathBlockTick().run(p,s.getTarget());
 		}
 		
-		if(!isGlobal)Selector.AT_S.removeTag(p, McThread.TAG_CURRENT);
+		if(!isGlobal)Selector.AT_S.removeTag(p, McThread.TAG_CURRENT, s.getTarget());
 	}
 	@Targeted
 	public static void onLoad(PrintStream p, CompileJob job,Namespace ns) {
@@ -1072,7 +1072,7 @@ public class McThread {
 		if(ns.threads.isEmpty()) return false;
 		boolean hasAsync = false;
 		for(McThread self : ns.threads) if(self.isSynchronized && self.executeAs == null) {
-			self.decrementDelaySync(p);
+			self.decrementDelaySync(p, job, ns);
 			Variable block = self.myGoto((Selector)null);
 			Variable delay = self.wait((Selector)null);
 			ResourceLocation res = self.pathTick();
@@ -1081,11 +1081,11 @@ public class McThread {
 				ResourceLocation res2 = self.pathBlockTick();
 				p.printf("execute if score %s matches 1.. run "
 						, block.scorePhrase());
-					res2.run(p);
+					res2.run(p,job.getTarget());
 			}
 			p.printf("execute if score %s matches 1.. if score %s matches 0 run "
 					, block.scorePhrase(),delay.scorePhrase());
-				res.run(p);
+				res.run(p,job.getTarget());
 		}else {
 			hasAsync = true;
 		}
@@ -1106,19 +1106,19 @@ public class McThread {
 			//but this would cost 1 @e per tick
 			
 			p.printf("execute as @e[tag=!,scores = {%s = 1..}] at @s run ", McThread.OBJ_GOTO);
-					ns.getEntityTickFunction().run(p);
+					ns.getEntityTickFunction().run(p,job.getTarget());
 		}
 
 		for(McThread self : ns.threads) if(self.isSynchronized && self.executeAs != null && self.deathBlock!=null) {
 			Variable isDead = self.getIsDeadFlag();//score
 			
 			p.printf("execute if score %s matches 1.. run ", isDead.scorePhrase());
-					self.pathDeath().run(p);
+					self.pathDeath().run(p,job.getTarget());
 		}
 		return true;
 	}
 	public static void onEntityTick(PrintStream p, CompileJob job,Namespace ns) throws CompileError {
-		McThread.decrementDelayEntity(p);
+		McThread.decrementDelayEntity(p, job, ns);
 		
 		for(McThread self : ns.threads) if(!(self.isSynchronized && self.executeAs == null)) {
 			self.executeTick(p, job, ns);

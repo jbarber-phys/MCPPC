@@ -154,7 +154,7 @@ public class Switch extends Statement implements MultiFlow,Statement.CodeBlockOp
 			int i= stack.setNext(VarType.BOOL);
 			Register bv = stack.getRegister(i);
 			this.breakv.getMe(f, s, bv);
-			block.runUnless(f, bv);
+			block.runUnless(f, bv, s.getTarget());
 			stack.pop();
 		}else {
 			Variable doflag = this.makeMatchFlag(c, s);
@@ -185,7 +185,7 @@ public class Switch extends Statement implements MultiFlow,Statement.CodeBlockOp
 			not.perform(f, c, s, stack, br);
 			and.perform(f, c, s, stack, dor, br);
 			doflag.setMe(f, s, stack, dor);
-			block.runIf(f, stack.getRegister(dor));
+			block.runIf(f, stack.getRegister(dor), s.getTarget());
 			stack.pop(2);
 			
 			

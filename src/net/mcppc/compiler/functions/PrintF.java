@@ -136,7 +136,7 @@ public class PrintF extends BuiltinFunction{
 			ResourceLocation res =s.getSubResNoTemplate();//TODO test this
 			NbtPath anonvn=new NbtPath("\"$%s\"".formatted(this.base));//the outermost thing
 			Variable anon=new Variable("anon",NbtCompound.TAG_COMPOUND,null,c).maskStorageAllocatable(res, anonvn);
-			anon.allocateLoad(p, true);
+			anon.allocateLoad(p,s.getTarget(), true);
 		}
 	}
 	@Targeted

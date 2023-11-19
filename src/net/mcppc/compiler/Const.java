@@ -12,6 +12,7 @@ import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.CompileError.UnexpectedToken;
 import net.mcppc.compiler.struct.Struct;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Bool;
 import net.mcppc.compiler.tokens.Factories;
@@ -225,10 +226,11 @@ public class Const {
 		
 		/**
 		 * what to print in a mcfunction if inlined
+		 * @param tg TODO
 		 * @return
 		 * @throws CompileError 
 		 */
-		public abstract String textInMcf() throws CompileError;
+		public abstract String textInMcf(VTarget tg) throws CompileError;
 		/**
 		 * returns a json text element for this value (with enclosing brackets)
 		 * @return
@@ -331,8 +333,8 @@ public class Const {
 			if(this.constv.value!=null)return this.constv.value.resSuffix();
 			else return "null";
 		}
-		@Override public String textInMcf() throws CompileError {
-			return this.constv.getValue().textInMcf();
+		@Override public String textInMcf(VTarget tg) throws CompileError {
+			return this.constv.getValue().textInMcf(tg);
 		}
 		@Override public boolean canCast(VarType type) {
 			return this.constv.value.canCast(type);

@@ -21,6 +21,7 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.struct.Entity;
 import net.mcppc.compiler.struct.Struct;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Factories;
@@ -132,7 +133,7 @@ public class Selector {
 			return this.val.hashCode();
 		}
 		@Override
-		public String textInMcf() {
+		public String textInMcf(VTarget tg) {
 			return this.selector().toCMD();
 		}
 		@Override
@@ -188,7 +189,7 @@ public class Selector {
 				switch (key) {
 				case "nbt":{
 					NbtPathToken ntag =NbtPath.nextNbtCarefull(c, m);
-					String val = ntag.textInMcf();
+					String val = ntag.textInMcf(c.currentScope.getTarget());
 					this.nbt.add(val);
 					break;
 				}
@@ -355,6 +356,7 @@ public class Selector {
 	@Targeted private static final String SUBARGS = "{%s}";
 	@Targeted
 	protected String argsToString() {
+		//cannot accept target args
 		List<String> args = new ArrayList<String>();
 		for(String tg : this.tag) {
 			args.add("tag=%s".formatted(tg));
@@ -464,26 +466,26 @@ public class Selector {
 		return l;
 	}
 	@Targeted
-	public void kill(PrintStream p) {
+	public void kill(PrintStream p, VTarget tg) {
 		p.printf("kill %s\n", this.toCMD());
 	}
 	@Targeted
-	public void addTag(PrintStream p, String tag) {
+	public void addTag(PrintStream p, String tag, VTarget tg) {
 		p.printf("tag %s add %s\n", this.toCMD(),tag);
 	}
 	@Targeted
-	public void removeTag(PrintStream p, String tag) {
+	public void removeTag(PrintStream p, String tag, VTarget tg) {
 		p.printf("tag %s remove %s\n", this.toCMD(),tag);
 	}
 	@Targeted
-	public void run(PrintStream p,ResourceLocation fun) {
+	public void run(PrintStream p,ResourceLocation fun,VTarget tg) {
 		p.printf("execute as %s run ", this.toCMD());
-			fun.run(p);
+			fun.run(p,tg);
 	}
 	@Targeted
-	public void runAt(PrintStream p,ResourceLocation fun) {
+	public void runAt(PrintStream p,ResourceLocation fun,VTarget tg) {
 		p.printf("execute as %s at @s run ", this.toCMD());
-			fun.run(p);
+			fun.run(p,tg);
 	}
 	public static String mergeTypes(String type1,String type2) throws CompileError{
 		//returns null if none

@@ -6,6 +6,7 @@ import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.target.Targeted;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
@@ -51,7 +52,7 @@ public class NbtPath {
 			return this.path().path;
 		}
 		@Override
-		public String textInMcf() {
+		public String textInMcf(VTarget tg) {
 			//no need for escaping, escapes were already removed
 			return this.path().path;
 		}

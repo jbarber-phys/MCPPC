@@ -10,6 +10,7 @@ import net.mcppc.compiler.VarType;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.NbtObject;
 import net.mcppc.compiler.target.Targeted;
+import net.mcppc.compiler.target.VTarget;
 
 public class NullToken extends ConstExprToken implements INbtValueProvider{
 	public static String NULL_STR = "null";
@@ -41,7 +42,7 @@ public class NullToken extends ConstExprToken implements INbtValueProvider{
 	}
 
 	@Override
-	public String textInMcf() throws CompileError {
+	public String textInMcf(VTarget tg) throws CompileError {
 		throw new CompileError("cannot print a null to an mcfunction");
 		//return NULL_STR;
 	}
@@ -75,7 +76,7 @@ public class NullToken extends ConstExprToken implements INbtValueProvider{
 	}
 
 	@Override
-	public String fromCMDStatement() {
+	public String fromCMDStatement(VTarget tg) {
 		return "null";
 	}
 

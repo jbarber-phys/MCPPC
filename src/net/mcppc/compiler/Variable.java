@@ -1,6 +1,7 @@
 package net.mcppc.compiler;
 
 import java.io.PrintStream;
+import java.lang.annotation.Target;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -12,6 +13,7 @@ import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.functions.PrintF;
 import net.mcppc.compiler.struct.Entity;
 import net.mcppc.compiler.struct.Struct;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Bool;
@@ -658,7 +660,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 				int scoreValue = value? 1 : 0;
 				p.printf("scoreboard players set %s %d\n", this.scorePhrase(),scoreValue);
 			}else {
-				p.printf("data modify %s set value %s\n", this.dataPhrase(),this.type.boolToStringNumber(value));
+				p.printf("data modify %s set value %s\n", this.dataPhrase(),this.type.boolToStringNumber(value, s.getTarget()));
 			}
 		}
 	}
@@ -930,9 +932,9 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	 * @param fillWithDefaultvalue
 	 * @throws CompileError
 	 */
-	public void allocateLoad(PrintStream p,boolean fillWithDefaultvalue) throws CompileError {
+	public void allocateLoad(PrintStream p,VTarget tg,boolean fillWithDefaultvalue) throws CompileError {
 		if(this.type.isStruct()) {
-			this.type.struct.allocateLoad(p, this, fillWithDefaultvalue);
+			this.type.struct.allocateLoad(p, tg, this, fillWithDefaultvalue);
 			return;
 		}
 		if(this.type.isVoid())return;//skip
@@ -967,21 +969,22 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	 * if the variable is recursive then prepend a default value to a virual NBT 'stack',
 	 * else do something similar to {@link Variable#allocateLoad};
 	 * @param p
+	 * @param tg TODO
 	 * @param fillWithDefaultvalue
 	 * @throws CompileError
 	 */
-	public void allocateCall(PrintStream p,boolean fillWithDefaultvalue) throws CompileError {
+	public void allocateCall(PrintStream p,VTarget tg, boolean fillWithDefaultvalue) throws CompileError {
 		if(this.type.isStruct()) {
-			this.type.struct.allocateCall(p, this, fillWithDefaultvalue);
+			this.type.struct.allocateCall(p, tg, this, fillWithDefaultvalue);
 			return;
 		}
 		if(this.type.isVoid())return;//skip
-		this.allocateCallBasic(p, fillWithDefaultvalue,this.type.defaultValue());
+		this.allocateCallBasic(p, tg,fillWithDefaultvalue, this.type.defaultValue());
 		
 		
 	}
 	@Targeted
-	public void allocateCallBasic(PrintStream p,boolean fillWithDefaultvalue,String defaultValue) throws CompileError {
+	public void allocateCallBasic(PrintStream p,VTarget tg,boolean fillWithDefaultvalue, String defaultValue) throws CompileError {
 		if(!this.isbasic) {
 			Warnings.warningf(null,"attempted to allocate %s to non-basic %s;",this.name, this.pointsTo);
 			return;
@@ -997,7 +1000,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		}
 	}
 	@Targeted
-	public void makeObjective(PrintStream p) throws CompileError {
+	public void makeObjective(PrintStream p, VTarget tg) throws CompileError {
 		if(this.type.isStruct()) {
 			Warnings.warningf(null,"attempted to make objective %s for struct %s;",this.name, this.type.asString());
 			return;
@@ -1009,24 +1012,24 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		p.printf("scoreboard objectives add %s dummy\n",this.address);
 		
 	}
-	public void deallocateLoad(PrintStream p) throws CompileError {
+	public void deallocateLoad(PrintStream p, VTarget tg) throws CompileError {
 		if(this.type.isStruct()) {
-			this.type.struct.deallocateLoad(p, this);
+			this.type.struct.deallocateLoad(p, tg, this);
 			return;
 		}
-		this.basicdeallocateBoth(p);
+		this.basicdeallocateBoth(p, tg);
 		
 	}
-	public void deallocateAfterCall(PrintStream p) throws CompileError {
+	public void deallocateAfterCall(PrintStream p, VTarget tg) throws CompileError {
 		if(this.type.isStruct()) {
-			this.type.struct.deallocateAfterCall(p, this);
+			this.type.struct.deallocateAfterCall(p, tg, this);
 			return;
 		}
-		this.basicdeallocateBoth(p);
+		this.basicdeallocateBoth(p, tg);
 		
 	}
 	@Targeted
-	public void basicdeallocateBoth(PrintStream p) throws CompileError {
+	public void basicdeallocateBoth(PrintStream p, VTarget tg) throws CompileError {
 		if(this.pointsTo!=Mask.STORAGE) {
 			Warnings.warningf(null,"attempted to deallocate %s to non-storage %s;",this.name, this.pointsTo);
 			return;
@@ -1050,7 +1053,7 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		return this.getMaskType().isNbt;
 	}
 	@Override
-	public String fromCMDStatement() {
+	public String fromCMDStatement(VTarget tg) {
 		return INbtValueProvider.FROM.formatted(this.dataPhrase());
 	}
 	@Override
