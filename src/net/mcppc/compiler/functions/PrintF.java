@@ -188,19 +188,19 @@ public class PrintF extends BuiltinFunction{
 	}
 	
 	@Override
-	public VarType getRetType(BFCallToken token) {
+	public VarType getRetType(BFCallToken token, Scope s) {
 		return VarType.VOID;
 	}
 	@Override
 	public void getRet(PrintStream p, Compiler c, Scope s,  BFCallToken token, RStack stack, int stackstart, VarType typeWanted) throws CompileError{
-		throw new CompileError.UnsupportedCast( this.getRetType(token),stack.getVarType(stackstart));
+		throw new CompileError.UnsupportedCast( this.getRetType(token, s),stack.getVarType(stackstart));
 	}
 	@Override
 	public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack) throws CompileError{
-		throw new CompileError.UnsupportedCast( this.getRetType(token),v.type);
+		throw new CompileError.UnsupportedCast( this.getRetType(token, s),v.type);
 	}
 	@Override
-	public Number getEstimate(BFCallToken token) {
+	public Number getEstimate(BFCallToken token, Scope s) {
 		return null;
 	}
 	private static final Token.Factory[] testForSelector = Factories.genericCheck(Selector.SelectorToken.factory);

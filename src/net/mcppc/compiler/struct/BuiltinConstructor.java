@@ -1,6 +1,7 @@
 package net.mcppc.compiler.struct;
 
 import net.mcppc.compiler.BuiltinFunction;
+import net.mcppc.compiler.Scope;
 import net.mcppc.compiler.VarType;
 /**
  * a constructor that is actually a builtin function
@@ -15,7 +16,7 @@ public abstract class BuiltinConstructor  extends BuiltinFunction{
 		//this.mytype=mytype;
 	}
 	@Override
-	public VarType getRetType(BFCallToken token) {
+	public VarType getRetType(BFCallToken token, Scope s) {
 		return token.getStaticType();
 	}
 	

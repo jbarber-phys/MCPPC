@@ -66,13 +66,13 @@ public abstract class Particles extends BuiltinFunction {
 			throws CompileError {}
 
 	@Override
-	public Number getEstimate(BFCallToken token) {
+	public Number getEstimate(BFCallToken token, Scope s) {
 		return null;
 	}
 
 
 	@Override
-	public VarType getRetType(BFCallToken token) {
+	public VarType getRetType(BFCallToken token, Scope s) {
 		return VarType.VOID;
 	}
 	

@@ -142,7 +142,7 @@ public class Uuid extends Struct {
 			super(name);
 		}
 		@Override public boolean isNonstaticMember() {return true;}
-		@Override public VarType getRetType(BFCallToken token) {
+		@Override public VarType getRetType(BFCallToken token, Scope s) {
 			return VarType.INT;
 		}
 		@Override public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
@@ -164,7 +164,7 @@ public class Uuid extends Struct {
 			Variable.directSet(p, s, v, smallest, stack);
 		}
 
-		@Override public Number getEstimate(BFCallToken token) {
+		@Override public Number getEstimate(BFCallToken token, Scope s) {
 			return Integer.MAX_VALUE;
 		}
 		

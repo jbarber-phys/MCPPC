@@ -349,7 +349,7 @@ public class Entity extends Struct {
 		}
 
 		@Override
-		public VarType getRetType(BFCallToken token) {
+		public VarType getRetType(BFCallToken token, Scope s) {
 			return VarType.VOID;
 		}
 
@@ -417,7 +417,7 @@ public class Entity extends Struct {
 		}
 
 		@Override
-		public Number getEstimate(BFCallToken token) {
+		public Number getEstimate(BFCallToken token, Scope s) {
 			return null;
 		}
 		
@@ -431,7 +431,7 @@ public class Entity extends Struct {
 			return true;
 		}
 		@Override
-		public VarType getRetType(BFCallToken token) {
+		public VarType getRetType(BFCallToken token, Scope s) {
 			return VarType.VOID;
 		}
 
@@ -462,7 +462,7 @@ public class Entity extends Struct {
 		}
 
 		@Override
-		public Number getEstimate(BFCallToken token) {
+		public Number getEstimate(BFCallToken token, Scope s) {
 			return null;
 		}
 		
@@ -484,7 +484,7 @@ public class Entity extends Struct {
 			return true;
 		}
 		@Override
-		public VarType getRetType(BFCallToken token) {
+		public VarType getRetType(BFCallToken token, Scope s) {
 			return this.rtype;
 		}
 
@@ -516,7 +516,7 @@ public class Entity extends Struct {
 			//mc 1.13 has no testfor equivalent
 			//p.printf("execute store %s score %s run data get entity %s\n",this.cmdRetType, h.inCMD(),slc.toCMD());
 			p.printf("execute store %s score %s if entity %s\n",this.cmdRetType, h.inCMD(),slc.toCMD());
-			stack.setVarType(home, this.getRetType(token));
+			stack.setVarType(home, this.getRetType(token, s));
 		}
 
 		@Override
@@ -531,12 +531,12 @@ public class Entity extends Struct {
 			int home=stack.reserve(1);
 			Register h=stack.getRegister(home);
 			p.printf("execute store %s score %s if entity %s\n",this.cmdRetType, h.inCMD(),slc.toCMD());
-			stack.setVarType(home, this.getRetType(token));
+			stack.setVarType(home, this.getRetType(token, s));
 			v.setMe(p, s, stack, home);
 		}
 
 		@Override
-		public Number getEstimate(BFCallToken token) {
+		public Number getEstimate(BFCallToken token, Scope s) {
 			return null;
 		}
 		
@@ -550,7 +550,7 @@ public class Entity extends Struct {
 			return true;
 		}
 		@Override
-		public VarType getRetType(BFCallToken token) {
+		public VarType getRetType(BFCallToken token, Scope s) {
 			return VarType.VOID;
 		}
 
@@ -580,7 +580,7 @@ public class Entity extends Struct {
 		}
 
 		@Override
-		public Number getEstimate(BFCallToken token) {
+		public Number getEstimate(BFCallToken token, Scope s) {
 			return null;
 		}
 		

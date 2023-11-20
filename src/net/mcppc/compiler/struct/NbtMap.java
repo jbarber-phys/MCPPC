@@ -282,7 +282,7 @@ public class NbtMap extends Struct {
 		@Override public boolean isNonstaticMember() {return true;}
 
 		@Override
-		public VarType getRetType(BFCallToken token) {
+		public VarType getRetType(BFCallToken token, Scope s) {
 			return VarType.VOID;
 			//TODO make it bool instead
 		}
@@ -359,7 +359,7 @@ public class NbtMap extends Struct {
 		}
 
 		@Override
-		public Number getEstimate(BFCallToken token) {
+		public Number getEstimate(BFCallToken token, Scope s) {
 			return null;
 		}
 		
@@ -372,7 +372,7 @@ public class NbtMap extends Struct {
 		@Override public boolean isNonstaticMember() {return true;}
 
 		@Override
-		public VarType getRetType(BFCallToken token) {
+		public VarType getRetType(BFCallToken token, Scope s) {
 			VarType type = token.getThisBound().type;
 			return NbtMap.myValueType(type);
 		}
@@ -425,7 +425,7 @@ public class NbtMap extends Struct {
 		}
 
 		@Override
-		public Number getEstimate(BFCallToken token) {
+		public Number getEstimate(BFCallToken token, Scope s) {
 			return null;
 		}
 		
@@ -438,7 +438,7 @@ public class NbtMap extends Struct {
 		@Override public boolean isNonstaticMember() {return true;}
 
 		@Override
-		public VarType getRetType(BFCallToken token) {
+		public VarType getRetType(BFCallToken token, Scope s) {
 			return VarType.BOOL;
 		}
 
@@ -485,11 +485,11 @@ public class NbtMap extends Struct {
 		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack) throws CompileError {
 			Loop loop = Loop.loop(Loop.HAS);
 			Register reg = loop.getHasFlag();
-			v.setMe(p, s, reg, this.getRetType(token));
+			v.setMe(p, s, reg, this.getRetType(token, s));
 		}
 
 		@Override
-		public Number getEstimate(BFCallToken token) {
+		public Number getEstimate(BFCallToken token, Scope s) {
 			return null;
 		}
 		
@@ -661,7 +661,7 @@ public class NbtMap extends Struct {
 		}
 
 		@Override
-		public Number getEstimate(BFCallToken token) {
+		public Number getEstimate(BFCallToken token, Scope s) {
 			return null;
 		}
 		

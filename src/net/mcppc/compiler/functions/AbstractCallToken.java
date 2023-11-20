@@ -20,8 +20,8 @@ public abstract class AbstractCallToken extends Token {
 	abstract public void call(PrintStream p,Compiler c,Scope s,RStack stack) throws CompileError;
 	abstract public void getRet(PrintStream p,Compiler c,Scope s,RStack stack,int home, VarType typeWanted) throws CompileError ;
 	abstract public void getRet(PrintStream p,Compiler c,Scope s,Variable v,RStack stack) throws CompileError ;
-	abstract public VarType getRetType();
-	abstract public Number getEstimate();
+	abstract public VarType getRetType(Scope s) throws CompileError;
+	abstract public Number getEstimate(Scope s) throws CompileError;
 	abstract public AbstractCallToken withTemplate(TemplateArgsToken tgs) ;
 	abstract public boolean hasTemplate() ;
 	public abstract void rebindTemplatesBeforeCompile(Compiler c,Scope s) throws CompileError;

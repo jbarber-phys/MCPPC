@@ -91,7 +91,7 @@ public class NbtList extends NbtCollection{
 
 		@Override public boolean isNonstaticMember() {return true;}
 		@Override
-		public VarType getRetType(BFCallToken token) {
+		public VarType getRetType(BFCallToken token, Scope s) {
 			return NbtList.myMembType(token.getThisBound().type);
 		}
 
@@ -148,7 +148,7 @@ public class NbtList extends NbtCollection{
 		}
 
 		@Override
-		public Number getEstimate(BFCallToken token) {
+		public Number getEstimate(BFCallToken token, Scope s) {
 			return null;
 		}
 		private static final class Loop extends CodeGenerator {
@@ -225,7 +225,7 @@ public class NbtList extends NbtCollection{
 		@Override public boolean isNonstaticMember() {return true;}
 
 		@Override
-		public VarType getRetType(BFCallToken token) {
+		public VarType getRetType(BFCallToken token, Scope s) {
 			return VarType.VOID;
 		}
 
@@ -290,7 +290,7 @@ public class NbtList extends NbtCollection{
 		}
 
 		@Override
-		public Number getEstimate(BFCallToken token) {
+		public Number getEstimate(BFCallToken token, Scope s) {
 			return null;
 		}
 		private static final class Loop extends CodeGenerator {

@@ -207,6 +207,17 @@ public class TemplateArgsToken extends Token {
 		return this.values.get(index);
 	}
 	/**
+	 * gets the current element and checks that it has been bound;
+	 * this is safe for functions to use
+	 * @return
+	 * @throws CompileError 
+	 */
+	public ConstExprToken getArg(int index) throws CompileError {
+		ConstExprToken ce= this.values.get(index);
+		if(ce==null) throw new CompileError("template arg not binded in time");
+		return ce;
+	}
+	/**
 	 * sets an argment and overrides 
 	 * @param index
 	 * @param e

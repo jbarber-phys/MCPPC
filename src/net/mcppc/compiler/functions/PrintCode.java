@@ -31,7 +31,7 @@ public class PrintCode extends BuiltinFunction {
 	}
 
 	@Override
-	public VarType getRetType(BFCallToken token) {
+	public VarType getRetType(BFCallToken token, Scope s) {
 		return VarType.VOID;
 	}
 	private String content;
@@ -78,7 +78,7 @@ public class PrintCode extends BuiltinFunction {
 	}
 
 	@Override
-	public Number getEstimate(BFCallToken token) {
+	public Number getEstimate(BFCallToken token, Scope s) {
 		return null;
 	}
 

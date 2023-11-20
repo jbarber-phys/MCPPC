@@ -16,7 +16,9 @@ import java.util.Stack;
 import java.util.regex.*;
 import java.util.stream.Collectors;
 
+import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.errors.*;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.*;
 import net.mcppc.compiler.tokens.Statement.CodeBlockOpener;
 import net.mcppc.compiler.tokens.Statement.Domment;
@@ -605,5 +607,10 @@ public class Compiler{
 	}
 	public int getFlagCursor() {
 		return this.cursor;
+	}
+	private Set<String> misalignedTargetUses = new HashSet<String>();
+	public void warnAboutMisallignedTarget(VTarget supported,VTarget target,String use) throws CompileError {
+		boolean warn = this.misalignedTargetUses.add(use);
+		if(warn)Warnings.warning("%s only supports %s, which could conflict with compile target %s".formatted(use,supported,target), this);
 	}
 }

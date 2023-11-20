@@ -268,7 +268,7 @@ public class NbtCollection extends Struct {
 
 		@Override public boolean isNonstaticMember() {return true;}
 		@Override
-		public VarType getRetType(BFCallToken token) {
+		public VarType getRetType(BFCallToken token, Scope s) {
 			return VarType.VOID;
 		}
 		@Override
@@ -297,7 +297,7 @@ public class NbtCollection extends Struct {
 			//
 		}
 		@Override
-		public Number getEstimate(BFCallToken token) {
+		public Number getEstimate(BFCallToken token, Scope s) {
 			return null;
 		}
 		
@@ -309,7 +309,7 @@ public class NbtCollection extends Struct {
 		}
 		@Override public boolean isNonstaticMember() {return true;}
 		@Override
-		public VarType getRetType(BFCallToken token) {
+		public VarType getRetType(BFCallToken token, Scope s) {
 			return NbtCollection.myMembType(token.getThisBound().type);
 		}
 
@@ -350,7 +350,7 @@ public class NbtCollection extends Struct {
 			p.printf("data remove %s\n", start.dataPhrase());//remove first index tag
 		}
 		@Override
-		public Number getEstimate(BFCallToken token) {
+		public Number getEstimate(BFCallToken token, Scope s) {
 			return null;
 		}
 		
@@ -362,7 +362,7 @@ public class NbtCollection extends Struct {
 		}
 		@Override public boolean isNonstaticMember() {return true;}
 		@Override
-		public VarType getRetType(BFCallToken token) {
+		public VarType getRetType(BFCallToken token, Scope s) {
 			return VarType.VOID;
 		}
 
@@ -392,7 +392,7 @@ public class NbtCollection extends Struct {
 		public void dumpRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
 		}
 		@Override
-		public Number getEstimate(BFCallToken token) {
+		public Number getEstimate(BFCallToken token, Scope s) {
 			return null;
 		}
 		
@@ -451,7 +451,7 @@ public class NbtCollection extends Struct {
 		}
 
 		@Override
-		public Number getEstimate(BFCallToken token) {
+		public Number getEstimate(BFCallToken token, Scope s) {
 			return null;
 		}
 		

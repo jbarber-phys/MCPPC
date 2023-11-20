@@ -9,6 +9,7 @@ import net.mcpp.vscode.MakeTmLanguage;
 import net.mcppc.compiler.CompileJob;
 import net.mcppc.compiler.errors.COption;
 import net.mcppc.compiler.errors.COption.OptionModifier;
+import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.Regexes;
 
 /**
@@ -20,6 +21,7 @@ import net.mcppc.compiler.tokens.Regexes;
  * 		<li>-h $path : set the directory to output files that can be used to import precompiled code (.mch files); defaults to cwd
  * 		<li>-I $path : adds a directory for precompiled libraries to import
  * 		<li>-L $path : adds a directory to look for precompiled .mcfunction files that an included library uses
+ * 		<li>-x $versionrange : specifies a range of versions (pack formats) to target
  * 		<li>-g : enables debug mode (will add comments to mcfunctions indicating the line numbers)
  * 		<li>-std : recompiles the standard library
  * 		<li>--std : recompiles the standard library and skips normal compilation
@@ -186,6 +188,13 @@ public class Main {
 
 			if(arg.equals("-g")) {
 				job.addLineInfo();
+			}
+			if(arg.equals("-x") && i+1<args.length) {
+				i++;
+				arg=args[i];
+				VTarget target = VTarget.fromCmdArgument(arg);
+				if(target==null)return;
+				job.setTarget(target);
 			}
 			if(arg.equals("--vscode")) {
 				makevscode=true;

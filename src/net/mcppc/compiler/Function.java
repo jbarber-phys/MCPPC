@@ -31,7 +31,7 @@ import net.mcppc.compiler.tokens.Equation.End;
  * public extern int amcf() -> datapack:a_mcfunction_with_return; //import an mcf
  * public extern int amcf() {...}; //export an mcf with /return
  * 
- * TODO add inline option; compiles to a .mcfunction.inline file and contains fstrings
+ * 
  */
 public class Function {
 	//this no longer applies with functions being recursive now
@@ -223,7 +223,7 @@ public class Function {
 					Variable tempself = this.getTempSelf(p, c, s, stack);
 					Variable.directSet(p, s, tempself , this.func.self, stack);
 				}
-				if(!this.getRetType().isVoid() ) {
+				if(!this.getRetType(s).isVoid() ) {
 					Variable tempret = this.getTempRet(p, c, s, stack);
 					if(this.hasTemplate())s.addTemplateConstsTemporarily(func, tempArgs);
 					Variable.directSet(p, s, tempret , this.func.returnV, stack);
@@ -267,7 +267,7 @@ public class Function {
 			ret.getMe(p,s, stack,home, typeWanted);
 			if(this.hasTemplate()) {
 				//convert type;
-				stack.setVarType(home, this.getRetType().breakTiesToTemplate(s).onStack(typeWanted));
+				stack.setVarType(home, this.getRetType(s).breakTiesToTemplate(s).onStack(typeWanted));
 				s.removeTemporaryConsts();
 			}
 			this.cleanupAfter(p, c, s, stack);
@@ -291,11 +291,11 @@ public class Function {
 			return this.func.returnV;
 		}
 		@Override
-		public Number getEstimate() {
+		public Number getEstimate(Scope s) {
 			return null;
 		}
 		@Override
-		public VarType getRetType() {
+		public VarType getRetType(Scope s) {
 			return this.func.retype;
 		}
 	}

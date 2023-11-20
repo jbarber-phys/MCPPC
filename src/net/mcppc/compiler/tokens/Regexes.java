@@ -182,6 +182,9 @@ public final class Regexes {
 	//can be negative:
 	public static final Pattern NUM_NEG=Pattern.compile(Strs.NUM_NEG);
 
+	public static final Pattern UINT_RANGE=Pattern.compile("(?<min>\\d+)?\\.\\.(?<max>\\d+)?");// (?<min>\d+)?\.\.(?<max>\d+)?
+	public static final Pattern UINT=Pattern.compile("\\d+");// \d+
+
 	public static final Pattern BOOL=Pattern.compile(Strs.BOOL);
 	public static final Pattern UNARY_MINUS=Pattern.compile("-");
 	public static final Pattern UNARY_NOT=Pattern.compile("!");

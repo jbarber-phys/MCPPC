@@ -65,6 +65,7 @@ public abstract class Struct {
 		Bossbar.registerAll();
 		NbtCompound.registerAll();
 		NbtObject.registerAll();
+		McRandom.registerAll();
 		
 		Singleton.registerAll();
 	}

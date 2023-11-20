@@ -450,7 +450,7 @@ public class Bossbar extends Struct {
 			this.field = field;
 		}
 		@Override
-		public VarType getRetType(BFCallToken token) {
+		public VarType getRetType(BFCallToken token, Scope s) {
 			return VarType.VOID;
 		}
 		@Override
@@ -488,7 +488,7 @@ public class Bossbar extends Struct {
 		@Override public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
 				throws CompileError {}
 
-		@Override public Number getEstimate(BFCallToken token) { return null; }
+		@Override public Number getEstimate(BFCallToken token, Scope s) { return null; }
 
 		@Override public boolean isNonstaticMember() {
 			return true;
@@ -506,7 +506,7 @@ public class Bossbar extends Struct {
 			super(name);
 		}
 		@Override
-		public VarType getRetType(BFCallToken token) {
+		public VarType getRetType(BFCallToken token, Scope s) {
 			return VarType.VOID;
 		}
 		@Override
@@ -533,7 +533,7 @@ public class Bossbar extends Struct {
 		@Override public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
 				throws CompileError {}
 
-		@Override public Number getEstimate(BFCallToken token) { return null; }
+		@Override public Number getEstimate(BFCallToken token, Scope s) { return null; }
 
 		@Override public boolean isNonstaticMember() {
 			return true;
@@ -555,7 +555,7 @@ public class Bossbar extends Struct {
 			this.allowed=vals;
 		}
 		@Override
-		public VarType getRetType(BFCallToken token) {
+		public VarType getRetType(BFCallToken token, Scope s) {
 			return VarType.VOID;
 		}
 		@Override
@@ -592,7 +592,7 @@ public class Bossbar extends Struct {
 		}
 
 		@Override
-		public Number getEstimate(BFCallToken token) {
+		public Number getEstimate(BFCallToken token, Scope s) {
 			return null;
 		}
 		@Override

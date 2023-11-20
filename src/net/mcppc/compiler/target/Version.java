@@ -27,6 +27,9 @@ public class Version  implements Ordered<Version>{
 	public Version(int packFormat) {
 		this.packFormat = packFormat;
 	}
+	public VTarget justMe() {
+		return new VTarget(this,this);
+	}
 
 	@Override
 	public int compareTo(Version o) {
@@ -42,6 +45,10 @@ public class Version  implements Ordered<Version>{
 	}
 	@Override protected Object clone() throws CloneNotSupportedException {
 		return new Version(this.packFormat);
+	}
+	@Override
+	public String toString() {
+		return "%d".formatted(this.packFormat);
 	}
 	
 }

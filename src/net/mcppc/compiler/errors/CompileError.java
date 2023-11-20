@@ -5,7 +5,9 @@ import net.mcppc.compiler.tokens.*;
 import java.util.List;
 
 import net.mcppc.compiler.*;
+import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
+import net.mcppc.compiler.functions.AbstractCallToken;
 import net.mcppc.compiler.struct.Struct;
 
 public class CompileError extends Exception {
@@ -63,6 +65,13 @@ public class CompileError extends Exception {
 		}
 		
 	}
+	public static class WrongArgNumber extends CompileError{
+
+		public WrongArgNumber(AbstractCallToken t,String fname,String wanted,int got) {
+			super("wrong number of args in call to %s on line %d col %d; expected %s but got %d".formatted(fname,t.line,t.col,wanted,got));
+		}
+		
+	}
 	public static class UnsupportedOperation extends CompileError{
 		public UnsupportedOperation(VarType v1,Token op, VarType v2) {
 			super("Unsupported operation: %s %s %s (line %d col %d);".formatted(v1.asString(),op.asString(),v2.asString(),op.line,op.col));
@@ -110,6 +119,11 @@ public class CompileError extends Exception {
 			super("Cannot set a %s to a literal %s;".formatted(set.asString(),in));
 		}
 		
+	}
+	public static class WrongConstType extends CompileError{
+		public WrongConstType(String in,ConstType wanted,ConstExprToken got) {
+			super("Wrong const type in %s at line %d col %d, wanted a %s but got a %s;".formatted(in,got.line,got.col,wanted, got.constType()));
+		}
 	}
 	/**
 	 * errors of this kind are from something not existing (yet); becasue its possible they may not have been reached yet,

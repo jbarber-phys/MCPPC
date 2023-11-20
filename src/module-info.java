@@ -1,6 +1,7 @@
 module MCPPC {
 	exports net.mcppc.compiler;
 	exports net.mcppc.compiler.struct;
+	exports net.mcppc.compiler.target;
 	exports net.mcppc.main;
 	exports net.mcppc.compiler.functions;
 	exports net.mcppc.compiler.tokens;

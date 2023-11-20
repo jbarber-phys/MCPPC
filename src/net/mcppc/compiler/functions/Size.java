@@ -17,7 +17,7 @@ public class Size extends BuiltinFunction{
 	@Override public boolean isNonstaticMember() {return true;}
 
 	@Override
-	public VarType getRetType(BFCallToken token) {
+	public VarType getRetType(BFCallToken token, Scope s) {
 		return VarType.INT;
 	}
 
@@ -56,7 +56,7 @@ public class Size extends BuiltinFunction{
 		//do nothing
 	}
 	@Override
-	public Number getEstimate(BFCallToken token) {
+	public Number getEstimate(BFCallToken token, Scope s) {
 		return null;
 	}
 	public static class IsFull extends Size{
@@ -65,7 +65,7 @@ public class Size extends BuiltinFunction{
 		}
 
 		@Override
-		public VarType getRetType(BFCallToken token) {
+		public VarType getRetType(BFCallToken token, Scope s) {
 			return VarType.BOOL;
 		}
 
@@ -81,7 +81,7 @@ public class Size extends BuiltinFunction{
 				throws CompileError {
 			int home = stack.reserve(1);
 			this.getRet(p, c, s, token, stack, home, VarType.BOOL);
-			v.setMe(p, s, stack.getRegister(home), this.getRetType(token));
+			v.setMe(p, s, stack.getRegister(home), this.getRetType(token, s));
 		}
 		
 	}

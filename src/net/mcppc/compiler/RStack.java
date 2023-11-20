@@ -90,6 +90,11 @@ public class RStack {
 		while((!this.regvarEstimates.isEmpty())&&this.regvarEstimates.lastKey()>max)this.regvarEstimates.remove(this.regvarEstimates.lastKey());
 		return max;
 	}
+	/**
+	 * removes all registers with start positions greater than the index
+	 * @param cap
+	 * @throws CompileError
+	 */
 	public void cap(int cap) throws CompileError {
 		//a safer pop
 		while((!this.vartypes.isEmpty())

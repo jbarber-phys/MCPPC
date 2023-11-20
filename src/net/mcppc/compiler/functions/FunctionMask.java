@@ -56,7 +56,7 @@ public class FunctionMask extends BuiltinFunction {
 		return this.isNonstaticMethod;
 	}
 	@Override
-	public VarType getRetType(BFCallToken token) {
+	public VarType getRetType(BFCallToken token, Scope s) {
 		// should never be called
 		return null;
 	}
@@ -102,7 +102,7 @@ public class FunctionMask extends BuiltinFunction {
 	}
 
 	@Override
-	public Number getEstimate(BFCallToken token) {
+	public Number getEstimate(BFCallToken token, Scope s) {
 		// TODO should never be called
 		return null;
 	}

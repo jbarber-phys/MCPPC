@@ -19,7 +19,7 @@ public abstract class EquationMask extends BuiltinFunction {
 		super(name);
 	}
 
-	@Override public VarType getRetType(BFCallToken token) {
+	@Override public VarType getRetType(BFCallToken token, Scope s) {
 		//is never called; (called only when compiling)
 		new CompileError("EquationMask::getRetType should never have been reached").printStackTrace();
 		return null;
@@ -49,7 +49,7 @@ public abstract class EquationMask extends BuiltinFunction {
 	}
 
 	@Override
-	public Number getEstimate(BFCallToken token) {
+	public Number getEstimate(BFCallToken token, Scope s) {
 		// should not be reached
 		return null;
 	}

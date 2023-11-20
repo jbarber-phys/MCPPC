@@ -165,12 +165,12 @@ public abstract class BuiltinFunction {
 			this.f.getRet(p, c, s, this, v, stack);
 		}
 		@Override
-		public VarType getRetType() {
-			return this.f.getRetType(this);
+		public VarType getRetType(Scope s) throws CompileError {
+			return this.f.getRetType(this, s);
 		}
 		@Override
-		public Number getEstimate() {
-			return this.f.getEstimate(this);
+		public Number getEstimate(Scope s) throws CompileError {
+			return this.f.getEstimate(this, s);
 		}
 		public boolean willYieldConstOrJson( Scope s) {
 			return this.f.willYieldConstOrJson(s, this);
@@ -316,7 +316,7 @@ public abstract class BuiltinFunction {
 			return this.targs.isEmpty();
 		}
 	}
-	public abstract VarType getRetType(BFCallToken token);
+	public abstract VarType getRetType(BFCallToken token, Scope s) throws CompileError;
 	public final String name;
 	public boolean isNonstaticMember() {
 		return false;
@@ -346,8 +346,7 @@ public abstract class BuiltinFunction {
 	public boolean willYieldConstOrJson( Scope s,BFCallToken token) {
 		return false;
 	}
-	public abstract Number getEstimate(BFCallToken token);
-	
+	public abstract Number getEstimate(BFCallToken token, Scope s) throws CompileError;
 	
 	
 	/**
@@ -521,7 +520,7 @@ public abstract class BuiltinFunction {
 		}
 
 		@Override
-		public VarType getRetType(BFCallToken token) {
+		public VarType getRetType(BFCallToken token, Scope s) {
 			return VarType.VOID;
 		}
 
@@ -561,7 +560,7 @@ public abstract class BuiltinFunction {
 		}
 
 		@Override
-		public Number getEstimate(BFCallToken token) {
+		public Number getEstimate(BFCallToken token, Scope s) {
 			return null;
 		}
 		
@@ -577,7 +576,7 @@ public abstract class BuiltinFunction {
 		}
 
 		@Override
-		public VarType getRetType(BFCallToken token) {
+		public VarType getRetType(BFCallToken token, Scope s) {
 			return this.rtype;
 		}
 
@@ -614,7 +613,7 @@ public abstract class BuiltinFunction {
 		}
 
 		@Override
-		public Number getEstimate(BFCallToken token) {
+		public Number getEstimate(BFCallToken token, Scope s) {
 			return null;
 		}
 		

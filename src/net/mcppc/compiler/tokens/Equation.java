@@ -382,12 +382,24 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 					if(!struct.hasStaticBuiltinMethod((((MemberName) name).names.get(0)))) 
 						throw new CompileError.UnexpectedToken(name, "static function %s not found in struct %s".formatted(name.asString(),v.asString()));
 					BuiltinFunction bf=struct.getStaticBuiltinMethod((((MemberName) name).names.get(0)), ((Type)v).type);
+					TemplateArgsToken bftemplate;
+					
+					int bftstart = c.cursor;
+					try {
+						bftemplate = TemplateArgsToken.checkForArgs(c, s, m);
+					} catch (CompileError ce) {
+						bftemplate = null;
+						c.cursor=bftstart;
+					}
+
 					BuiltinFunction.open(c);
 					BuiltinFunction.BFCallToken sub=BuiltinFunction.BFCallToken.make(c, s, m, v.line,v.col, this.stack, bf);
-					//TODO debug here; call in stdlib has problem;
+
 					//System.err.printf("static method of %s\n", v.asString());
 					//System.err.printf("scope res: %s\n", s.getSubRes());
-					sub.withTemplate(((Type)v).type.getTemplateArgs(s));//transfer template from arg to function
+					if(bftemplate!=null) sub.withTemplate(bftemplate);
+					TemplateArgsToken typetemplate =((Type)v).type.getTemplateArgs(s);
+					sub.prependTemplate(typetemplate);
 					if(sub.canConvert()) {
 						v=sub.convert(c, s, this.stack);
 						if(v instanceof FuncCallToken)
@@ -513,7 +525,6 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 						List<String> nms=((MemberName) v).names;nms=nms.subList(0, nms.size()-1);
 						Variable self = c.myInterface.identifyVariable(nms, s);
 						sub.withThis(self);
-						//TODO template not bound yet
 						TemplateArgsToken typetemp = self.type.getTemplateArgs(s);
 						sub.prependTemplate(typetemp);
 					}
@@ -735,16 +746,16 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 			regnum=stack.setNext(type);
 			((Function.FuncCallToken) in).call(p, c, s, stack);
 			((Function.FuncCallToken) in).getRet(p, c, s, this.stack,regnum, typeWanted);
-			this.stack.estmiate(regnum, ((Function.FuncCallToken) in).getEstimate());
+			this.stack.estmiate(regnum, ((Function.FuncCallToken) in).getEstimate(s));
 		}else if (in instanceof BuiltinFunction.BFCallToken) {
 			//if(((BuiltinFunction.BFCallToken) in).getBF() instanceof BuiltinConstructor)this.printStatementTree(System.err, 0);
-			VarType type = ((BuiltinFunction.BFCallToken) in).getRetType();
+			VarType type = ((BuiltinFunction.BFCallToken) in).getRetType(s);
 			
 			regnum=stack.setNext(type);
 			if(this.printContext!=null) ;((BuiltinFunction.BFCallToken) in).bindPrintContext(this.printContext);
 			((BuiltinFunction.BFCallToken) in).call(p, c, s, stack);
 			((BuiltinFunction.BFCallToken) in).getRet(p, c, s, stack,regnum, typeWanted);
-			this.stack.estmiate(regnum, ((BuiltinFunction.BFCallToken) in).getEstimate());
+			this.stack.estmiate(regnum, ((BuiltinFunction.BFCallToken) in).getEstimate(s));
 		}else if (in instanceof CommandToken) {
 			regnum=this.storeCMD(p, c, s, typeWanted, in);
 		}else if (in instanceof Const.ConstExprToken) {
@@ -1091,7 +1102,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 
 				if(this.printContext!=null) ;((BuiltinFunction.BFCallToken) e).bindPrintContext(this.printContext);
 				((BuiltinFunction.BFCallToken)e).call(p, c,s,this.stack);
-				this.retype=((BuiltinFunction.BFCallToken)e).getRetType();
+				this.retype=((BuiltinFunction.BFCallToken)e).getRetType(s);
 			} else  if (e instanceof CommandToken){
 				this.homeReg=this.storeCMD(p, c, s, typeWanted, e);
 				this.retype=stack.getVarType(this.homeReg);

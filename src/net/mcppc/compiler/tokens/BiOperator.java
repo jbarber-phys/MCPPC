@@ -138,6 +138,16 @@ public class BiOperator extends Token{
 	public String asString() {
 		return this.op.s;
 	}
+	/**
+	 * performs the operation between home1 and home2, storing the result in home1
+	 * @param p
+	 * @param c
+	 * @param s
+	 * @param stack
+	 * @param home1
+	 * @param home2
+	 * @throws CompileError
+	 */
 	public void perform(PrintStream p,Compiler c,Scope s, RStack stack,Integer home1,Integer home2) throws CompileError {
 		VarType type1=stack.getVarType(home1);
 		VarType type2=stack.getVarType(home2);
@@ -149,6 +159,18 @@ public class BiOperator extends Token{
 			this.op.perform(p, c, s, stack, home1, home2,this);
 		}
 	}
+	private VarType forcedFinalType = null;
+	/**
+	 * forces the operation to yield the final type, overriding the operators
+	 * normal decision about what final type to choose;
+	 * does not apply to comparisons or logical operations;
+	 * @param type
+	 */
+	public BiOperator requireFinalType(VarType typef) {
+		this.forcedFinalType=typef;
+		return this;
+	}
+	
 	private void assertNumeric(VarType t1,VarType t2) throws CompileError {
 		if(t1.isNumeric()&&t2.isNumeric()) ;else throw new CompileError.UnsupportedOperation(t1, this, t2);}
 	private void assertLogical(VarType t1,VarType t2) throws CompileError {
@@ -161,6 +183,7 @@ public class BiOperator extends Token{
 		this.assertNumeric(type1, type2);
 
 		VarType typef=type1;
+		if(this.forcedFinalType!=null)typef = this.forcedFinalType;
 		if(!type1.isFloatP() && type2.isFloatP())typef=type2;//log estimate correction
 		int dp1=typef.getPrecision(s)-type1.getPrecision(s);
 		long mult1=Math.round(Math.pow(10, Math.abs(dp1)));
@@ -224,6 +247,7 @@ public class BiOperator extends Token{
 		// o: small place; x:high place; position: from 1,2
 		VarType finalType=type1;
 		if(!type1.isFloatP() && type2.isFloatP())finalType=type2;//log estimate correction
+		if(this.forcedFinalType!=null)finalType = this.forcedFinalType;
 		//CompileJob.compileMcfLog.printf("%s * %s = %s;\n", type1,type2,finalType);
 		Register reg_1o=stack.getRegister(extra);
 		Register reg_1x=stack.getRegister(extra+1);
@@ -301,6 +325,7 @@ public class BiOperator extends Token{
 		//this.assertNumeric(type1, type2);
 		VarType finalType=type1;
 		if(!type1.isFloatP() && type2.isFloatP())finalType=type2;//log estimate correction
+		if(this.forcedFinalType!=null)finalType = this.forcedFinalType;
 		//CompileJob.compileMcfLog.printf("shortMult typef %s;\n", finalType.asString());
 		
 		int fppow=finalType.getPrecision(s)-type1.getPrecision(s)-type2.getPrecision(s);
@@ -333,6 +358,7 @@ public class BiOperator extends Token{
 		if(other.type.isFloatP() & !itype.isFloatP()) {
 			otype=other.type;//log correction
 		}
+		if(this.forcedFinalType!=null)otype = this.forcedFinalType;
 		double mult=this.op==OpType.MULT?other.value.doubleValue():1.0/other.value.doubleValue();
 		double timespow=Math.pow(10, otype.getPrecision(s)-itype.getPrecision(s));
 		Register regIn=stack.getRegister(in);
@@ -349,6 +375,7 @@ public class BiOperator extends Token{
 		else if(this.op==OpType.DIV)result=n1.divby(n2);
 		else throw new CompileError("op %s was not * or /;".formatted(this.op.name()));
 		VarType otype=result.type;
+		if(this.forcedFinalType!=null)otype = this.forcedFinalType;
 		Register regOut=stack.getRegister(dest);
 		regOut.setValue(p,s, result.value,result.type);
 		stack.setVarType(dest,otype);
@@ -380,6 +407,7 @@ public class BiOperator extends Token{
 		this.assertNumeric(type1, type2);
 		VarType typef=type1;
 		if(!type1.isFloatP() && type2.isFloatP())typef=type2;//log estimate correction
+		if(this.forcedFinalType!=null)typef = this.forcedFinalType;
 		int topplace=typef.getPrecision(s)-type1.getPrecision(s)+type2.getPrecision(s);
 		int bottomPlace=0;
 		if(stack.getEstimate(home1)!=null) {
@@ -419,6 +447,7 @@ public class BiOperator extends Token{
 		// (a 10^-p)%(b 10^-q) = 10^-w (a 10^(-p+w)%b 10^(-q+w))
 		VarType typef=type1;
 		if(!type1.isFloatP() && type2.isFloatP())typef=type2;//log estimate correction
+		if(this.forcedFinalType!=null)typef = this.forcedFinalType;
 		int dp1=typef.getPrecision(s)-type1.getPrecision(s);
 		long mult1=Math.round(Math.pow(10, Math.abs(dp1)));
 		String pop1=dp1>0?"*=":"/=";

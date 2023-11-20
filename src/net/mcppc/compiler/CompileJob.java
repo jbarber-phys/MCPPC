@@ -39,6 +39,7 @@ import net.mcppc.compiler.tokens.Import;
  * 
  * add java edition targeting : Version -> format ID; Target -> min version AND max version;
  * incorperate new 1.20.3 commands: return, tick, random, damage;
+ * add volatile keyword to recursive functions to exempt locals from recursion
  * add true return / breaks (optional); use return # to give the depth to return back to, and if retype = int / bool / long: do a /return as well as $return
  * String: add substring method using /data .... string (block <sourcePos>|entity <source>|storage <source>) [<sourcePath>] [<start>] [<end>]
  * VERSION NOTES: see /return version changes for lots of details: added at 15, 18 removed run, 19 re-added run and fail
@@ -60,6 +61,8 @@ OR
 
 Delete and Re-import the project and if required do the above steps again.
 The better cure is to try NetBeans rather of Eclipse :-)
+
+the problem seems related to modules; the above fix won't work if a module-info is not generated for some reason
 
 Example error: The type java.lang.Object cannot be resolved. It is indirectly referenced from required .class files
  * 
@@ -261,6 +264,9 @@ public class CompileJob {
 	 */
 	Path rootDatapack;public void setRootDatapack(Path o) {
 		this.rootDatapack=o;
+	}
+	public void setTarget(VTarget target) {
+		this.target=target;
 	}
 	public static Path getResources() { return Path.of(getCWD()).resolve(RESOURCES); }
 	public static Path getGeneratedResources() { return Path.of(getCWD()).resolve(GENERATED); }
