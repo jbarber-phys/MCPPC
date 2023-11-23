@@ -257,12 +257,22 @@ public abstract class Statement extends Token implements TreePrintable{
 			StringBuffer s=new StringBuffer();while(s.length()<tabs)s.append('\t');
 			this.eq.printTree(p, tabs+1);
 		}
-		public static Assignment makeReturn(Compiler c,Matcher m,int line,int col) throws CompileError {
+		public static Statement makeReturn(Compiler c,Matcher m,int line,int col) throws CompileError {
 			c.cursor=m.end();
 			Token asn=c.nextNonNullMatch(Factories.checkForAssignlike);
 			if(!c.currentScope.isInFunctionDefine()) throw new CompileError("unexpected return statement outside of function;");
 			Variable ret=c.currentScope.getFunction().returnV;
 			//calls to makeReturn are not allowed
+			if(!(asn instanceof Token.Assignlike)) {
+				Equation eq=Equation.toAssign(line, col, c, c.currentScope, m);
+				if(eq.end !=End.STMTEND) throw new CompileError("assignment ended with a non-';'");
+				if(ret.type.isVoid()) {
+					if(!eq.isEmpty()) throw new CompileError("return value of %s must not be empty".formatted(ret.type.asString()));
+				}else if(eq.isEmpty()) throw new CompileError("cannot return a value for a %s function".formatted(ret.type.asString()));
+				Assignment assignment = new Statement.Assignment(line, col,c.cursor, ret, eq);
+				c.currentScope.containsTrueReturn=true;
+				return new TrueReturnLike(c,assignment);
+			}
 			//? =
 			if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ASSIGNMENT) {
 				Equation eq=Equation.toAssign(line, col, c, c.currentScope, m);
@@ -275,7 +285,7 @@ public abstract class Statement extends Token implements TreePrintable{
 			
 		}
 		//break has optional arg for depth; zero depth is default; break = true; break(0)=true;
-		public static Assignment makeBreak(Compiler c,Matcher m,int line,int col) throws CompileError {
+		public static Statement makeBreak(Compiler c,Matcher m,int line,int col) throws CompileError {
 			c.cursor=m.end();
 			Token t=c.nextNonNullMatch(Factories.checkForParen);
 			int depth=0;
@@ -293,6 +303,14 @@ public abstract class Statement extends Token implements TreePrintable{
 			Token asn=c.nextNonNullMatch(Factories.checkForAssignlike);
 			if(!c.currentScope.hasBreak(depth)) throw new CompileError("tried to break with depth %d that did not exist;".formatted(depth));
 			Variable brk=c.currentScope.getBreakVarInMe(c,depth,c.currentScope);
+			if(!(asn instanceof Token.Assignlike)) {
+				Equation eq=Equation.toAssign(line, col, c, c.currentScope, m);
+				if(eq.end !=End.STMTEND) throw new CompileError("assignment ended with a non-';'");
+				if(eq.isEmpty()) eq = Equation.toAssignHusk(eq.stack, new Bool(line,col,true));
+				Assignment assignment = new Statement.Assignment(line, col,c.cursor, brk, eq);
+				c.currentScope.containsTrueReturn=true;
+				return new TrueReturnLike(c,assignment,depth);
+			}
 			//? =
 			if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.ASSIGNMENT) {
 				Equation eq=Equation.toAssign(line, col, c, c.currentScope, m);

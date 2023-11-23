@@ -37,10 +37,8 @@ import net.mcppc.compiler.tokens.Import;
 
 /*list of language editions TODO :: 
  * 
- * add java edition targeting : Version -> format ID; Target -> min version AND max version;
- * incorperate new 1.20.3 commands: return, tick, random, damage;
- * add volatile keyword to recursive functions to exempt locals from recursion
- * add true return / breaks (optional); use return # to give the depth to return back to, and if retype = int / bool / long: do a /return as well as $return
+ * add macro indexing for list
+ * add documentation and maybe put test code in the repo
  * String: add substring method using /data .... string (block <sourcePos>|entity <source>|storage <source>) [<sourcePath>] [<start>] [<end>]
  * VERSION NOTES: see /return version changes for lots of details: added at 15, 18 removed run, 19 re-added run and fail
  * 
@@ -50,7 +48,6 @@ import net.mcppc.compiler.tokens.Import;
  * add locks: invar -> outvar :: -> flag;
  * * if in a thread will not be ticked unless thread is running
  * add true-classes: warning, may involve heavy reworking of the compiler
- * add documentation and maybe put test code in the repo
  */
 
 /** if the eclipse bug happens that fails to load java:

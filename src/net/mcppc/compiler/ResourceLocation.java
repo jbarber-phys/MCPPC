@@ -124,6 +124,13 @@ public class ResourceLocation {
 		p.printf("function %s\n",this.toString());
 	}
 	@Targeted
+	public void runExtern(PrintStream p,Scope s,Variable macros,Variable retV) throws CompileError {
+		String cmd = "function %s".formatted(this.toString());
+		if(macros!=null)cmd = "function %s with %s".formatted(this.toString(),macros.dataPhrase());
+		if(retV!=null)retV.setMeToCmd(p, s, cmd, "result");
+		else p.println(cmd);
+	}
+	@Targeted
 	public void runIf(PrintStream p,Register r, VTarget tg) {
 		p.printf("execute if %s run function %s\n", r.testMeInCMD(),this.toString());
 	}

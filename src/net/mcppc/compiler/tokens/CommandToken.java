@@ -43,18 +43,26 @@ public class CommandToken extends Token{
 		boolean debug = false;
 		
 		if (CAN_BE_FORMATTED && attemptFormat) {
-			//TODO this is not working, it fails to see format inputs
 			String full = m.group("cmd");
 			int sizeTotal = full.length();
 			int end = m.end();
 			c.cursor = m.start("cmd");
 			//read for formatted sections
+			Token.Factory[] startlook = {FormatIgnore.factory,WildChar.passFactory};
 			Token.Factory[] look = {Token.StringToken.factory,FormatOpener.factory,
-					Terminator.factory,WildChar.passFactory};// strlit ,;,nl, $(,
+					Terminator.factory,EscapedNewline.factory,WildChar.passFactory};// strlit ,;,nl, $(,
 			//no escape test needed; the sequence $(...) should never appear outside a string literal in a mcfunction so we are safe
 			List<Equation> formats = new ArrayList<Equation>();
 			StringBuffer buffCmd = new StringBuffer();
 			StringBuffer buffPart = new StringBuffer();
+			int escstart = c.cursor;
+			boolean canFormat=true;
+			if(c.nextNonNullMatch(startlook) instanceof WildChar) {
+				c.cursor = escstart;
+			}else {
+				canFormat=false;
+			}
+			boolean usedEscape=false;
 			while(c.cursor < end) {
 				Token t = c.nextNonNullMatch(look);
 				c.cursor = m.end();
@@ -67,22 +75,34 @@ public class CommandToken extends Token{
 				}
 				if (t instanceof FormatOpener) {
 					//begin formatting
-					RStack stack = null; //stack usage is not allowed in const math
-					int li = formats.size();
-					Function.FuncCallToken.addArgs(c, s, line, col, m, stack, formats);
-					if(formats.size()!=li+1)
-						throw new CompileError("a number of eqs other than 1 found in mcf format statement at line %s col %s".formatted(t.line,t.col));
-					Equation eq = formats.get(li);
-					eq.forceConst= true;
-					String add = CMath.escepePercents(buffPart.toString());
-					buffPart.setLength(0);
-					buffCmd.append(add);
-					buffCmd.append("%s");
-				}else {
+					if(canFormat) {
+						RStack stack = null; //stack usage is not allowed in const math
+						int li = formats.size();
+						Function.FuncCallToken.addArgs(c, s, line, col, m, stack, formats);
+						if(formats.size()!=li+1)
+							throw new CompileError("a number of eqs other than 1 found in mcf format statement at line %s col %s".formatted(t.line,t.col));
+						Equation eq = formats.get(li);
+						eq.forceConst= true;
+						String add = CMath.escepePercents(buffPart.toString());
+						buffPart.setLength(0);
+						buffCmd.append(add);
+						buffCmd.append("%s");
+					}else {
+						//dont do format args if macros are in the cmd
+						buffPart.append(m.group());
+					}
+					
+				}else if(t instanceof EscapedNewline) {
+					buffPart.append(((EscapedNewline) t).inCmd());
+					usedEscape=true;
+					
+				} else {
 					buffPart.append(m.group());
 				}
 			}
+			//if(!canFormat) System.err.printf("%s\n", full);
 			if (formats.isEmpty()) {
+				if(usedEscape)full=buffPart.toString();
 				//no formatting
 				c.cursor=m.end();
 				return new CommandToken(line,col,full);
@@ -95,6 +115,7 @@ public class CommandToken extends Token{
 				cmd.formatting = formats;
 				return cmd;
 			}
+			
 		}else {
 			//old:
 			c.cursor=m.end();
@@ -141,7 +162,32 @@ public class CommandToken extends Token{
 		@Override public String asString() { return "$(...)";
 		}
 	}
-	
+	public static class FormatIgnore extends Token{
+		public static final Factory factory=new Factory(Regexes.CMD_MACRO_ESCAPE) {
+			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+				c.cursor=matcher.end();
+				return new FormatIgnore(line,col);
+			}};
+		public FormatIgnore(int line, int col) {
+			super(line, col);
+		}
+		@Override public String asString() { return "$";
+		}
+	}
+	public static class EscapedNewline extends Token{
+		public static final Factory factory=new Factory(Regexes.CMD_NL_ESCAPE) {
+			@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+				c.cursor=matcher.end();
+				c.newLine(matcher.start()+2);
+				return new EscapedNewline(line,col);
+			}};
+		public EscapedNewline(int line, int col) {
+			super(line, col);
+		}
+		@Override public String asString() { return "\\ \\n";
+		}
+		public String inCmd() {return " ";}
+	}
 	
 	
 	private final String cmd;

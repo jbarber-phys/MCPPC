@@ -31,7 +31,7 @@ import net.mcppc.compiler.tokens.Token.Factory;
 
 //TODO HTML ify docs
 /**
- * object representing a target selector
+ * object representing a target selector;<p>
  * 
  * Important notes on target selectors:
  *  a trailing comma is allowed but not a leading one

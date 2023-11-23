@@ -24,6 +24,8 @@ public class VTarget {
 	}
 	public static VTarget before(Version v) {
 		return new VTarget(Version.JAVA_NEFINITY,v);
+	}public static VTarget at(Version v) {
+		return new VTarget(v,v);
 	}
 	public static VTarget fromCmdArgument(String arg) {
 		Matcher m = Regexes.UINT.matcher(arg);

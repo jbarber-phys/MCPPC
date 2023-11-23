@@ -10,28 +10,21 @@ import java.util.Set;
 import java.util.regex.Matcher;
 
 import net.mcppc.compiler.CompileJob.Namespace;
+import net.mcppc.compiler.INbtValueProvider.Macro;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.functions.AbstractCallToken;
 import net.mcppc.compiler.struct.StackStorage;
 import net.mcppc.compiler.target.Targeted;
+import net.mcppc.compiler.target.VTarget;
+import net.mcppc.compiler.target.Version;
 import net.mcppc.compiler.tokens.*;
 import net.mcppc.compiler.tokens.Equation.End;
 
 /**
- * represents an mcpp function.
+ * represents an mcpp function;
  * @author RadiumE13
  *
- */
-/*
- * TODO (for 1.20.3) overhaul the extern keyword: allow it after a public / private;
- * 		use it to indicate that this function is natively-callable (with possible /return ... return), target at 1.20.3:
- * new use:
- * private double afunc(double a) -> other:funcs; //old extern-use; mcpp
- * public extern int amcf() -> datapack:a_mcfunction_with_return; //import an mcf
- * public extern int amcf() {...}; //export an mcf with /return
- * 
- * 
  */
 public class Function {
 	//this no longer applies with functions being recursive now
@@ -166,6 +159,7 @@ public class Function {
 				Variable arg=this.isInSelf?
 						this.getTempArg(p, c, s, stack, i)
 						:this.func.args.get(i);
+				if(this.func.isExtern && arg.isReference()) throw new CompileError("extern func cannot pass args by reference");
 				Equation eq=this.args.get(i);
 				if(arg.isReference() && !eq.isRefable())
 					throw new CompileError("attempted to pass non-trivial equation as a ref to function %s(...) on line %d col %d;"
@@ -175,6 +169,7 @@ public class Function {
 			}
 			//System.err.printf("%s\n", this.asString());
 			if(this.hasThisBound()) {
+				if(this.func.isExtern) throw new CompileError("extern func cannot be a nonstatic member");
 				if(!this.func.hasThis())
 					throw new CompileError("cannot call %s as a member of an object, it is not a nonstatic member;".formatted(func.name));
 				Variable self = this.isInSelf? this.getTempSelf(p, c, s, stack): this.func.self;
@@ -202,7 +197,20 @@ public class Function {
 			this.requestTemplate(s);
 			
 			//TODO if extern, get true return
-			this.getMyMCF().run(p,s.getTarget());
+			boolean externMcf = this.func.isExtern;
+			boolean hasRet = !this.getRetType(s).isVoid();
+			boolean hasArgs = this.args.size()>0;
+			if(this.getRetType(s).isVoid() && this.args.size()==0) externMcf=false;//can skip macros + return
+			if(this.func.isExtern) {
+				if(hasRet)VTarget.requireTarget(VTarget.after(Version.JAVA_1_20_3_SNAP), s.getTarget(), "call to extern", c);
+				else VTarget.requireTarget(VTarget.after(Version.JAVA_1_20_2), s.getTarget(), "call to extern", c);
+				Variable macrotag = hasArgs? Variable.macrosTag(this.func) : null;//already set
+				Variable externRet = hasRet? this.func.returnV : null;
+				this.getMyMCF().runExtern(p,s,macrotag,externRet);
+			}else {
+				//normal func call
+				this.getMyMCF().run(p,s.getTarget());
+			}
 			
 			if(this.func.canRecurr) {
 				StackStorage.restoreStack(p, c, s, stack, this.func.stackBackup,stacksize);
@@ -308,6 +316,7 @@ public class Function {
 	public final VarType retype;
 	public final Keyword access;
 	public final boolean canRecurr;
+	public final boolean isExtern;
 	public final List<Variable> args=new ArrayList<Variable>();
 	public final Map<String, Variable> locals=new HashMap<String, Variable>();
 	public final Set<Variable> localFlowVars=new HashSet< Variable>();
@@ -318,12 +327,13 @@ public class Function {
 	TemplateDefToken template=null;
 	private List<TemplateArgsToken> requestedBinds=new ArrayList<TemplateArgsToken>();
 	private final List<TemplateArgsToken> requestedBindsFilled=new ArrayList<TemplateArgsToken>();
-	public Function(String name,VarType ret,VarType thisType,Keyword access, Compiler c,boolean canRecurr) throws CompileError{
+	public Function(String name,VarType ret,VarType thisType,Keyword access, Compiler c,boolean canRecurr,boolean isExtern) throws CompileError{
 		this.name=name;
 		this.retype=ret;
 		this.access=access;
 		this.resoucrelocation=c.resourcelocation;
 		this.canRecurr=canRecurr;//must be before vars
+		this.isExtern=isExtern;
 		
 		this.returnV=new Variable("$return", ret, access, c).returnOf(this);
 		if(thisType!=null)this.self = new Variable("$this", thisType, access, c).thisOf(this);
@@ -339,8 +349,8 @@ public class Function {
 	public Variable getArg(int i)  throws CompileError{
 		return this.args.get(i);
 	}
-	public Function withLocalVar(Variable var, Compiler c)  throws CompileError{
-		if(var.isBasic()) var.localOf(this);
+	public Function withLocalVar(Variable var, Compiler c,boolean isVolatile)  throws CompileError{
+		if(var.isBasic()) var.localOf(this,isVolatile);
 		this.locals.put(var.name,var);
 		return this;
 	}
@@ -357,17 +367,20 @@ public class Function {
 	public void addConst(Const c) {
 		this.localConsts.add(c);
 	}
-	public Function withMCFName(String n) {
-		//must be extern
-		this.mcf=Scope.getSubRes(this.resoucrelocation, n);
-		return this;
+	private String altname = null;
+	private boolean hasMask = false;
+	public void setLocation(ResourceLocation path,String subname) {
+		if(subname==null) this.mcf = path;
+		else this.mcf=Scope.getSubRes(path, subname);
+		this.resoucrelocation=path;
+		this.altname=subname;
+		this.hasMask=true;
+		for(Variable b:this.args) {
+			b.maskedFunction(this, subname);
+		}
+		this.returnV.maskedReturn(this, subname);
 	}
-	public Function withMCF(ResourceLocation n) {
-		//must be extern
-		this.mcf=n;
-		
-		return this;
-	}
+	public static final String MACROPATH = "\"$macros\"";
 	public boolean hasThis() {
 		return this.self!=null;
 	}
@@ -424,12 +437,6 @@ public class Function {
 		return list;
 	}
 	public ResourceLocation getResoucrelocation() {return this.resoucrelocation;}
-	public void setResourceLocation(ResourceLocation path) {
-		this.resoucrelocation=path;
-		for(Variable b:this.args) {
-			b.holder=path.toString();
-		}
-	}
 	
 	public String toHeader() throws CompileError {
 		String rcrs = this.canRecurr? Keyword.RECURSIVE.name+" ":"";
@@ -437,11 +444,17 @@ public class Function {
 		String thisdot = this.hasThis()? this.self.type.headerString()+".":"";
 		boolean isFinal = this.hasThis()? !this.self.isReference() : false;
 		String fnl = isFinal? " %s ".formatted(Keyword.FINAL.name):"";
+		String mask = "";
+		if(this.hasMask) {
+			if(this.altname==null) mask = " -> %s".formatted(this.resoucrelocation);
+			else mask = " -> %s.%s".formatted(this.resoucrelocation,this.altname);
+		}
 		String[] argss=new String[this.args.size()];
 		for(int i=0;i<argss.length;i++)argss[i]=this.args.get(i).toHeader();
-		return "%s%s%s %s%s (%s)%s".formatted(rcrs,tmp,this.retype.headerString(),thisdot,this.name,
+		return "%s%s%s %s%s (%s)%s%s".formatted(rcrs,tmp,this.retype.headerString(),thisdot,this.name,
 				String.join(" , ", argss)
-				,fnl
+				,fnl,
+				mask
 				);
 	}
 	
@@ -479,7 +492,18 @@ public class Function {
 
 
 	}
-	public void allocateMyLocalsCallInside(PrintStream p, Scope s) throws CompileError {
+	public void allocateMyLocalsCallInside(PrintStream p, Scope s, Compiler c) throws CompileError {
+		if(this.isExtern && this.args.size()>0) {
+			RStack stack = s.getStackFor();
+			VTarget.requireTarget(VTarget.after(Version.JAVA_1_20_2), s.getTarget(), this.name, c);
+			for(Variable arg: this.args) {
+				//unpack macros
+				String name = arg.name;
+				Macro macro = new Macro(name,arg.type);
+				arg.setMeToMacro(p, s, stack, macro);
+			}
+			stack.clear();stack.finish(c.namespace);
+		}
 		if(this.canRecurr) {
 			//System.err.printf("allocateMyLocalsCallInside, flowvars: %s\n", this.localFlowVars.stream().map(v ->v.holder + "."+v.getAddressToPrepend()).toList());
 		}
@@ -499,7 +523,7 @@ public class Function {
 		if(this.hasThis() &&this.self.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.self.deallocateAfterCall(p, s.getTarget());
 
 	}
-	public void deallocateLocalAfterCallInside(PrintStream p, Scope s) throws CompileError {
+	public void deallocateLocalAfterCallInside(PrintStream p, Compiler c, Scope s) throws CompileError {
 		if(this.canRecurr) {
 			//System.err.printf("deallocateAfterCallOutside, flowvars: %s\n", this.localFlowVars.stream().map(v ->v.holder + "."+v.getAddressToPrepend()).toList());
 		}
@@ -507,6 +531,11 @@ public class Function {
 		if(this.canRecurr &&this.stackBackup.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))this.stackBackup.deallocateAfterCall(p, s.getTarget());
 		
 		if(this.canRecurr)for(Variable local:this.localFlowVars)if(local.willAllocateOnCall(FileInterface.ALLOCATE_WITH_DEFAULT_VALUES))local.deallocateAfterCall(p,s.getTarget());
-
+		if(this.isExtern && !this.returnV.type.isVoid()) {
+			VTarget.requireTarget(VTarget.after(Version.JAVA_1_20_3_SNAP), s.getTarget(), this.name, c);
+			RStack stack = s.getStackFor();
+			this.returnV.trueReturnMe(p, s, null);
+			stack.clear();stack.finish(c.namespace);
+		}
 	}
 }

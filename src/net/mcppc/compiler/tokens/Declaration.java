@@ -15,30 +15,59 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 
-//TODO allow estimate of function return value
-//example public int a(int b,int c) ~~ a*b*2 {...}
-//example public float sin(float x) ~~ min(x,1) {...}
 
+/*TODO extern reform: extern uses true return / macro args and must mask; 
+ * other funcs just use mcpp calls but may still mask;
+ * either can have a block or not (import / export)
+ * mask non extern: ->res.func;
+ * mask extern: ->res;
+ * must appear in hdr
+ * also must fix scope to change out dirs for export
+ * public extern volatile const type name ->.. ~~... = ... (args) final export ... ;{}
+ * fix coment, dont use lrangles in them
+ */
 
 /**
- * declares a function or variable or const:
+ * declares a function or variable or constant; usage differs depending on what is declared;<p>
  * 
- * for var:
- * <public / private> <type> <name> [ -> mask] [~~ estimate] [= assignment];
- * <extern> <type> <name>  -> < mask> [~~ estimate] [= assignment];
- * for const:
- * <public / private> const <const-type> <name>  = <value / other const>;
- * for function:
- * <public / private> [recursive] [template] <return type> [<thistype>.]<name>  (<args...>) [final] [ export <...>] {...};
- * <extern> [recursive] [template] <return type> [<thistype>.]<name>  (<args...>) [final] [ export <...>] -> <mcfunction location>;
- * for an arg:
- * 	[ref] <type> name
- * 	Separator: ','
+ * for var: <ul>
+ * 		<li>public / private
+ * 		<li>(optionals) extern volatile
+ * 		<li>[type]
+ * 		<li>[name]
+ * 		<li>(optional but required if extern) -> [mask]
+ * 		<li>(optional) ~~ [estimate]
+ * 		<li>(optional) = [assigned value]
+ * </ul>	
+ * for const: <ul>
+ * 		<li>public / private
+ * 		<li>const
+ * 		<li>[const-type]
+ * 		<li>[name]
+ * 		<li> = [const value]
+ * </ul>
+ *	for func: <ul>
+ * 		<li>public / private
+ * 		<li>(optionals) extern recursive
+ * 		<li>(optional) [template definition]
+ * 		<li>[return type]
+ * 		<li>(internal only) [thistype].
+ * 		<li>[name] (args...)
+ * 		<li>(internal only) final
+ * 		<li>(optional) export [template value]
+ * 		<li>(optional but required if extern) -> [mask]
+ * 		<li> { or ;
+ * </ul>
+ * for an arg (seperated by commas): <ul>
+ * 		<li>(optional) ref
+ * 		<li>[type]
+ * 		<li>[name]
+ * </ul>
  * @author RadiumE13
  *
  */
 public class Declaration extends Statement implements Statement.Headerable,DommentCollector,Statement.CodeBlockOpener{
-	
+	public static final boolean ALLOW_NON_EXTERN_EXPORTS = true;
 	static final Token.Factory[] look = Factories.genericLookPriority(new Token.Factory[]{Token.BasicName.factory}, 
 			Token.Paren.factory,
 			Token.Assignlike.factoryMask,Token.Assignlike.factoryAssign,Token.Assignlike.factoryEstimate,
@@ -219,7 +248,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		
 		if(s.isInFunctionDefine()) {
 			//System.err.printf("local %s . %s created\n", s.getFunction().name,this.variable.name);
-			s.getFunction().withLocalVar(this.variable, c);
+			s.getFunction().withLocalVar(this.variable, c,this.isVolatile);
 		}else if (this.isInThread ){
 			if(!s.getThread().add(this, c, s, s.getThreadBlock())) throw new CompileError.DoubleDeclaration(this);
 			//if(!c.myInterface.add(this)) throw new CompileError.DoubleDeclaration(this);
@@ -242,6 +271,10 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 		c.cursor=matcher.end();
 		boolean isRecursive=false;
 		d.isInThread=c.currentScope.hasThread();
+		if(access==Keyword.EXTERN) {
+			d.isExtern=true;
+			access=Keyword.PRIVATE;
+		}
 		Token keyword2 = c.nextNonNullMatch(Factories.checkForKeyword);
 		if(keyword2 instanceof Token.BasicName) {
 			Token.BasicName kw2 = (BasicName) keyword2;
@@ -252,11 +285,15 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 				isRecursive=true;
 			}else if ( Keyword.fromString(kw2.name)==Keyword.VOLATILE) {
 				d.isVolatile=true;
+			}else if(Keyword.fromString(kw2.name)==Keyword.EXTERN) {
+				if(d.isExtern) throw new CompileError("%s was repeated twice".formatted(Keyword.EXTERN.name));
+				d.isExtern=true;
 			}
 		}
 		
 
 		TemplateDefToken template = TemplateDefToken.checkForDef(c,c.currentScope, matcher);
+		if(template!=null && d.isExtern) throw new CompileError("extern function on line %d col %d cannot have a template".formatted(line,col));
 		Scope typescope=template==null?c.currentScope:c.currentScope.defTemplateScope(template);
 		
 		Type type=Type.tokenizeNextVarType(c,typescope, matcher, line, col);
@@ -283,7 +320,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			if (!((Token.Paren) t3).forward)throw new UnexpectedToken(t3);
 			//CompileJob.compileHdrLog.println("Declaration its a function");
 			if (BuiltinFunction.BUILTIN_FUNCTIONS.containsKey(varname.name))throw new CompileError("function name %s conflicts with a builtin function on line %d column %d.".formatted(varname.line,varname.col));
-			d.function=new Function(varname.asString(),type.type,thisType,access,c,isRecursive);
+			d.function=new Function(varname.asString(),type.type,thisType,access,c,isRecursive,d.isExtern);
 			d.function.withTemplate(template);
 			//Scope subscope=c.currentScope.subscope(d.function);
 			
@@ -318,27 +355,32 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 					}else c.cursor=start;
 				}
 			}
-			if(access==Keyword.EXTERN) {
-				//-> statement for resourcelocation
-				Token asn = c.nextNonNullMatch(look);
-				if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.MASK) {
-					asn=c.nextNonNullMatch(lookMaskHolder);//not looking for consts; and shouldnt ;
-					if(!(asn instanceof ResourceLocation.ResourceToken))throw new CompileError.UnexpectedToken(asn, "resource location");
-					d.function.setResourceLocation(((ResourceLocation.ResourceToken)asn).res);
-					int precursor=c.cursor;
-					asn=c.nextNonNullMatch(lookMaskOp);
-					if(asn instanceof Token.TagOf) {
-						//optional
-						//CompileJob.compileHdrLog.println("custom func name");
-						asn=c.nextNonNullMatch(look);
-						if (!(asn instanceof Token.BasicName)) throw new CompileError.UnexpectedToken(asn,"normal function name");
-						d.function.withMCFName(((Token.BasicName)asn).name);
-					}else {
-						c.cursor=precursor;
-					}
-
-				}else throw new CompileError.UnexpectedToken(asn, "->");
-			}else {
+			Token maskasn = c.nextNonNullMatch(Factories.genericCheck(Token.Assignlike.factoryMask));
+			boolean didmask=false;
+			if(maskasn instanceof Token.Assignlike && ((Assignlike)maskasn).k==Kind.MASK) {
+				Token restoken=c.nextNonNullMatch(lookMaskHolder);//not looking for consts; and shouldnt ;
+				if(!(restoken instanceof ResourceLocation.ResourceToken))throw new CompileError.UnexpectedToken(restoken, "resource location");
+				ResourceLocation newres = ((ResourceLocation.ResourceToken)restoken).res;
+				int precursor=c.cursor;
+				Token tof=c.nextNonNullMatch(lookMaskOp);
+				String subname = null;
+				if(tof instanceof Token.TagOf) {
+					//optional
+					//CompileJob.compileHdrLog.println("custom func name");
+					tof=c.nextNonNullMatch(look);
+					if (!(tof instanceof Token.BasicName)) throw new CompileError.UnexpectedToken(tof,"normal function name");
+					subname=((Token.BasicName)tof).name;
+					if(d.isExtern) throw new CompileError("extern function mask should ONLY contain a resourcelocation");
+				}else {
+					c.cursor=precursor;
+					if(!d.isExtern) throw new CompileError("non-extern function mask must contain a resourcelocation and a function name");
+				}
+				d.function.setLocation(newres, subname);
+				didmask = true;
+			}else if (d.isExtern) {
+				throw new CompileError("extern function must have a mask statement: -> resource:location");
+			}
+			if(!d.isExtern) {
 				//template auto-requests
 				Token bind = c.nextNonNullMatch(Factories.checkForKeyword);
 				while (bind instanceof Token.BasicName) {
@@ -354,13 +396,27 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			// {...}
 			//in header, just skip;
 			Token term=c.nextNonNullMatch(look);
-			if(d.access==Keyword.EXTERN || isReadingHeader) {
+			
+			if( isReadingHeader) {
 				//no code blocks for extners / funcs in header
 				//;
 
 				if(!(term instanceof Token.LineEnd))throw new CompileError.UnexpectedToken(term,";");
 				//else good
-			}else {
+			}else if(didmask) {
+				//could have or not have code block
+				//;
+
+				if((term instanceof Token.LineEnd)) {}
+				else if((!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{ or ;");
+				else {
+					if(!d.isExtern && !ALLOW_NON_EXTERN_EXPORTS) throw new CompileError("not allowing non-extern masked export of function");
+					//sub with a mask
+					d.defineScope=c.currentScope.subscope(d.function);
+				}
+				//else good
+			}
+			else {
 				if((!(term instanceof Token.CodeBlockBrace)) || (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{");
 				//{...}
 				//let Compiler.... handle it
@@ -386,7 +442,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			Function localOf=null;
 			if(isFuncLocal) {
 				localOf = c.currentScope.getFunction();
-				d.variable.localOf(localOf);
+				d.variable.localOf(localOf,d.isVolatile);
 			}else if (d.isInThread) {
 				//later
 			}
@@ -417,17 +473,24 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			c.nextNonNullMatch(Factories.headerSkipline);
 			//if(!c.myInterface.add(d)) throw new CompileError.DoubleDeclaration(d);
 			d.addVar(c, c.currentScope, isReadingHeader, false);
-			
+			if(d.isExtern && !d.hdrHasMask) throw new CompileError("an extern var must have a mask statement");
 			return d;
 		}
 	}
 	static Token compileToken(Compiler c, Matcher matcher, int line, int col,Keyword access) throws CompileError {
+		
+		/*
 		if (access==Keyword.EXTERN) {
 			c.nextNonNullMatch(Factories.headerSkipline);
 			return null;//ignore if in header file
-		}
+		}*/
 		Declaration d = new Declaration(line,col,c.cursor,access);
 		c.dommentCollector=DommentCollector.Dump.INSTANCE;
+
+		if(access==Keyword.EXTERN) {
+			d.isExtern=true;
+			access=Keyword.PRIVATE;
+		}
 		//typename
 		c.cursor=matcher.end();
 		Token keyword2 = c.nextNonNullMatch(Factories.checkForKeyword);
@@ -442,11 +505,15 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 				isRecursive=true;
 			}else if ( Keyword.fromString(kw2.name)==Keyword.VOLATILE) {
 				d.isVolatile=true;
+			}else if(Keyword.fromString(kw2.name)==Keyword.EXTERN) {
+				if(d.isExtern) throw new CompileError("%s was repeated twice".formatted(Keyword.EXTERN.name));
+				d.isExtern=true;
 			}
 		}
 		
 
 		TemplateDefToken template = TemplateDefToken.checkForDef(c,c.currentScope, matcher);
+		if(template!=null && d.isExtern) throw new CompileError("extern function on line %d col %d cannot have a template".formatted(line,col));
 		Scope typescope=template==null?c.currentScope:c.currentScope.defTemplateScope(template);
 		
 		Type type=Type.tokenizeNextVarType(c,typescope, matcher, line, col);
@@ -505,27 +572,33 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 					}else c.cursor=start;
 				}
 			}
-			if(access==Keyword.EXTERN) {
-				//-> statement for resourcelocation
-				Token asn = c.nextNonNullMatch(look);
-				if(asn instanceof Token.Assignlike && ((Assignlike)asn).k==Kind.MASK) {
-					asn=c.nextNonNullMatch(lookMaskHolder);
-					if(!(asn instanceof ResourceLocation.ResourceToken))throw new CompileError.UnexpectedToken(asn, "resource location");
-					//d.function.setResourceLocation(((ResourceLocation.ResourceToken)asn).res);
-					int precursor=c.cursor;
-					asn=c.nextNonNullMatch(lookMaskOp);
-					if(asn instanceof Token.TagOf) {
-						//optional
-						//CompileJob.compileMcfLog.println("custom func name");
-						asn=c.nextNonNullMatch(look);
-						if (!(asn instanceof Token.BasicName)) throw new CompileError.UnexpectedToken(asn,"normal function name");
-						//d.function.withMCFName(((Token.BasicName)asn).name);
-					}else {
-						c.cursor=precursor;
-					}
-
-				}else throw new CompileError.UnexpectedToken(asn, "->");
-			}else {
+			Token maskasn = c.nextNonNullMatch(Factories.genericCheck(Token.Assignlike.factoryMask));
+			boolean didmask=false;
+			if(maskasn instanceof Token.Assignlike && ((Assignlike)maskasn).k==Kind.MASK) {
+				Token restoken=c.nextNonNullMatch(lookMaskHolder);//not looking for consts; and shouldnt ;
+				if(!(restoken instanceof ResourceLocation.ResourceToken))throw new CompileError.UnexpectedToken(restoken, "resource location");
+				ResourceLocation newres = ((ResourceLocation.ResourceToken)restoken).res;
+				int precursor=c.cursor;
+				Token tof=c.nextNonNullMatch(lookMaskOp);
+				String subname = null;
+				if(tof instanceof Token.TagOf) {
+					//optional
+					//CompileJob.compileHdrLog.println("custom func name");
+					tof=c.nextNonNullMatch(look);
+					if (!(tof instanceof Token.BasicName)) throw new CompileError.UnexpectedToken(tof,"normal function name");
+					subname=((Token.BasicName)tof).name;
+					if(d.isExtern) throw new CompileError("extern function mask should ONLY contain a resourcelocation");
+				}else {
+					c.cursor=precursor;
+					if(!d.isExtern) throw new CompileError("non-extern function mask must contain a resourcelocation and a function name");
+				}
+				//d.function.setResourceLocation(newres);
+				//if(subname!=null) d.function.withMCFName(subname);
+				didmask = true;
+			}else if (d.isExtern) {
+				throw new CompileError("extern function must have a mask statement: -> resource:location");
+			}
+			if(!d.isExtern) {
 				//template auto-requests
 				Token bind = c.nextNonNullMatch(Factories.checkForKeyword);
 				while (bind instanceof Token.BasicName) {
@@ -539,10 +612,15 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 			}
 			// {...}
 			Token term=c.nextNonNullMatch(look);
-			if(d.access==Keyword.EXTERN) {
+			if(didmask) {
 				//;
 
-				if(!(term instanceof Token.LineEnd))throw new CompileError.UnexpectedToken(term,";");
+				if((term instanceof Token.LineEnd)) {}
+				else if( (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{ or ;");
+				else {
+					if(!d.isExtern && !ALLOW_NON_EXTERN_EXPORTS) throw new CompileError("not allowing non-extern masked export of function");
+					d.defineScope=c.currentScope.subscope(d.function);
+				}
 				//else good
 			}else {
 				if((!(term instanceof Token.CodeBlockBrace)) || (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{");
@@ -629,6 +707,7 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	public boolean hdrHasAssign = false;
 	public boolean hdrHasMask = false;
 	public boolean isVolatile = false;
+	public boolean isExtern = false;
 	
 	public boolean isFunction() {return this.objType==DeclareObjType.FUNC;}
 	public boolean isVariable() {return this.objType==DeclareObjType.VAR;}
@@ -664,15 +743,16 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	@Override
 	public void headerMe(PrintStream f) throws CompileError {
 		for(Domment d:this.domments) f.println(d.inHeader());
+		String ext=this.isExtern? " extern":"";
 		switch(this.objType) {
 		case CONST:
 			this.constv.headerDeclaration(f);
 			break;
 		case FUNC:
-			f.printf("public %s;\n",this.function.toHeader());
+			f.printf("public%s %s;\n",ext,this.function.toHeader());
 			break;
 		case VAR:
-			f.printf("public %s;\n".formatted(this.variable.toHeader()));
+			f.printf("public%s %s;\n".formatted(ext,this.variable.toHeader()));
 			break;
 		default:
 			throw new CompileError("null objType in declaration");
@@ -703,14 +783,14 @@ public class Declaration extends Statement implements Statement.Headerable,Domme
 	public void addToStartOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
 		//do nothing
 		if(this.objType==DeclareObjType.FUNC) {
-			this.function.allocateMyLocalsCallInside(p, s);
+			this.function.allocateMyLocalsCallInside(p, s, c);
 		}
 	}
 	@Override
 	public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError {
 		//do nothing
 		if(this.objType==DeclareObjType.FUNC) {
-			this.function.deallocateLocalAfterCallInside(p, s);
+			this.function.deallocateLocalAfterCallInside(p, c, s);
 		}
 	}
 	public DeclareObjType getObjType() {

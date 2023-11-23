@@ -22,4 +22,37 @@ public interface INbtValueProvider {
 	@Targeted static final String VALUE = "value %s";
 	public String fromCMDStatement(VTarget tg);
 	public VarType getType();
+	
+
+	public default boolean isMacro() {
+		return false;
+	}
+	
+	public static class Macro implements INbtValueProvider{
+		private static final String MACRO_FORMAT = "$(%s)";
+		
+		private final String name;
+		private final VarType type;
+		public Macro(String name,VarType type) {
+			this.name=name;
+			this.type=type;
+		}
+		@Override
+		public boolean hasData() {
+			return true;
+		}
+		@Override public boolean isMacro() {
+			return true;
+		}
+		@Override
+		public String fromCMDStatement(VTarget tg) {
+			return VALUE.formatted(MACRO_FORMAT.formatted(this.name));
+		}
+
+		@Override
+		public VarType getType() {
+			return this.type;
+		}
+		
+	}
 }

@@ -1,5 +1,6 @@
 /// a library for dealing damage to entities
 /** shoots an arrow in the facing direction and returns it;
+* written with some help;
 */
 public<num n = 1 .. 6> Entity shootForward(Entity target,double<n> damage,double<n> speed){
     //dealt-damage = damage * vel.mag()
@@ -22,7 +23,7 @@ public<num n = 1 .. 6> Entity shootForward(Entity target,double<n> damage,double
 }
 /** damage an entity and knock them back away from the executor;
 * works by summoning an arrow at point blank (and returning it);
-* may not work on all entities
+* may not work on all entities;
 */
 public<num n = 1 .. 6> Entity attack(Entity target,double<n> damage){
     //dealt-damage = damage * vel.mag()

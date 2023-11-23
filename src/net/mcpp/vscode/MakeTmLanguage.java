@@ -195,6 +195,7 @@ public class MakeTmLanguage extends Regexes.Strs{
 						include(resourcelocations),
 						include(targetSelectors),//may be deprecated
 						//namedMatch(selector,SELECTOR_BASIC,italic),
+						namedMatch(italic,CMD_NL_ESCAPED),
 						namedMatch(keyword,regexMCFkeyword()),
 						namedMatch(basictype,regexMCFsubkeyword()),
 						mcf_escapes

@@ -24,14 +24,16 @@ public final class Regexes {
 		public static final String COMMENT_BLOCK=("/\\*(?!\\*)(([^\\*]|\\*(?!(/)))*)\\*/");// /\*(?!\*)(([^\*]|\*(?!(/)))*)\*/
 		public static final String DOMMENT_BLOCK=("/\\*\\*(([^\\*]|\\*(?!(/)))*)\\*/");// /\*\*(([^\*]|\*(?!(/)))*)\*/
 		
-		public static final String CMDGROUP = "(?<cmd>((%s)|[^\\\"';\\\\\\n])*)".formatted(Strs.STRLITSTRING); 
-		// (?<cmd>((%s)|[^\"';\\\n])*)
+		public static final String CMDGROUP = "(?<cmd>((%s)|(%s)|[^\\\"';\\\\\\n])*)".formatted(Strs.STRLITSTRING,Strs.CMD_NL_ESCAPED); 
+		// (?<cmd>((%s)|(%s)|[^\"';\\\n])*)
 
 		public static final int cmd_group = 1;
 		public static final String CMD_SAFE=("\\$/%s(?=;|\\n|$)".formatted(CMDGROUP));// \$/%s(?=;|\n|$)
 
 		public static final String CMD_FORMATTED_START = "\\$\\(";//\$\(
 		public static final String CMD_FORMATTED_END = "\\)";//\)
+		
+		public static final String CMD_NL_ESCAPED = "\\\\\\h*\\n\\h*";//\\\h*\n\h*
 		
 		
 		public static final int player_group = 1;
@@ -123,6 +125,8 @@ public final class Regexes {
 	//a lookahead, priority below string literal
 	public static final Pattern CMD_TERMINATOR = Pattern.compile("(?=;|\\n|$)");//(?=;|\n|$)
 	public static final Pattern CMD_FORMATTED_START = Pattern.compile(Strs.CMD_FORMATTED_START);//\$\(
+	public static final Pattern CMD_MACRO_ESCAPE = Pattern.compile("\\$");//\$
+	public static final Pattern CMD_NL_ESCAPE = Pattern.compile(Strs.CMD_NL_ESCAPED);
 
 	
 	@Deprecated

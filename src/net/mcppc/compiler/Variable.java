@@ -12,8 +12,10 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.functions.PrintF;
 import net.mcppc.compiler.struct.Entity;
+import net.mcppc.compiler.struct.NbtCompound;
 import net.mcppc.compiler.struct.Struct;
 import net.mcppc.compiler.target.VTarget;
+import net.mcppc.compiler.target.Version;
 import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Bool;
@@ -142,12 +144,27 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 
 		return this;
 	}
-	public Variable localOf(Function f) throws CompileError{
+	public Variable maskedFunction(Function f,String subname){
+		if(subname==null) this.address="%s.%s".formatted(Function.MACROPATH,this.name);// extern
+		else this.address="%s.%s".formatted(subname,this.name);
+		this.holder=f.getResoucrelocation().toString();
+		return this;
+	}
+	public Variable maskedReturn(Function f,String subname){
+		if(subname==null) this.address="%s.%s".formatted(Function.MACROPATH,Function.RET_TAG);// extern
+		else this.address="%s.%s".formatted(subname,Function.RET_TAG);
+		this.holder=f.getResoucrelocation().toString();
+		return this;
+	}
+	public static Variable macrosTag(Function f) {
+		return new Variable("$macros",NbtCompound.TAG_COMPOUND,null,Mask.STORAGE,f.getResoucrelocation().toString(),Function.MACROPATH);
+	}
+	public Variable localOf(Function f,boolean isVolatile) throws CompileError{
 		this.address="%s.%s".formatted(f.name,this.name);
 		this.holder=f.getResoucrelocation().toString();
 		this.isReference=false;
 		this.isFuncLocal=true;
-		this.isRecursive = f.canRecurr;
+		this.isRecursive = f.canRecurr && !isVolatile;
 		if(this.isRecursive &&!canIBeRecursive())throw new CompileError("Variable %s of type %s cannot be made recursive;".formatted(this.name,this.type.asString()));
 
 		return this;
@@ -411,6 +428,23 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 			return;
 		}
 		String resultsuccess = this.type.isNumeric()? "result":"success";
+		this.setMeToCmdBasic(f, s, cmd, resultsuccess);
+		
+	}
+	/**
+	 * called by extern calls to get bools as results, not successes
+	 * @param f
+	 * @param s
+	 * @param cmd
+	 * @param resultorsuccess
+	 * @throws CompileError
+	 */
+	public void setMeToCmd(PrintStream f,Scope s,String cmd,String resultorsuccess) throws CompileError {
+		if(this.isStruct()) {
+			this.type.struct.setMeToCmd(f,s,this,cmd);
+			return;
+		}
+		String resultsuccess = resultorsuccess;
 		this.setMeToCmdBasic(f, s, cmd, resultsuccess);
 		
 	}
@@ -818,6 +852,55 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		}else if (e instanceof Num) {
 			this.setMeToNumber(p, null, stack, ((Num)e).value);
 		}
+		
+	}
+	public boolean canSetToMacro(Macro e) {
+		if(this.type.isStruct()) {
+			return this.type.struct.canSetToMacro(this, e);
+		}else return true;
+	}
+	public void setMeToMacro(PrintStream p, Scope s, RStack stack, Macro e) throws CompileError {
+		if(this.type.isStruct()) {
+			this.type.struct.setMeToMacro(p, s, stack, this, e);
+		}else {
+			this.setMeToMacroBasic(p, s, stack, e);
+		}
+		
+	}
+	public void trueReturnMe(PrintStream p, Scope s, RStack stack) throws CompileError {
+		if(this.type.isStruct()) {
+			this.type.struct.trueReturnMe(p, s, stack, this);
+		}else {
+			this.trueReturnMeBasic(p, s, stack);
+		}
+	}
+	public void trueReturnMeBasic(PrintStream p, Scope s, RStack stack) throws CompileError {
+		double mult=Math.pow(10, this.type.getPrecision(s));
+		switch (this.pointsTo) {
+		case STORAGE:{
+			p.println("return run data get storage %s %s %s"
+					.formatted(this.holder,this.getAddressToGetset(),CMath.getMultiplierFor(mult)));
+		}break;
+		case BLOCK:{
+			p.println("return run data get block %s %s %s"
+					.formatted(this.holder,this.getAddressToGetset(),CMath.getMultiplierFor(mult)));
+		}break;
+		case ENTITY:{
+			p.println("return run data get entity %s %s %s"
+					.formatted(this.holder,this.getAddressToGetset(),CMath.getMultiplierFor(mult)));
+		}break;
+		case SCORE:{
+			p.println("return run scoreboard players get %s %s".formatted(this.holder,this.getAddressToGetset()));
+		}break;
+		}
+	}
+	@Targeted
+	public void setMeToMacroBasic(PrintStream p, Scope s, RStack stack, Macro e) throws CompileError {
+		//check version elsewhere
+		if(this.getMaskType().isNbt) {
+			p.printf("$data modify %s set %s\n", this.dataPhrase(),e.fromCMDStatement(s.getTarget()));
+		} else throw new CompileError("cannot mask var with mask type %s".formatted(this.getMaskType().name()));
+		//score coudl work but is not needed
 		
 	}
 	public Variable indexMyNBTPath(int index) throws CompileError {

@@ -50,20 +50,8 @@ import net.mcppc.compiler.tokens.Token;
  * * * compiler gives this to code blocks, where it is used by actual thread code block_%n
  * * * (tokenize only) thread controls call to get a subscope with null block number
  * 
- *  TODO tick and death blocks:
- *  add namespace tick: call ignoring wait param to tickblocks,
- *   *  in the tickblock, add the executor tag, call blocks, remove tag and leave
- *   * 
  *  
  *  
- *  
- */
-
-/*
- * //TODO flowvars are scores of executor and dissapear if dead;
- * this stops the death condition from working; it overfires
- *tried to solve by altering flowvars but making them not be on executor stops the executor from ticking
- *TODO SOLUTION: to guard the death flag, instead use a second death flag for prev-goto or something
  */
 
 /**

@@ -13,6 +13,7 @@ import java.util.TreeMap;
 
 import net.mcppc.compiler.errors.COption;
 import net.mcppc.compiler.errors.CompileError;
+import net.mcppc.compiler.target.Future;
 import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Statement;
@@ -107,6 +108,10 @@ public class Scope {
 		
 	}
 	//==============
+	@Future public boolean containsTrueReturn = false;
+	private boolean skipCompilation = false;
+	
+	//
 	private final Map<String,Variable> loopLocals = new HashMap<String,Variable>();
 	public boolean hasLoopLocal(String name) {
 		if(this.parent !=null && this.parent.hasLoopLocal(name)) return true;
@@ -146,7 +151,7 @@ public class Scope {
 	public PrintStream open(CompileJob cj) throws FileNotFoundException {
 		this.isOpen=true;
 		//setProhibitLongMult(false);
-		File f=cj.pathForMcf(this.getSubRes(this.resBase)).toFile();
+		File f=cj.pathForMcf(this.getSubRes() ).toFile();
 		try {
 			f.getParentFile().mkdirs();
 			f.createNewFile();
@@ -174,13 +179,6 @@ public class Scope {
 	private int makeNextFlowNumber() {
 		return this.flowCounter++;
 	}
-
-	public ResourceLocation getSubRes() {
-		return getSubRes(this.resBase);
-	}
-	public ResourceLocation getSubResNoTemplate() {
-		return getSubRes(this.resBase,true);
-	}
 	public static ResourceLocation getSubRes(ResourceLocation base,Function f) {
 		StringBuffer path=new StringBuffer();
 		path.append(base.path);
@@ -193,6 +191,7 @@ public class Scope {
 		buff.append(CompileJob.FILE_TO_SUBDIR_SUFFIX);
 		buff.append(f.name.toLowerCase());//warning: function name case may cause problems
 	}
+	@Deprecated
 	private static void appendSubResSubFunc(StringBuffer buff,Function f, TemplateArgsToken template ) {
 		buff.append(f.name.toLowerCase());//warning: function name case may cause problems
 		//System.err.println(path);
@@ -224,27 +223,40 @@ public class Scope {
 		path.append(fname);
 		return new ResourceLocation(base.namespace,path.toString());
 	}
-	public ResourceLocation getSubRes(ResourceLocation res) {
-		return this.getSubRes(res, false);
+	public ResourceLocation getSubRes() {
+		return this.getSubRes(false);
 	}
-	public ResourceLocation getSubRes(ResourceLocation res,boolean stripTemplate) {
+
+	public ResourceLocation getSubResNoTemplate() {
+		return getSubRes(true);
+	}
+	public ResourceLocation getSubRes(boolean stripTemplate) {
+		ResourceLocation res = this.resBase;
 		if(this.parent==null)return res;
 		StringBuffer path=new StringBuffer();
-		path.append(res.path);
-		path.append(CompileJob.FILE_TO_SUBDIR_SUFFIX);
 		//System.err.println(path);
 		if(function!=null) {
+			//TODO fix extern
+			//path.append(res.path);
+			//path.append(CompileJob.FILE_TO_SUBDIR_SUFFIX)
 			TemplateDefToken bound = this.templateBoundToMeOrParrent();
 			
 			try { 
 				TemplateArgsToken targs=(bound==null || stripTemplate)?null:bound.defaultArgs();
-				Scope.appendSubResSubFunc(path, function,targs);
+				//Scope.appendSubResSubFunc(path, function,targs);
+				ResourceLocation mcf = res = function.getMCF(targs);
+				path.append(mcf.path);
 			} catch (CompileError e) {
 				e.printStackTrace();
+				ResourceLocation mcf = res = function.getMCF();
+				path.append(mcf.path);
 				path.append("_null_");
 			}
 			
 			
+		}else {
+			path.append(res.path);
+			path.append(CompileJob.FILE_TO_SUBDIR_SUFFIX);
 		}
 		if(thread!=null) {
 			this.thread.addToPath(path, this.threadsuffix);

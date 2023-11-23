@@ -11,12 +11,14 @@ import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
+import net.mcppc.compiler.INbtValueProvider.Macro;
 import net.mcppc.compiler.Variable.Mask;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.CompileError.UnsupportedCast;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.functions.FunctionMask;
 import net.mcppc.compiler.target.VTarget;
+import net.mcppc.compiler.target.Version;
 import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Factories;
@@ -327,13 +329,19 @@ public abstract class Struct {
 			reg.setValue(p,!invert);
 			return home;
 		}
+		if(first.isMacro() || second.isMacro()) {
+			VTarget.requireTarget(VTarget.after(Version.JAVA_1_20_2), s.getTarget(), "nbt equality test", c);
+		}
 		Variable temp = new Variable("\"$temp\"",first.getType(),null,Mask.STORAGE,"mcpp:temp","\"$temp\"");
 		String dtemp=temp.dataPhrase();
 		String nbtcmd1=first.fromCMDStatement(s.getTarget());
 		String nbtcmd2=second.fromCMDStatement(s.getTarget());
-		p.printf("data modify %s set %s\n",dtemp,nbtcmd1);
+		String macroprefix1 = first.isMacro()?"$":"";
+		String macroprefix2 = second.isMacro()?"$":"";
+		p.printf("%sdata modify %s set %s\n",macroprefix1,dtemp,nbtcmd1);
 		//int ex = stack.reserve(1);Register rex = stack.getRegister(ex);
 		String cmd = "data modify %s set %s".formatted(dtemp,nbtcmd2);
+		p.print(macroprefix2);
 		reg.setToSuccess(p, cmd); // see if nothing changed
 		if(!invert) {
 			UnaryOp not = new UnaryOp(-1,-1,UOType.NOT);
@@ -628,6 +636,25 @@ public abstract class Struct {
 		assert me.getMaskType().isNbt;
 		p.printf("data modify %s set value %s\n",me.dataPhrase(), e.textInMcf(tg));
 		
+	}
+	public boolean canSetToMacro(Variable me,Macro e) {
+		
+		if(this.isDataEquivalent(me.type)) return this.canCasteFrom(me.type, e.getType());
+		else return false;
+	}
+	public void setMeToMacro(PrintStream p,Scope s,RStack stack, Variable me, Macro e) throws CompileError {
+		if(this.isDataEquivalent(me.type)) this.setMeToMacroBasic(p, s.getTarget(), stack, me, e);
+		else throw new CompileError("cannot set non-data type to macro");
+	}
+	@Targeted
+	protected void setMeToMacroBasic(PrintStream p,VTarget tg,RStack stack, Variable me, Macro e) throws CompileError {
+		assert me.getMaskType().isNbt;
+		p.printf("$data modify %s set %s\n",me.dataPhrase(), e.fromCMDStatement(tg));
+		
+	}
+	@Targeted
+	public void trueReturnMe(PrintStream p, Scope s, RStack stack,Variable me) throws CompileError {
+		throw new CompileError("cannot extern-return a struct");
 	}
 
 	public boolean isReady(VarType varType) {

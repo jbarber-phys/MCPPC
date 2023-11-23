@@ -21,6 +21,8 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.Size;
 import net.mcppc.compiler.struct.NbtCollection.Clear;
 import net.mcppc.compiler.target.Targeted;
+import net.mcppc.compiler.target.VTarget;
+import net.mcppc.compiler.target.Version;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Token;
 /**
@@ -254,8 +256,13 @@ public class NbtList extends NbtCollection{
 				int i = index.getNumber().intValue();
 				//System.err.printf("index const %s[%d]\n",self.name,i);
 				if(this.isInsert) {
+					boolean macros = this.valuebuff.isMacro();
 					value.compileOps(p, c, s, memb);
 					value.setVar(p, c, s, this.valuebuff);
+					if(macros) {
+						VTarget.requireTarget(VTarget.after(Version.JAVA_1_20_2), s.getTarget(), this.name, c);
+						p.print("$");
+					}
 					p.printf("data modify %s insert %d %s\n", self.dataPhrase(),i,this.valuebuff.fromCMDStatement(s.getTarget()));
 				}else {
 					value.compileOps(p, c, s, memb);

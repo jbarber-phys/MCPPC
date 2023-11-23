@@ -15,6 +15,7 @@ public class Version  implements Ordered<Version>{
 	public static final Version JAVA_1_18_2 = new Version(9); // approx initial commit
 	public static final Version JAVA_1_19 = new Version(10);
 	public static final Version JAVA_1_20 = new Version(15); 
+	public static final Version JAVA_1_20_2_SNAP_RETURN_RUN = new Version(16); 
 	public static final Version JAVA_1_20_2 = new Version(18); 
 	public static final Version JAVA_1_20_3_SNAP = new Version(25); //temporary
 	
