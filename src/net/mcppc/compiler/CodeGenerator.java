@@ -12,7 +12,7 @@ import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.target.Targeted;
 /**
- * manages code that generates mcfunctions for stdlib
+ * manages code that generates mcfunctions used by mcpp;
  * @author RadiumE13
  *
  */

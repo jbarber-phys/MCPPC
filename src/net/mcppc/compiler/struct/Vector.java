@@ -30,14 +30,7 @@ import net.mcppc.compiler.tokens.Type;
 import net.mcppc.compiler.tokens.UnaryOp;
 import net.mcppc.compiler.tokens.UnaryOp.UOType;
 /**
- * struct for dealing with directions of space; should be mappable onto an NBT array;
- * DIM : cross product will break if it is not 3
- * 
- * TODO bultin functions:
- * Vector :: lookAt(@other, int pow)
- * Vector . normalized() const
- * Vector . sqrmag() const
- * allow Vec as arg to tp for entities: either tp(@,Vector) or Vector.tp(@)
+ * struct for dealing with directions of space; should be mappable onto an NBT array of length 3;
  * @author RadiumE13
  *
  */

@@ -15,7 +15,14 @@ import net.mcppc.compiler.struct.Entity;
 import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Execute;
 import net.mcppc.compiler.tokens.Token;
-
+/**
+ * a smart version of the /tp command; args are similar to /tp but can accept some variables;
+ * @author RadiumE13
+ *
+ */
+/*
+ * TODO improve with macros if targeted
+ */
 public class Tp extends BuiltinFunction{
 	public static final Tp tp = new Tp("tp");
 	public static final Tp teleport = tp;

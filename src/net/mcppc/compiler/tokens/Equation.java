@@ -25,10 +25,7 @@ import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.Equation.End;
 import net.mcppc.compiler.tokens.UnaryOp.UOType;
 
-/**
- * a numeric equation;
- * currently does not support string equations; if its added, it will be a seperate token
- * TODO (a+b).method()
+/**rerpresents an equation in code, with values, operators, casts, etc.;
  * @author RadiumE13
  *
  */

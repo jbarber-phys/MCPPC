@@ -33,16 +33,19 @@ import net.mcppc.compiler.tokens.Token.Factory;
 /**
  * object representing a target selector;<p>
  * 
- * Important notes on target selectors:
- *  a trailing comma is allowed but not a leading one
- *  limit=... is invalid in @@s
- *  there can be multiple tag, predicate, and nbt keys but only those
- *  inside advancements = {...} or scores = {...} , there may be duplicate keys
+ * Some notes on selector format:
+ *  <ul>
+*  <li>a trailing comma is allowed but not a leading one
+ * <li> limit=... is invalid in &#64s
+ *  <li>there can be multiple tag, predicate, and nbt keys but only those
+ *  <li>inside advancements = {...} or scores = {...} , there may be duplicate keys
+ * </ul>	
+ 
  *  
  *  
- *  note: raw names are not supported, use @@p[name=$username] instead
+ *  note thatraw names are not supported, use &#64p[name=username] instead;
  *  
- * selectors can be intersected with the & operator, and the first one will take precedent for sorting
+ * selectors can be intersected with the & operator, and the first one will take precedent for sorting;
  * 
  * @author RadiumE13
  *

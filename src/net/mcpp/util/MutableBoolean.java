@@ -1,4 +1,4 @@
-package net.mcppc.compiler.errors;
+package net.mcpp.util;
 
 public class MutableBoolean {
 	public boolean value;

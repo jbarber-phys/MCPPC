@@ -10,7 +10,8 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.target.VTarget;
 
 /**
- * internal use only; do not use this in code; also do not register this struct;
+ * used internally to store the objective registers during a call within a recursive function;
+ * unregistered; do not use this in mcpp code;
  * @author RadiumE13
  *
  */

@@ -11,11 +11,14 @@ import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Token.Assignlike.Kind;
 /**
- * imports stuff from another file; optionally specify an alias for it; will not run function unless specified
- * syntax:
- * import [if] [run] [<alias> ->] <resourcelocation>;
- * 
- * default alias is the file-name part of path:  name -> ns:folder/dir/name
+ * imports stuff from another file;<br>
+ * syntax: import [if] [run] [alias ->] resourcelocation;<p>
+ * The optional arguments do the following
+ *<ul>
+ * 		<li>if : copies over mcfunction files only if they are used (mostly to avoid unnececary template clutter)
+ * 		<li>run : also runs the code in the file
+ * 		<li>alias -> : rename the library (defaults to last name in path); similar to python's 'import ... as ...'
+ * </ul>
  * @author RadiumE13
  *
  */

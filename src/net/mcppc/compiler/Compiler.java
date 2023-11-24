@@ -26,7 +26,7 @@ import net.mcppc.compiler.tokens.Statement.Headerable;
 import net.mcppc.compiler.tokens.Statement.MultiFlow;
 
 /**
- * Handles all phases of compilation for a single .mcpp or .mch file.
+ * Handles all phases of compilation for a single .mcpp or .mch file;
  * @author RadiumE13
  *
  */

@@ -8,7 +8,11 @@ import java.util.Map.Entry;
 import java.util.regex.*;
 
 import net.mcppc.compiler.errors.CompileError;
-
+/** takes the highlghting rulse from {@link MakeTmLanguage} and uses it to colorize a json text element;
+ * 
+ * @author RadiumE13
+ *
+ */
 public class HighlightCode {
 	public static class ThemeColors {
 		public static final String BACKGROUND = "#1E1E1E";

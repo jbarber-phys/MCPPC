@@ -8,7 +8,13 @@ import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.PrintF;
 import net.mcppc.compiler.target.Targeted;
-
+/**
+ * represents a stack-like structer of "registers";
+ * mcpp uses this like a set of registers for operations but with some differences including a big one:
+ * 		 mcpp will just make however many "registers" it wants;
+ * @author RadiumE13
+ *
+ */
 public class RStack {
 	int maxSizeEver=0;
 	final ResourceLocation res;

@@ -13,7 +13,11 @@ import net.mcppc.compiler.ResourceLocation.ResourceToken;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Singleton;
 import net.mcppc.compiler.struct.Struct;
-
+/**
+ * a token for a particle type along with all particle-specific args seperated by spaces;
+ * @author RadiumE13
+ *
+ */
 public class ParticleTypeToken extends Token{
 	public static ParticleTypeToken make(Compiler c, Matcher matcher, int line, int col,String id) throws CompileError  {
 		

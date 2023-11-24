@@ -15,7 +15,7 @@ import net.mcppc.compiler.functions.Particles;
 import net.mcppc.compiler.target.VTarget;
 
 /**
- * a singleton struct; by convention, make these lowercase;
+ * a singleton struct type; by convention, make these lowercase;
  * @author RadiumE13
  *
  */

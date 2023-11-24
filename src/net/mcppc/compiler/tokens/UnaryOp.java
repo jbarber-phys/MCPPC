@@ -16,7 +16,11 @@ import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.Token.Factory;
-
+/**
+ * token representing a unary operator;
+ * @author RadiumE13
+ *
+ */
 public class UnaryOp extends Token {
 	public static enum UOType{
 		UMINUS("-",OperationOrder.UNARYMINUS) {

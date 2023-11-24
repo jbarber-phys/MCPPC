@@ -32,10 +32,12 @@ import net.mcppc.compiler.tokens.Token.BasicName;
 /**
  * super class of various mass particle functions;<p>
  * args are:
- * (particle_id and its args)
- * optional: force|normal
- * optional: showTo
- * ...
+ * <ul>
+ * 		<li>[particle_id and its args seperated by whitespace]
+ * 		<li>(optional) force|normal (default: force)
+ * 		<li>(optional) [showTo] (default to &#64a)
+ * 		<li>[more args depending on which shape]
+ * </ul>
  * @author RadiumE13
  *
  */
@@ -163,10 +165,10 @@ public abstract class Particles extends BuiltinFunction {
 	}
 	/**
 	 * makes a ring of particles;<p>
-	 * args: radius, velocity, num
+	 * args: radius, velocity, num<p>
 	 * 
 	 * if velocity is in caret notation, then v_x = v_r, v_y = v_y, and v_z = v_theta;
-	 * polar cordinates match first element of Rotation[]
+	 * polar cordinates match first element of Rotation[];
 	 * @author RadiumE13
 	 *
 	 */
@@ -214,12 +216,12 @@ public abstract class Particles extends BuiltinFunction {
 	}
 	/**
 	 * makes a sphere of particles;<p>
-	 * args: radius, velocity, num
+	 * args: radius, velocity, num<p>
 	 * 
 	 * if velocity is in caret notation, then v_x = v_r, v_y = v_theta, and v_z = v_phi;
-	 * polar cordinates match first element of Rotation[]
-	 * theta is zero at equator and increases upward
-	 * number is only approximate, actual number may vary
+	 * polar cordinates match first element of Rotation[];
+	 * theta is zero at equator and increases upward;
+	 * number is only approximate, actual number may vary;
 	 * @author RadiumE13
 	 *
 	 */

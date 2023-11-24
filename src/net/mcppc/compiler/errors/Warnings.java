@@ -1,10 +1,12 @@
 package net.mcppc.compiler.errors;
 
 import java.io.PrintStream;
+
+import net.mcpp.util.MutableBoolean;
 import net.mcppc.compiler.Compiler;
 
 /**
- * indicate problems with the code that do not rise to the level of an error
+ * indicate problems with the code that do not rise to the level of an error (and allows compilation to continue);
  * @author RadiumE13
  *
  */

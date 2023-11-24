@@ -14,10 +14,11 @@ import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Entity;
 /**
- * call to start, restart or stop a thread
+ * call to start, restart or stop a thread;<p>
  * 
- * usgage:
- * start <thread name> ([starting point],[entity var to store to]);
+ * usage: start threadname ([starting point],[entity ref]);<br>
+ * starting point is the block name of a public block to start at;<br>
+ * entity ref is a variable that will be set to the entities now running the thread;
  * @author RadiumE13
  *
  */

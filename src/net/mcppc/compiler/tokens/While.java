@@ -8,7 +8,11 @@ import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.target.Targeted;
-
+/**
+ * a while statement; identical to java;
+ * @author RadiumE13
+ *
+ */
 public class While extends Statement implements Statement.CodeBlockOpener,Statement.Flow {
 	private static final MemberName name=new MemberName(-1, -1, "$while");
 	public static While skipMe(Compiler c, Matcher matcher, int line, int col,Keyword w) throws CompileError {

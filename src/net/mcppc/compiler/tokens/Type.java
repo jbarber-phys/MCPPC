@@ -20,7 +20,11 @@ import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.Token.BasicName;
 import net.mcppc.compiler.tokens.Token.Factory;
 import net.mcppc.compiler.tokens.*;
-
+/**
+ * token representing a varType
+ * @author RadiumE13
+ *
+ */
 public class Type extends Const.ConstLiteralToken {
 	public static final boolean ALLOW_NEGATIVE_PRECISION=true;
 	//has no factory

@@ -20,7 +20,8 @@ import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Num;
 /**
- * functions that are not memory safe inside threads with uuid lookup tables for local vars
+ * mcfunction functions that are not safe inside threads with uuid lookup tables for local vars;
+ * executing these would lead to the lookup table having dangling entries (similar to a memory leak);
  * @author RadiumE13
  *
  */

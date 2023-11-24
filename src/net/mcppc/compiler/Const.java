@@ -31,30 +31,24 @@ import net.mcppc.compiler.tokens.UnaryOp;
  * note: consts set to other consts will not work if the other one is from a different file
  * 
  * consts live in their own type system (seperate from the VarType system). The types are:
- *     num : a number
- *     flag: a const bool
- *     text: a const string
- *     selector: a target selector
- *     nbt: a nbt tag or path
- *     coords: cordinates, which may be in caret or tilde notation
- *     rot: similar to coords but for rotations
- * 
- * 
- * const params can appear in templates
- * 
- * some templates may need to make multiple files namespace__/template_...,
- * but precision N can be put into tags valued N, 1eN, 1e-N and 1 file is maintained
- * basic types may be workable as well or at very least format stringable
- * 
- * side note: based on this, precision should also be settable at runtime
+ * <ul>
+ *     <li>num : a number
+ *     <li>flag: a const bool
+ *     <li>text: a const string
+ *     <li>selector: a target selector
+ *     <li>nbt: a nbt tag or path
+ *     <li>coords: cordinates, which may be in caret or tilde notation
+ *     <li>rot: similar to coords but for rotations
+ * </ul>	
+ * const parameters and values are what appear in templates
  * 
  * @author RadiumE13
  *
  */
 public class Const {
 	/**
-	 * if true, disables all un-nececary compile time arithmatic
-	 * this means all arithmatic on const bools and nums
+	 * if true, disables all un-nececary compile time arithmatic;
+	 * this means all arithmatic on const bools and nums;
 	 * math on all other const types are considered neccecary (example: selector)
 	 */
 	public static final boolean DISABLE_NON_NECECARY_CONST_MATH = false;

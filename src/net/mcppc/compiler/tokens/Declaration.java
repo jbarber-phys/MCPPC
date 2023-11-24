@@ -16,17 +16,6 @@ import java.util.ArrayList;
 import java.util.regex.Matcher;
 
 
-/*TODO extern reform: extern uses true return / macro args and must mask; 
- * other funcs just use mcpp calls but may still mask;
- * either can have a block or not (import / export)
- * mask non extern: ->res.func;
- * mask extern: ->res;
- * must appear in hdr
- * also must fix scope to change out dirs for export
- * public extern volatile const type name ->.. ~~... = ... (args) final export ... ;{}
- * fix coment, dont use lrangles in them
- */
-
 /**
  * declares a function or variable or constant; usage differs depending on what is declared;<p>
  * 

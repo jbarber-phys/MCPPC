@@ -1,17 +1,10 @@
 package net.mcppc.compiler;
 /**
- * defines order of operations
+ * defines order of operations;
  * 
- * largely based on C:
- * https://en.wikipedia.org/wiki/Order_of_operations
- * 
- * but there are differences:
- * there is no comma operator
- * there are no assignment operators allowed in equations
- * unary not comes after all comparisons
- * xor exists and is between and and or 
- * 
- * for now, extra op orders have been inserted for the possibility of custom operators
+ * largely based on C with small differences:
+ * {@link https://en.wikipedia.org/wiki/Order_of_operations}<br>
+ * for now, extra op orders have been inserted for the possibility of custom operators;
  * 
  * @author RadiumE13
  *
@@ -34,7 +27,7 @@ public enum OperationOrder{
 	AND,
 	XOR,
 	OR,
-	CUSTOMLOGICAL,//custom ops are last
+	CUSTOMLOGICAL,//custom ops are last compared to their normal analog
 	ALL;
 	//is already comparable to
 

@@ -21,7 +21,11 @@ import net.mcppc.compiler.functions.FunctionMask.MCFArgs;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.Token.NullArgDefault;
-
+/**
+ * a builtinFunction that reduces to a normal function in the stdlib;
+ * @author RadiumE13
+ *
+ */
 public class FunctionMask extends BuiltinFunction {
 	public static class MCFArgs implements Args{
 		public final List<Equation> args=new ArrayList<Equation>();

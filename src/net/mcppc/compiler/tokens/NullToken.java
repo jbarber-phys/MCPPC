@@ -11,7 +11,11 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.NbtObject;
 import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.target.VTarget;
-
+/**
+ * a literal null value (for use by {@link NbtObject})
+ * @author RadiumE13
+ *
+ */
 public class NullToken extends ConstExprToken implements INbtValueProvider{
 	public static String NULL_STR = "null";
 	public static Token.Factory factory = new Factory(Regexes.NULL_KEYWORD) {

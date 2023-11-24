@@ -12,7 +12,12 @@ import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Token;
-
+/**
+ * a builtin function that will convert itself into an equation<p>
+ * example: someVector.sqrmag() -> (someVector * someVector)
+ * @author RadiumE13
+ *
+ */
 public abstract class EquationMask extends BuiltinFunction {
 
 	public EquationMask(String name) {

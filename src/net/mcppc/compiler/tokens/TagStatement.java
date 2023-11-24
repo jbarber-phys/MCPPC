@@ -13,17 +13,16 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Statement.CodeBlockOpener;
 import net.mcppc.compiler.tokens.Statement.Flow;
 /**
- * used to make tagged code
- * 
+ * used to make tagged code;<p>
  * usage:
- * tag <thetag> ;
- * tags the mcfunction it is in
+ * tag tagname ;<br>
+ * tags the mcfunction it is in<p>
  * 
  * or:
- * tag <thetaag> {...
- * to tag the following block of code
+ * tag tagname {...<br>
+ * to tag the following block of code <p>
  * 
- * can also use tick or load instead of tag minecraft:tick or tag minecraft:load
+ * also: tick/load {... or ;
  * @author RadiumE13
  *
  */

@@ -18,20 +18,18 @@ import net.mcppc.compiler.tokens.Token.Factory;
 import net.mcppc.compiler.tokens.Token.LineEnd;
 
 /**
- * token for vanilla command; can appear in middle of equation/ etc;
- * may have prefix commands added to get returned value
- * example:
- * a=/time query daytime;
- * compiles to:
- * execute store result storage <file_resourcelocation> a int 1 run time query daytime
+ * token for vanilla command; must begin with a '$/'; can appear in middle of equation/ etc;
+ * may have prefix commands added to get returned value (numeric is result, bool is success);<p>
+ * example:<br>
+ * a=/time query daytime;<br>
+ * compiles to:<br>
+ * execute store result storage [file_resourcelocation] a int 1 run time query daytime<br>
  * 
- * good practice is to add a $ before the / like: $/kill; but this is only actually required inside of equations in statements that open a code block
- *  (to keep data tags from being mistaken for code block starts and also not confuse with division)
  * @author RadiumE13
  *
  */
 /*
- * the $ is required because the compiler uses two compilers; the first of which is lazy and cant tell based on context if a / is for division or
+ * the $ before the / is required because the compiler uses two compiler passes, the first of which is lazy and can't tell based on context if a / is for division or
  * a cmd unless it knows one of them cannot currently appear; this is only needed when blocks are opened because that is when the compiler will not
  * be able to count on a terminating semicolon or newline (which can be used to skip over nbt tags)
  */

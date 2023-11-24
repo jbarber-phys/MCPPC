@@ -8,7 +8,7 @@ import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Num;
 import net.mcppc.compiler.tokens.Type;
 /**
- * the type arguments used by a struct type; the stuff inside the `<>`
+ * the type arguments used by a struct type; the stuff inside the `<>`, similar to templates but handled differently;
  * @author RadiumE13
  *
  */

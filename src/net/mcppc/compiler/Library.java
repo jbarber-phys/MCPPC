@@ -1,5 +1,9 @@
 package net.mcppc.compiler;
-
+/**
+ * represents an imported file;
+ * @author RadiumE13
+ *
+ */
 public class Library {
 	public final String nickname;
 	public final ResourceLocation res;

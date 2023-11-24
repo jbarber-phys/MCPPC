@@ -17,10 +17,13 @@ import net.mcppc.compiler.VarType.Builtin;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.Size;
 /**
- * string tags cannot be appended / inserted ...
- * TODO can use data get to get string length (similar to array size)
+ * struct type for a string;
  * @author RadiumE13
  *
+ */
+/*
+ * string tags cannot be appended / inserted ...
+ * TODO see if strings ... can get substring
  */
 public class Str extends Struct{
 	public static final Str string;

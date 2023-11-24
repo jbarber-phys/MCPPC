@@ -27,9 +27,8 @@ import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Token;
 /**
  * an ordered, size-changable collection;
- * currently uses a simple list + loops; if you want a big list, make a different struct
- * is currently compadible with other basic Sets
- * TODO test
+ * note that for non-const index lookup, mcpp must loop through the list at linear in size time;
+ * macros could speed this up in the future (TODO)
  * @author RadiumE13
  *
  */

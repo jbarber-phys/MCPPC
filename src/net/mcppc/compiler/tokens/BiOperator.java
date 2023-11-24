@@ -21,7 +21,9 @@ import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.tokens.Token.Factory;
 import net.mcppc.compiler.tokens.Token.LineEnd;
-
+/*
+ * represents a token of an operator with two operands; also defines methods for performing them;
+ */
 @Targeted // the op strings are printed to an mcf
 public class BiOperator extends Token{
 	//would add separate class for custom operator types;

@@ -23,7 +23,11 @@ import net.mcppc.compiler.tokens.Token.Assignlike;
 import net.mcppc.compiler.tokens.Token.BasicName;
 import net.mcppc.compiler.tokens.Token.Factory;
 import net.mcppc.compiler.tokens.Token.Assignlike.Kind;
-
+/**
+ * lots of token factories, including for statement start;
+ * @author RadiumE13
+ *
+ */
 public final class Factories {
 	
 	public static final Token.Factory headerName = new Factory(Regexes.NAME) {

@@ -13,12 +13,9 @@ import net.mcppc.compiler.Const.*;
 import net.mcppc.compiler.errors.CompileError;
 
 /**
- * represents the args given as a template to a function call;
+ * represents the args given as a template to a function call; similar to function argments but have const values and types;
  * @author RadiumE13
  *
- */
-/*
- * TODO templates are broken; TODO allow this to stay unidentified for longer
  */
 public class TemplateArgsToken extends Token {
 	public static TemplateArgsToken checkForArgs(Compiler c,Scope s, Matcher matcher) throws CompileError {

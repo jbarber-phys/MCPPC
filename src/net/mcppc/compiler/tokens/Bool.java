@@ -14,7 +14,11 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.Token.Factory;
-
+/**
+ * represents a token of a literal true/false
+ * @author RadiumE13
+ *
+ */
 public class Bool extends Const.ConstLiteralToken implements INbtValueProvider{
 	public static final Factory factory = new Factory(Regexes.BOOL) {
 		@Override public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {

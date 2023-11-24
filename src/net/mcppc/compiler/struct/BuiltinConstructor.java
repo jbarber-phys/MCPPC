@@ -4,7 +4,7 @@ import net.mcppc.compiler.BuiltinFunction;
 import net.mcppc.compiler.Scope;
 import net.mcppc.compiler.VarType;
 /**
- * a constructor that is actually a builtin function
+ * a constructor that is actually a builtin function;
  * @author RadiumE13
  *
  */

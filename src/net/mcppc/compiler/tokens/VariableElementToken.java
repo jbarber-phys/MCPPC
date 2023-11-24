@@ -9,7 +9,11 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.AbstractCallToken;
 import net.mcppc.compiler.tokens.Equation.End;
 import net.mcppc.compiler.tokens.Statement.Assignment;
-
+/**
+ * token representing an indexed member of a variable: var[index];
+ * @author RadiumE13
+ *
+ */
 public class VariableElementToken extends Token{
 	public static final Token make(Compiler c,Scope s, Matcher m,Token name, RStack stack,int line,int col, boolean isTopLevel) throws CompileError {
 		Equation index=new Equation(line, col, stack);

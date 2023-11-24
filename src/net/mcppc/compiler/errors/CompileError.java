@@ -9,7 +9,11 @@ import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
 import net.mcppc.compiler.functions.AbstractCallToken;
 import net.mcppc.compiler.struct.Struct;
-
+/**
+ * an exeption thrown to stop compilation of a file with an error;
+ * @author RadiumE13
+ *
+ */
 public class CompileError extends Exception {
 	public final String error;
 	@Override public String getMessage() {return this.error;}

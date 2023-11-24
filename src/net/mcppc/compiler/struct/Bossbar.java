@@ -36,7 +36,7 @@ import net.mcppc.compiler.tokens.Num;
 
 
 /**
- * variable that masks a bossbar value;
+ * type that masks a bossbar value;
  * @author RadiumE13
  *
  */

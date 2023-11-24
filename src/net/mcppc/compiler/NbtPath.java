@@ -10,6 +10,11 @@ import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
+/**
+ * represents an Nbt Tag or path;
+ * @author RadiumE13
+ *
+ */
 @Targeted
 public class NbtPath {
 	public static NbtPath UUID = new NbtPath("UUID");

@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import net.mcppc.compiler.tokens.Statement;
 import net.mcppc.compiler.tokens.Statement.Domment;
 
-/**
- * domments are collected by compiler and line start statements
+/** accepts domments to print them before a certain line;
+ * domments are collected by compiler and line start statement, so they appear next to them;
  * @author RadiumE13
  *
  */

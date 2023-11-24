@@ -19,10 +19,7 @@ import net.mcppc.compiler.tokens.Token.Assignlike;
 import net.mcppc.compiler.tokens.Token.Assignlike.Kind;
 
 /**
- * like a token but can generate code
- * examples:
- * code lines
- * equations and equation segments
+ * a token representing an entire line of code;
  * 
  * @author RadiumE13
  *

@@ -14,7 +14,7 @@ import net.mcppc.compiler.tokens.Token.Assignlike.Kind;
 
 /**
  * represents a token that defines the template of a function, similar to funnction args but constant types;
- * each term gives a default value or range;
+ * each term gives a default value or range for which templates to generate; the export suffix in a function definition can then add more if needed;
  * @author RadiumE13
  *
  */

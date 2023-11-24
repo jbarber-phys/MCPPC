@@ -9,7 +9,11 @@ import net.mcppc.compiler.CompileJob;
 import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Scope;
 import net.mcppc.compiler.errors.CompileError;
-
+/**
+ * represents a code block;
+ * @author RadiumE13
+ *
+ */
 public class CodeBlock extends Statement {
 	public final Scope scope;
 	public final Statement.CodeBlockOpener opener;

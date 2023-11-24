@@ -11,7 +11,11 @@ import net.mcppc.compiler.Function.FuncCallToken;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.TemplateArgsToken;
 import net.mcppc.compiler.tokens.Token;
-
+/**
+ * a call to either a builtin or normal function;
+ * @author RadiumE13
+ *
+ */
 public abstract class AbstractCallToken extends Token {
 
 	public AbstractCallToken(int line, int col) {

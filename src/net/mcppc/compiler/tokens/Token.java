@@ -15,7 +15,11 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Str;
 import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.target.VTarget;
-
+/**
+ * a token recognized by the compiler
+ * @author RadiumE13
+ *
+ */
 public abstract class Token {
 	public static abstract class Factory {
 		//may be able to due without template

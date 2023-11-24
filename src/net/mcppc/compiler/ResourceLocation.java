@@ -17,7 +17,7 @@ import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.Regexes;
 import net.mcppc.compiler.tokens.Token;
 /**
- * location of a resource datapack:path/to/thing
+ * a resourcelocation;
  * resourcelocation is synonym for Namespaced ID
  * @author RadiumE13
  *

@@ -8,6 +8,11 @@ import net.mcppc.compiler.*;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.target.Targeted;
 
+/**
+ * returns the size of a string, compound, or list (collection);
+ * @author RadiumE13
+ *
+ */
 public class Size extends BuiltinFunction{
 	//gets the size of a String or list (nbt tag)
 	//is a nonstatic member

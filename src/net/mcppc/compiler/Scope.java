@@ -20,11 +20,10 @@ import net.mcppc.compiler.tokens.Statement;
 import net.mcppc.compiler.tokens.TemplateArgsToken;
 import net.mcppc.compiler.tokens.TemplateDefToken;
 
-/**
- * tells the code inside what stack to use; for flow statements, where to store flags, 
- * also holds var estmates built up sequentially
- * 
- * TODO consider a const ifelse statement
+/**represents a scope;
+ * tells the code inside what resource location to write to (and what holder to use for stacked registers);
+ * also gives things like flow vars, local vars, and whether or not the scope is in a function/thread definition;
+ * var estimates are set during compilation;
  * @author RadiumE13
  *
  */

@@ -30,8 +30,8 @@ import net.mcppc.compiler.tokens.TemplateArgsToken;
 import net.mcppc.compiler.tokens.Token;
 
 /**
- * represents an object that is called like a function but it is able to interact directly with the compiler
- * is able to take unexpected expressions like target selectors and tag addresses as arguments
+ * represents an object that is called like a function but it is able to interact directly with the compiler;
+ * the args may also not follow the same format, a BuiltinFunction is able to take unexpected expressions like tag addresses as arguments
  * @author RadiumE13
  *
  */

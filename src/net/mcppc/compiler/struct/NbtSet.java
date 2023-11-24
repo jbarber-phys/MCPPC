@@ -20,11 +20,15 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.functions.Size;
 import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Equation;
-
+/**
+ * a type that uses an nbt list to implement a simple set (linear lookup time);
+ * @author RadiumE13
+ *
+ */
 public class NbtSet  extends NbtCollection{
 	public static final NbtSet set = new NbtSet("Set");
 	public NbtSet(String name) {
-		super(name);
+		super(name,false);
 	}
 	public static void registerAll() {
 		final Size size = new Size("size");

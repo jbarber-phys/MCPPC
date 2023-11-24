@@ -19,10 +19,7 @@ import net.mcppc.compiler.tokens.MemberName;
 
 /**
  * contains all of the interface for an mcpp file: all variables, functions, imports, consts, and threads;
- * private members are included here but not given to any other mcpp files; <p>
- * 
- * 
- * 
+ * private members are included here but not given to any other mcpp files; 
  * @author RadiumE13
  *
  */
@@ -48,8 +45,8 @@ public class FileInterface {
 	final Map<String,Function> funcsPrivate=new HashMap<String, Function>();
 	
 
-	final Map<String,Variable> varsExtern=new HashMap<String, Variable>();
-	final Map<String,Function> funcsExtern=new HashMap<String, Function>();
+	@Deprecated final Map<String,Variable> varsExtern=new HashMap<String, Variable>();//extern is no longer an access type
+	@Deprecated final Map<String,Function> funcsExtern=new HashMap<String, Function>();//extern is no longer an access type
 	
 	//constants
 

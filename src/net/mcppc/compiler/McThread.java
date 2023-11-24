@@ -32,30 +32,12 @@ import net.mcppc.compiler.tokens.ThreadStm;
 import net.mcppc.compiler.tokens.Token;
 
 /**
- * similar to a function but executes over multiple ticks
+ * A thread that runs mcfunctions over multiple ticks; can also run multiple threads at once (but only 1 on each entity)<p>
+ * see {@link ThreadStm} for syntax of definition; see {@link ThreadCall} for syntax on invoking threads;<p>
  * 
- *     
+ * all of the named blocks are public or private; can goto named blocks at end of current one using goto = name statements;
+ * public blocks can also be used as entry points for thread calls;
  * 
- * @author RadiumE13
- *
- */
-/*
- * 
- * scopes are created as follows:
- * McThread::createSubsBlocks : creates start, stop, restart functions (called by thread callers); use truestart format
- * ThreadStm::compileMyBlocks : if public, genrates entry_%d functions; use truestart format; sim to restart but checks for exit after
- * ThreadStm::addBlockNumberToThread sets this.mySubscope, which is used in:
- * * * anononamous blocks
- * * * loops and ThreadStm::setLoop
- * * * compiler gives this to code blocks, where it is used by actual thread code block_%n
- * * * (tokenize only) thread controls call to get a subscope with null block number
- * 
- *  
- *  
- */
-
-/**
- * A thread that runs mcfunctions over multiple ticks; can also run multiple threads at once (but only 1 on each entity)
  * @author RadiumE13
  *
  */

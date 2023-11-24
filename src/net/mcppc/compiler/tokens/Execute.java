@@ -40,16 +40,12 @@ import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.Statement.CodeBlockOpener;
 
 /**
- * block opener for various facets of the /execute command: https://minecraft.fandom.com/wiki/Commands/execute
- * will have repeated func-like statements; example:
- * execute as (@r) at (Vec3d) facing (Entity) {...
- * (still lead with execute)
- * will have: align, anchored, as, at, facing, in, positioned (might merge with at), rotated, 
- * (note, rot angles are floats)
- * will not have: if, unless, store; these are reduntant / unnedded due to mcpp language features 
- * 
- * WARNING: in mcfunction, execute statements: at,  positioned; do not actually change nbt values during execution; you will have to use \tp or other 
- * means of doing that.
+ * statement that opens a code block runned with a /execute command;
+ * will have repeated func-like statements;<br>
+ *  example:
+ * execute as (@r) at (Vec3d) facing (Entity) {...<p>
+ * if/unless statements are not included as they are redundant with the {@link IfElse} statement;
+ * there is also the extra asat(Entity), which executes as and at the target;
  * @author RadiumE13
  *
  */

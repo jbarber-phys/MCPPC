@@ -50,14 +50,13 @@ import net.mcppc.compiler.tokens.Import;
  * add true-classes: warning, may involve heavy reworking of the compiler
  */
 
-/** if the eclipse bug happens that fails to load java:
+/** if the eclipse bug happens that fails to load java jre classes:
  * 
  * Close the project and resume it.
 Clean the project (It will restore the buildpath hence reconfiguring with the JDK libraries)
 OR
 
 Delete and Re-import the project and if required do the above steps again.
-The better cure is to try NetBeans rather of Eclipse :-)
 
 the problem seems related to modules; the above fix won't work if a module-info is not generated for some reason
 
@@ -77,7 +76,7 @@ Example error: The type java.lang.Object cannot be resolved. It is indirectly re
  * but per project instead of system-wide;
  */
 /**
- * the class that handles all compilation; Compilation is done project-wide.
+ * the class that handles all compilation; Compilation is done project-wide;
  * @author RadiumE13
  *
  */

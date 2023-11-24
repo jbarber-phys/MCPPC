@@ -1,5 +1,5 @@
 package net.mcpp.util;
-/** Comparable but with min / max; found from:  https://stackoverflow.com/a/56017224
+/** Comparable, but with min / max; found from:  https://stackoverflow.com/a/56017224
  *
  * @param <T>
  */

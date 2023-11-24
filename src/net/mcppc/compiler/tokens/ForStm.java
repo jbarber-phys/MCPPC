@@ -18,7 +18,7 @@ import net.mcppc.compiler.tokens.Equation.End;
  * syntax: for(var,start,end,step) {...}<br>
  * syntax: for(var,start,end) {...}<br>
  * syntax: for(int newvar,start,end,step) {...}<br>
- * Note that iterating over collections has similar syntax but is handeled by a seperate class: ForIterate
+ * Note that iterating over collections has similar syntax but is handeled by a seperate class: {@link ForIterate}
  * @author RadiumE13
  *
  */

@@ -25,18 +25,25 @@ import net.mcppc.compiler.tokens.Execute.Subexecute;
 import net.mcppc.compiler.tokens.Execute.Subgetter;
 import net.mcppc.compiler.tokens.Statement.CodeBlockOpener;
 /**
- * defines a thread<p>
- * syntax:<br>
- * thread [synchronized] [public/private &ltname&gt] [as() / asat()] [&ltcontrols&gt] {}<br>
- * next [&ltcontrols&gt] {}<br>
- * next [&ltcontrols&gt] then<br>
- * next stop/restart [start ...];<p>
- * 
- * &ltcontrols&gt:<br>
+ * defines a thread or block of a thread<p>
+ * syntax of the thread definition (and first block) is:<br>
  * <ul>
- * <li>wait(&ltdelay&gt) //wait until next block
- * <li>while / until (&ltcondition&gt) wait (&ltdelay&gt) // wait until next loop
- * <li>stop [start...] //end thread
+ * 		<li>thread
+ * 		<li>(optinal) synchronous
+ * 		<li> (optional) public/private [threadname]
+ * 		<li> [execute statements: as or asat]
+ * 		<li> [first thread block definition]
+ * 		<li> 
+ * </ul>
+ * What follows is a list of thread block definitions with the folowing syntax:
+ * <ul>
+ * 		<li>(omit for first block) next
+ * 		<li>(optional) public/private [blockname]
+ * 		<li>any of the following controls:
+ * 		<li> wait([delay])
+ * 		<li> while/until ([condition]) (wait statements before control delay into, after controls delay between loops)
+ * 		<li> stop /restart / kill (must be at end)
+ * 		<li> next or [code block], unless this is the last one, then ;
  * </ul>
  * @author RadiumE13
  *

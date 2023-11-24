@@ -27,9 +27,9 @@ import net.mcppc.compiler.tokens.Type;
 import net.mcppc.compiler.tokens.UnaryOp.UOType;
 
 /**
- * dymanic precision float; intended to replace templates (cast everything to this for unknown precision)
+ * experimental numeric type with dynamic precision;<p>
  * 
- * unfinished, dont use; use templates instead
+ * does not work so don't use; use templates instead;
  * @author RadiumE13
  *
  */

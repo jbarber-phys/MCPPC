@@ -18,7 +18,12 @@ import net.mcppc.compiler.struct.Entity;
 import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.Token.CodeLine;
-
+/**
+ * prints mcpp code with highlighting using /tellraw;<p>
+ * very cool; try it;
+ * @author RadiumE13
+ *
+ */
 public class PrintCode extends BuiltinFunction {
 	public static final PrintCode printNextLine = new PrintCode("printnextline",1);
 	public static void registerAll() {

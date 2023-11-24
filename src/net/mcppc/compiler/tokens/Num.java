@@ -17,7 +17,11 @@ import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.tokens.Token.Factory;
-
+/**
+ * a token for a literal number;
+ * @author RadiumE13
+ *
+ */
 public class Num extends Const.ConstLiteralToken implements INbtValueProvider{
 	//do not use these functiosn in equations
 	public static class Numrange extends Num{

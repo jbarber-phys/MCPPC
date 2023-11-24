@@ -11,7 +11,11 @@ import net.mcppc.compiler.Variable;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.tokens.Token.BasicName;
 import net.mcppc.compiler.tokens.Token.Factory;
-
+/**
+ * token for a name with member accesors, usually a variable or const
+ * @author RadiumE13
+ *
+ */
 public class MemberName extends Token implements Identifiable{
 	//for a named thing that hasn't been identified yet
 	public static final Factory factory = new Factory(Regexes.NAME) {

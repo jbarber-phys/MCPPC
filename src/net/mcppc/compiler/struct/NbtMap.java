@@ -38,7 +38,11 @@ import net.mcppc.compiler.target.*;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Keyword;
 import net.mcppc.compiler.tokens.Token;
-
+/**
+ * type for an nbt list of key,enty pairs that implements a simple map(linear lookup time); 
+ * @author RadiumE13
+ *
+ */
 public class NbtMap extends Struct {
 	public static final NbtMap map = new NbtMap("Map");
 	

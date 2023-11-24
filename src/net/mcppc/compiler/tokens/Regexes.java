@@ -6,7 +6,11 @@ import java.io.StringReader;
 import java.util.regex.Pattern;
 
 import net.mcppc.compiler.errors.CompileError;
-
+/**
+ * tons of regexes the compiler uses;
+ * @author RadiumE13
+ *
+ */
 public final class Regexes {
 	//https://regex101.com
 	//https://docs.oracle.com/javase/7/docs/api/java/util/regex/package-summary.html

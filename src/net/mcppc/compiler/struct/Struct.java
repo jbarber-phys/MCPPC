@@ -31,18 +31,10 @@ import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.UnaryOp.UOType;
 
-/*
- * TODO it should be possible to also create a class; a struct that will interperet mcpp code as a class template and 
- * determine the behavior at compile time;
- * TODO may want to set up a binary search tree mcfunction for Lists / Arrays
- * skip fixed size arrays as they always have confounding behavior (Vector, Rotation, UUID, ArmorItems)
- * some types allocate to avoid type conflct in nbt; lists have subtype of first element;
- * 
- */
 /**
- * similar to a class but the workings are hard coded into the compiler;
+ * similar to a class type but the workings are hard coded into the compiler, and are defined by it (users cannot create them);
  * can accept type arguments determined by the struct;
- * 
+ * true-classes (types that are definable in mcpp code) may be added in the future;
  * @author RadiumE13
  *
  */

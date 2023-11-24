@@ -8,7 +8,7 @@ import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.errors.CompileError;
 
 /**
- * Keywords appear usually at the start of a statement and are not function-formatted usually
+ * reserved words that often appear at the start of statements and elsewhere;
  * @author RadiumE13
  *
  */

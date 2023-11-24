@@ -29,21 +29,24 @@ import net.mcppc.compiler.tokens.Token.BasicName;
 import net.mcppc.compiler.tokens.Token.StringToken;
 import net.mcppc.compiler.tokens.TreePrintable;
 /**
- * prints a string with formatting to the console
- * this is an abstraction of /tellraw...
- * default target is :@s but lead arg with a selector to change:
- * args:
- * ([selector target], <string format>, [selector or equation param]...)
- * 
- * json text format: https://minecraft.fandom.com/wiki/Raw_JSON_text_format?so=search#Plain_Text
- * 
- * 
- * TODO consider preventing translation confilcts using {"translate": "", "fallback": format,...}
+ * prints a string with formatting to the console;
+ * this is an abstraction of /tellraw;
+ * default target is :@s but lead arg with a selector to change;<p>
+ * args are:
+ * <ul>
+ * 		<li>(optional) [target]
+ * 		<li>[format string]
+ * 		<li>[args]...
+ * 		<li>[json key] = [value ]... (for things like color)
+ * </ul>	
+ * there is 1 custom json key: run, which runs an mcpp function as a click-event; 
  * 
  * @author RadiumE13
  *
  */
-
+/*
+ * TODO consider preventing translation confilcts using {"translate": "", "fallback": format,...}
+ */
 public class PrintF extends BuiltinFunction{
 	public static void registerAll() {
 		BuiltinFunction.register(stdout);
@@ -505,8 +508,8 @@ public class PrintF extends BuiltinFunction{
 	
 	/**
 	 * similar to printf but makes a /title command instead (with a fade in/out);
-	 * can add durations as if they were format args;
-	 * note that action bar is affected differently by the fade parameters
+	 * can add durations as if they were json keys: fadeIn,stay,fadeOut;
+	 * note that action bar is affected differently by the fade parameters;
 	 * @author RadiumE13
 	 *
 	 */

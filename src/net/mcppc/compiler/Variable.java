@@ -30,8 +30,8 @@ import net.mcppc.main.Main;
 
 //note list on data get returns its size
 /**
- * Represents a variable in the code; has information about it's type, access, etc.
- * Has lots of usefull methods for things like getting and setting.<p>
+ * represents a variable in the code; has information about it's type, access, etc.;
+ * has lots of usefull methods for things like getting and setting;<p>
  * 
  * Note that currently variable access is not scoped or ordered; 
  * variables defined anywhere within a file are accessible anywhere else in it,
@@ -39,8 +39,7 @@ import net.mcppc.main.Main;
  * <ul>
  * 		<li>Function arguments and locals are not accessible outside the function;
  * 		<li>Thread locals are only accessible inside the thread (not including the first block control); private restructs access to the block it is defined in;
- * 
- * </ul>	
+ * </ul>
  * 
  * @author RadiumE13
  *

@@ -11,7 +11,11 @@ import java.util.Locale;
 
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
-
+/**
+ * counds newlines that are printed to it
+ * @author RadiumE13
+ *
+ */
 public class PrintStreamLineCounting extends PrintStream {
 	//to generate large numbers of methods, use context menu > source > generate constrocturs from super
 

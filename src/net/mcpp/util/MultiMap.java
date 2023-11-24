@@ -6,8 +6,7 @@ import java.util.Set;
 
 /**
  * a manual implementation of a multi-map data structure based on:
- * https://www.javatpoint.com/java-8-multimap
- * an alternative to Guava
+ * https://www.javatpoint.com/java-8-multimap <p>
  * 
  * the example given used a HashMap and ArrayList implementation of the Map and Collection
  * @author RadiumE13

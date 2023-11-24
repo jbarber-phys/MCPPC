@@ -28,13 +28,17 @@ import net.mcppc.compiler.functions.Size;
 import net.mcppc.compiler.functions.FunctionMask.MCFArgs;
 import net.mcppc.compiler.struct.Vector.Constructor;
 import net.mcppc.compiler.target.*;
+import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.Type;
 
 /**
- * one big class for Stack, Queue, and List; size changing nbt array types;
- * dont use for vectors, directions, nbt tags, or armor inventories;
+ * one big class for various size changing nbt array types;
+ * Stack, Queue, and Staque use just this class;
+ * List and Set uses a subclass; 
+ * don't extend for use as vectors, directions, nbt tags, or armor inventories;
+ * most collection types will allow sharing of data with other types by variable masking;
  * @author RadiumE13
  *
  *TODO binary lookup, add seperate class for long sets / maps
@@ -82,9 +86,12 @@ public class NbtCollection extends Struct {
 		NbtList.registerAll();
 		NbtSet.registerAll();
 	}
-	
+	private final boolean ordered;
 	public NbtCollection(String name) {
+		this(name,true);
+	}public NbtCollection(String name,boolean ordered) {
 		super(name);
+		this.ordered=ordered;
 	}
 	protected static VarType myMembType(VarType mytype) {
 		return ((MembType) mytype.structArgs).myType;
@@ -455,5 +462,11 @@ public class NbtCollection extends Struct {
 			return null;
 		}
 		
+	}
+	@Override
+	public boolean canDoBiOpDirect(BiOperator op, VarType mytype, VarType other, boolean isFirst) throws CompileError {
+		// only allow ordered comparisons
+		if(this.ordered)return super.canDoBiOpDirect(op, mytype, other, isFirst);
+		else return false;
 	}
 }

@@ -19,7 +19,12 @@ import net.mcppc.compiler.tokens.BiOperator;
 import net.mcppc.compiler.tokens.BiOperator.OpType;
 import net.mcppc.compiler.tokens.NullToken;
 import net.mcppc.compiler.tokens.Num;
-
+/**
+ * a polymorphic type that can hold any nbt value by storing it in a subtag;
+ * can also take on a null value (absence of the subtag);
+ * @author RadiumE13
+ *
+ */
 public class NbtObject extends Struct {
 	public static final NbtObject obj = new NbtObject("Obj");
 	public static void registerAll() {

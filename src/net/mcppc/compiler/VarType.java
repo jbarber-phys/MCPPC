@@ -17,7 +17,7 @@ import net.mcppc.compiler.tokens.Token;
 import net.mcppc.compiler.tokens.Type;
 import net.mcppc.compiler.tokens.UnaryOp;
 /**
- * a variable type, including type parameters like precision;
+ * a variable type, including type parameters like precision;<p>
  * 
  * Note: strings are a struct type
  * 
