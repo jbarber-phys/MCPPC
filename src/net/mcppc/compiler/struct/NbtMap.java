@@ -43,6 +43,15 @@ import net.mcppc.compiler.tokens.Token;
  * @author RadiumE13
  *
  */
+/*
+ * TODO if 1.20.3.. , use macros for get and set operations
+ * make this a seperate type and keep this one
+ *$data modify ns:path var.$(key) set value $(val) DONT
+ *$data modify ns:path var."$(key)" set from ...
+ *stringify keys so that any nbt type can be used, but not if it contains escaped quotes or whatnot;
+ *also must quote value if setting by const value
+ *Set could also be a map of "$(val)": $(val)
+ */
 public class NbtMap extends Struct {
 	public static final NbtMap map = new NbtMap("Map");
 	

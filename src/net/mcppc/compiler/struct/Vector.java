@@ -694,16 +694,12 @@ public class Vector extends Struct {
 			return a;
 		}
 
-		private static final String NEW= "\"$Vector\".\"$new\"";
-		private Variable newobj(Compiler c,BFCallToken tk) {
-			Variable v=new Variable(NEW, tk.getStaticType(), null,c.resourcelocation);
-			return v;
-		}
+		
 		@Override
 		public void call(PrintStream p, Compiler c, Scope s,  BFCallToken token, RStack stack) throws CompileError {
 			//default to storage
 			BasicArgs args = (BasicArgs)token.getArgs();
-			Variable obj=this.newobj(c,token);
+			Variable obj=Struct.newobj(c,token);
 			obj.allocateLoad(p,s.getTarget(), false);//anon must think its loaded
 			for(int i=0;i<DIM;i++) {
 				Variable arg=Vector.componentOf(obj, i);
@@ -717,14 +713,14 @@ public class Vector extends Struct {
 		@Override
 		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
 				throws CompileError {
-			Variable obj=this.newobj(c,token);
+			Variable obj=Struct.newobj(c,token);
 			obj.getMe(p,s, stack, stackstart, typeWanted);
 		}
 
 		@Override
 		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
 				throws CompileError {
-			Variable obj=this.newobj(c,token);
+			Variable obj=Struct.newobj(c,token);
 			Variable.directSet(p,s, v, obj, stack);
 		}
 

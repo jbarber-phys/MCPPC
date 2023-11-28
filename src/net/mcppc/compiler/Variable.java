@@ -158,6 +158,9 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	public static Variable macrosTag(Function f) {
 		return new Variable("$macros",NbtCompound.TAG_COMPOUND,null,Mask.STORAGE,f.getResoucrelocation().toString(),Function.MACROPATH);
 	}
+	public static Variable macrosTag(ResourceLocation path) {
+		return new Variable("$macros",NbtCompound.TAG_COMPOUND,null,Mask.STORAGE,path.toString(),Function.MACROPATH);
+	}
 	public Variable localOf(Function f,boolean isVolatile) throws CompileError{
 		this.address="%s.%s".formatted(f.name,this.name);
 		this.holder=f.getResoucrelocation().toString();
@@ -194,6 +197,12 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		if(this.isRecursive &&!canIBeRecursive())throw new CompileError("Variable %s of type %s cannot be made recursive;".formatted(this.name,this.type.asString()));
 		return this;
 	}
+	public static Variable returnOfPath(ResourceLocation path, String name,VarType type) throws CompileError{
+		Variable self = new Variable("$ret",type,null,Mask.STORAGE,"","");
+		self.address="%s.%s".formatted(name,Function.RET_TAG);
+		self.holder=path.toString();
+		return self;
+	} 
 	Variable stackVarOf(Function f) throws CompileError{
 		this.address="%s.%s".formatted(f.name,Function.STACK_TAG);
 		this.holder=f.getResoucrelocation().toString();
@@ -779,6 +788,13 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		// may be able to remove intermediary score but will still need multipliers
 		
 	}
+
+	@Targeted
+	public static void trueDirectSetBasicNbt(PrintStream f,VTarget target,Variable to,INbtValueProvider from) throws CompileError {
+		
+		String pfx = (from.hasMacro()||to.hasMacro())? "$":"";
+		f.printf("%sdata modify %s set %s\n",pfx, to.dataPhrase(),from.fromCMDStatement(target));
+	}
 	@Targeted
 	private static void trueDirectSet(PrintStream f,Scope s,Variable to,Variable from,RStack stack) throws CompileError {
 		boolean floatp = to.type.isFloatP() || from.type.isFloatP();
@@ -919,6 +935,17 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 				this.holder,
 				"%s[%s]".formatted(this.getAddressToGetset(),index)
 				);
+	}
+	@Targeted
+	public Variable indexMyNBTPathBasic(Macro index,VarType membtype) {
+		//only supports direct sets
+		return new Variable("%s[%s]".formatted(this.name,index),
+				membtype,
+				this.access,
+				this.pointsTo,
+				this.holder,
+				"%s[%s]".formatted(this.getAddressToGetset(),index.getMacroString())
+				).withMacro();
 	}
 	public Variable fieldMyNBTPath(String field,VarType type) {
 		return new Variable("%s.%s".formatted(this.name,field),
@@ -1110,9 +1137,12 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 		this.basicdeallocateBoth(p, tg);
 		
 	}
-	@Targeted
 	public void basicdeallocateBoth(PrintStream p, VTarget tg) throws CompileError {
-		if(this.pointsTo!=Mask.STORAGE) {
+		this.basicdeallocateBoth(p, tg, true);
+	}
+	@Targeted
+	public void basicdeallocateBoth(PrintStream p, VTarget tg,boolean warn) throws CompileError {
+		if(this.pointsTo!=Mask.STORAGE && warn) {
 			Warnings.warningf(null,"attempted to deallocate %s to non-storage %s;",this.name, this.pointsTo);
 			return;
 		}
@@ -1121,7 +1151,8 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 			return;
 		}
 		//this should work for both recursive and nonrecursive vars
-		p.printf("data remove %s\n", this.dataPhrase());
+		String pfx = this.hasMacro()? "$":"";
+		p.printf("%sdata remove %s\n",pfx, this.dataPhrase());
 		
 	}
 	public boolean isRecursive() {
@@ -1137,6 +1168,14 @@ public class Variable implements PrintF.IPrintable,INbtValueProvider{
 	@Override
 	public String fromCMDStatement(VTarget tg) {
 		return INbtValueProvider.FROM.formatted(this.dataPhrase());
+	}
+	private boolean hasMacro = false;
+	@Override public boolean hasMacro() {
+		return this.hasMacro;
+		
+	} private Variable withMacro() {
+		this.hasMacro=true;
+		return this;
 	}
 	@Override
 	public VarType getType() {

@@ -35,16 +35,15 @@ import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Import;
 
 
-/*list of language editions TODO :: 
- * 
- * add macro indexing for list
- * add documentation and maybe put test code in the repo
- * String: add substring method using /data .... string (block <sourcePos>|entity <source>|storage <source>) [<sourcePath>] [<start>] [<end>]
- * VERSION NOTES: see /return version changes for lots of details: added at 15, 18 removed run, 19 re-added run and fail
- * 
- * consider adding score consts for pows of 10 to shorten math ops
+/*list of language editions TODO ::
+ * version conditional compilation: target 1..2 {} else target 3..4 {} else {} 
+ * add documentation
+ * make some examples
  * 
  * far future:
+ * var / function pointers using macros; (add ref keyword to declaration type / rettype)
+ * let UUID lookup use macros;
+ * map/set as nbtcompound using macros;
  * add locks: invar -> outvar :: -> flag;
  * * if in a thread will not be ticked unless thread is running
  * add true-classes: warning, may involve heavy reworking of the compiler

@@ -18,19 +18,31 @@ import net.mcppc.compiler.target.Targeted;
  */
 public abstract class CodeGenerator {
 	public final ResourceLocation res;
+	public final boolean takesMacros;
 	public CodeGenerator(String path) {
 		this(new ResourceLocation(CompileJob.STDLIB_NAMESPACE,path));
 	}
 	public CodeGenerator(ResourceLocation res) {
 		this.res = res;
+		this.takesMacros=false;
+	}
+	public CodeGenerator(ResourceLocation res,boolean macro) {
+		this.res = res;
+		this.takesMacros=macro;
 	}
 	public abstract void build(PrintStream p,CompileJob job,Namespace ns) throws CompileError ;
 
 	@Targeted
 	public String getCall() {
-		return "function %s".formatted(this.res.toString());
+		if(this.takesMacros) {
+			Variable macros = this.macroTag();
+			return "function %s with %s".formatted(this.res.toString(),macros.dataPhrase());
+		}
+		else return "function %s".formatted(this.res.toString());
 	}
-	
+	public Variable macroTag () {
+		return Variable.macrosTag(this.res);
+	}
 	public CodeGenerator subscribe() {
 		CodeGenerator.CODE_GENERATORS.add(this);
 		return this;

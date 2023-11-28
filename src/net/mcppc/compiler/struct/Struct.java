@@ -8,6 +8,7 @@ import java.util.regex.Matcher;
 
 import net.mcppc.compiler.*;
 import net.mcppc.compiler.Compiler;
+import net.mcppc.compiler.BuiltinFunction.BFCallToken;
 import net.mcppc.compiler.CompileJob.Namespace;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
@@ -321,15 +322,15 @@ public abstract class Struct {
 			reg.setValue(p,!invert);
 			return home;
 		}
-		if(first.isMacro() || second.isMacro()) {
+		if(first.hasMacro() || second.hasMacro()) {
 			VTarget.requireTarget(VTarget.after(Version.JAVA_1_20_2), s.getTarget(), "nbt equality test", c);
 		}
 		Variable temp = new Variable("\"$temp\"",first.getType(),null,Mask.STORAGE,"mcpp:temp","\"$temp\"");
 		String dtemp=temp.dataPhrase();
 		String nbtcmd1=first.fromCMDStatement(s.getTarget());
 		String nbtcmd2=second.fromCMDStatement(s.getTarget());
-		String macroprefix1 = first.isMacro()?"$":"";
-		String macroprefix2 = second.isMacro()?"$":"";
+		String macroprefix1 = first.hasMacro()?"$":"";
+		String macroprefix2 = second.hasMacro()?"$":"";
 		p.printf("%sdata modify %s set %s\n",macroprefix1,dtemp,nbtcmd1);
 		//int ex = stack.reserve(1);Register rex = stack.getRegister(ex);
 		String cmd = "data modify %s set %s".formatted(dtemp,nbtcmd2);
@@ -615,6 +616,11 @@ public abstract class Struct {
 	
 	public BuiltinConstructor getConstructor(VarType myType) throws CompileError {
 		throw new CompileError("no constructor defined for type %s;".formatted(myType.asString()));
+	}
+	private static final String NEW= "\"$Vector\".\"$new\"";
+	public static  Variable newobj(Compiler c,BFCallToken tk) {
+		Variable v=new Variable(NEW, tk.getStaticType(), null,c.resourcelocation);
+		return v;
 	}
 	public boolean canSetToExpr(ConstExprToken e) {
 		return false;
