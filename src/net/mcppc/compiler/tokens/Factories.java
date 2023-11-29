@@ -49,6 +49,8 @@ public final class Factories {
 				return IfElse.skipMe(c, matcher, line, col, w);
 			case ELSE:
 				return IfElse.skipMe(c, matcher, line, col, w);
+			case TARGET:
+				return IfTarget.skipMe(c, matcher, line, col, false);
 			case SWITCH,CASE,DEFAULT:
 				return Switch.skipMe(c, matcher, line, col, w);
 			case FOR:
@@ -100,6 +102,8 @@ public final class Factories {
 				return IfElse.makeMe(c, matcher, line, col, w);
 			case ELSE:
 				return IfElse.makeMe(c, matcher, line, col, w);
+			case TARGET: 
+				return IfTarget.makeMe(c, matcher, line, col, false);
 			case SWITCH,CASE,DEFAULT:
 				return Switch.makeMe(c, matcher, line, col, w);
 			case FOR:

@@ -88,7 +88,7 @@ public<num n= 1 .. 6 > double<n> exp(double<n> x) {
 * natural logarithm function; 
 * uses taylor series and const-multiplication to support large output values
 */
-public<num n= 1 .. 6 > double<n> ln(double<n> x) {
+public<num n= 1 .. 3 > double<n> ln(double<n> x) {
 	if((double<-6>)x >= (double<-6>)E^32){
 		return = 32;
 	} else if(x < (double<n>)10^-6) {

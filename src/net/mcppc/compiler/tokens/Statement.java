@@ -70,6 +70,9 @@ public abstract class Statement extends Token implements TreePrintable{
 		public Scope getNewScope();
 		public void addToEndOfMyBlock(PrintStream p, Compiler c, Scope s)throws CompileError;
 		public void addToStartOfMyBlock(PrintStream p, Compiler c, Scope s) throws CompileError;
+		public default boolean cancelCompilation( Compiler c, Scope s) throws CompileError{
+			return false;
+		}
 	}
 	public static interface IFunctionMaker{
 		public boolean willMakeBlocks() throws CompileError;

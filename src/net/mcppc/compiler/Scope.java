@@ -100,6 +100,9 @@ public class Scope {
 		if(myTarget==null)return this.parent.getTarget();
 		else return this.parent.getTarget().intersection(myTarget);
 	}
+	public void restrictTarget(VTarget target) {
+		this.myTarget = target;
+	}
 	
 	//
 	public boolean hasThread() {

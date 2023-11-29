@@ -7,6 +7,7 @@ import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.Warnings;
 import net.mcppc.compiler.tokens.Regexes;
+import net.mcppc.compiler.tokens.Token;
 
 /**
  * represents a contiguous range of versions;
@@ -106,5 +107,28 @@ public class VTarget {
 		}else {
 			c.warnAboutMisallignedTarget(supported, target, use);
 		}
+	}
+	public static class TargetToken extends Token{
+		public static final Token.Factory factory = new Token.Factory(Regexes.UINT_RANGE) {
+			@Override
+			public Token createToken(Compiler c, Matcher matcher, int line, int col) throws CompileError {
+				c.cursor=matcher.end();
+				return new TargetToken(line,col,matcher);
+			}
+		};
+		public TargetToken(int line, int col,Matcher m) {
+			super(line, col);
+			String s1=m.group("min");
+			String s2=m.group("max");
+			Version min = s1!=null? new Version(Integer.parseInt(s1)):Version.JAVA_NEFINITY;
+			Version max = s2!=null? new Version(Integer.parseInt(s2)):Version.JAVA_INFINITY;
+			this.target =new VTarget(min,max);
+		}
+		public final VTarget target;
+		@Override
+		public String asString() {
+			return null;
+		}
+		
 	}
 }

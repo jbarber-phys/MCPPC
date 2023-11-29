@@ -38,15 +38,12 @@ import net.mcppc.compiler.tokens.Type;
  * struct representing a random number generator;
  * abstraction of a sequenceId;
  * also contains static functions for using a common generator;
+ * requires java 1.20.2 or newer;
  * 
  * @author RadiumE13
  *
  */
-/*
- * TODO:
- * add UUID randoms to stdlib rand
- * stop this type from being arguable
- */
+
 public class McRandom extends Struct {
 	public static final McRandom random = new McRandom("Random");
 	public static void registerAll() {

@@ -13,9 +13,10 @@ import net.mcppc.compiler.tokens.UnaryOp.UOType;
  */
 public class IfElse extends Statement implements Statement.MultiFlow,Statement.CodeBlockOpener{
 	private static final MemberName name=new MemberName(-1, -1, "$ifelse");
-	public static IfElse skipMe(Compiler c, Matcher matcher, int line, int col,Keyword opener) throws CompileError {
+	public static Statement skipMe(Compiler c, Matcher matcher, int line, int col,Keyword opener) throws CompileError {
 		//test for else if
 		c.cursor=matcher.end();
+		if(Keyword.checkFor(c, matcher, Keyword.TARGET)) return IfTarget.skipMe(c, matcher, line, col, true);
 		//CompileJob.compileMcfLog.printf("flow skip ifElse %s;\n", opener);
 		Token t;
 		Keyword open=opener;
@@ -40,9 +41,10 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 		if((!(term instanceof Token.CodeBlockBrace)) || (!((Token.CodeBlockBrace)term).forward))throw new CompileError.UnexpectedToken(term,"{");
 		return me;
 	}
-	public static IfElse makeMe(Compiler c, Matcher matcher, int line, int col,Keyword opener) throws CompileError {
+	public static Statement makeMe(Compiler c, Matcher matcher, int line, int col,Keyword opener) throws CompileError {
 		//test for else if
 		c.cursor=matcher.end();
+		if(Keyword.checkFor(c, matcher, Keyword.TARGET)) return IfTarget.makeMe(c, matcher, line, col, true);
 		//CompileJob.compileMcfLog.printf("flow ifElse %s;\n", opener);
 		Token t;
 		Keyword open=opener;

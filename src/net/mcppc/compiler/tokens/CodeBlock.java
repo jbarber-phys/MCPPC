@@ -35,6 +35,7 @@ public class CodeBlock extends Statement {
 	private boolean canRequest=false;
 	public void compileMyBlock(Compiler c) throws CompileError, FileNotFoundException{
 		Scope s=this.scope;
+		if(this.opener.cancelCompilation(c, s)) return;
 		//System.err.printf("block at %s\n",this.scope.getSubRes());
 		if(this.canRequest=s.hasTemplate())  
 		for(TemplateArgsToken targs:s.getAllDefaultTemplateArgs()) {
@@ -48,6 +49,7 @@ public class CodeBlock extends Statement {
 	}
 	public void compileMyBlockMore(Compiler c) throws CompileError, FileNotFoundException{
 		Scope s=this.scope;
+		if(this.opener.cancelCompilation(c, s)) return;
 		//System.err.printf("block at %s\n",this.scope.getSubRes());
 		if(s.hasTemplate())  
 		for(TemplateArgsToken targs:s.getAllDefaultTemplateArgs()) {

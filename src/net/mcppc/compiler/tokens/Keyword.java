@@ -49,7 +49,8 @@ public enum Keyword {
 	LOAD("load"),
 	SWITCH("switch"),
 	CASE("case"),
-	DEFAULT("default")//case statement
+	DEFAULT("default"),//case statement
+	TARGET("target")
 	;
 	
 	public static final Map<String,Keyword> VALUES = new HashMap<String, Keyword>();

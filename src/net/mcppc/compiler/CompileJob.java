@@ -36,11 +36,11 @@ import net.mcppc.compiler.tokens.Import;
 
 
 /*list of language editions TODO ::
- * version conditional compilation: target 1..2 {} else target 3..4 {} else {} 
  * add documentation
  * make some examples
  * 
  * far future:
+ * macro multiplication to replace longmult;
  * var / function pointers using macros; (add ref keyword to declaration type / rettype)
  * let UUID lookup use macros;
  * map/set as nbtcompound using macros;
