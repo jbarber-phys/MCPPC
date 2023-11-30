@@ -36,6 +36,7 @@ import net.mcppc.compiler.tokens.Import;
 
 
 /*list of language editions TODO ::
+ * extension: add task provider: https://code.visualstudio.com/api/extension-guides/task-provider
  * add documentation
  * make some examples
  * 

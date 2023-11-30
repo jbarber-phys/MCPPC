@@ -29,19 +29,19 @@ import net.mcppc.compiler.tokens.Execute;
 import net.mcppc.compiler.tokens.Keyword;
 import net.mcppc.compiler.tokens.Regexes;
 /**
- * creates a Textmate language json file for this language
+ * creates a Textmate language json file for this language<p>
  * 
- * this will basically handle all nonn-programatic hilighting except for the following:
- * * ./language-configuration.json has info on comments and brackets / auto closing pairs
- * * ./package.json might be able to define custom colors, but right now it does not work
+ * this will basically handle all nonn-programatic hilighting except for the following:<br>
+ * * ./language-configuration.json has info on comments and brackets / auto closing pairs<br>
+ * * ./package.json might be able to define custom colors, but right now it does not work<p>
  * 
- * currently, the vscode extension is a seperate project that uses the tmLanguage.json generated here
- * compilation instruction notes (in a vscode-ext project):
- * extension might not work in testing; if so, uninstall and repackage to test
- * *	if worried, backup the old .vsix file
- * to package >>> vsce package
- * 		makes a ./<name>.vsix file
- * to install >>> code --install-extension .\<name>.vsix
+ * currently, the vscode extension is a seperate project that uses the tmLanguage.json generated here<p>
+ * compilation instruction notes (in a vscode-ext project):<br>
+ * extension might not work in testing; if so, uninstall and repackage to test<br>
+ * *	if worried, backup the old .vsix file<br>
+ * to package >>> vsce package<br>
+ * 		makes a ./package-name.vsix file<br>
+ * to install >>> code --install-extension .\package-name.vsix
  * 
  * @author RadiumE13
  *
@@ -149,8 +149,21 @@ public class MakeTmLanguage extends Regexes.Strs{
 		//comments + domments
 		addToRepo("domments",namedMatch(domment,DOMMENT_LINE,italic));
 		addToRepo("comments",namedMatch(comment,COMMENT_LINE));
-		addToRepo("domments_block",namedMatch(domment,DOMMENT_BLOCK,italic));//TODO test this; also edit the language-configuration.json: uncomment the block comments
-		addToRepo("comments_block",namedMatch(comment,COMMENT_BLOCK));
+		
+		// these do not work for some reason (they are not recognized by vscode)
+		//addToRepo("domments_block",namedMatch(domment,DOMMENT_BLOCK,italic));
+		//addToRepo("comments_block",namedMatch(comment,COMMENT_BLOCK));
+		//but thse work:
+		Map bcomment =enclosed( comment, COMMENT_BLOCK_BEGIN, CDOMMENT_BLOCK_END,
+				List.of(namedMatch(comment,COMMENT_BLOCK_CHAR),
+						namedMatch(comment,COMMENT_BLOCK_NEWLINE)
+						) );
+		Map bdomment =enclosed( comment, DOMMENT_BLOCK_BEGIN, CDOMMENT_BLOCK_END,
+				List.of(namedMatch(italic,COMMENT_BLOCK_CHAR),
+						namedMatch(italic,COMMENT_BLOCK_NEWLINE)
+						),italic );
+		addToRepo("domments_block",bdomment);
+		addToRepo("comments_block",bcomment);
 		
 		//estimate operator must be escaped
 		addToRepo("operators",namedMatch(operator,ESTIMATE));

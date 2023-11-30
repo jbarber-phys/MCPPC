@@ -45,4 +45,3 @@ public<num n = 1 .. 6> Entity attack(Entity target,double<n> damage){
     }
     arrow.clear();
 }
-

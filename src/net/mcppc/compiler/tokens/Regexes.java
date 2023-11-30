@@ -25,8 +25,19 @@ public final class Regexes {
 		public static final String NAME = "[A-Za-z]\\w*";// [A-Za-z]\w*;
 		public static final String COMMENT_LINE=("\\/\\/([^\\n\\/][^\\n]*)(?=\\n|$)");// \/\/([^\n\/][^\n]*)(?=\n|$)
 		public static final String DOMMENT_LINE=("\\/\\/\\/([^\\n]*)(?=\\n|$)");// \/\/\/([^\n]*)(?=\n|$)
-		public static final String COMMENT_BLOCK=("/\\*(?!\\*)(([^\\*]|\\*(?!(/)))*)\\*/");// /\*(?!\*)(([^\*]|\*(?!(/)))*)\*/
-		public static final String DOMMENT_BLOCK=("/\\*\\*(([^\\*]|\\*(?!(/)))*)\\*/");// /\*\*(([^\*]|\*(?!(/)))*)\*/
+		
+		
+		public static final String COMMENT_BLOCK=("\\/\\*(?!\\*)(([^\\*]|\\s|\\*(?!(\\/)))*)\\*\\/");// \/\*(?!\*)(([^\*]|\s|\*(?!(\/)))*)\*\/
+		// \/\*(?!\*)(([^\*]|\*(?!(\/)))*)\*\/
+		public static final String DOMMENT_BLOCK=("\\/\\*\\*(([^\\*]|\\s|\\*(?!(\\/)))*)\\*\\/");// \/\*\*(([^\*]|\s|\*(?!(\/)))*)\*\/
+		// /\*\*(([^\*]|\*(?!(/)))*)\*/
+		//vscode compadible versions:
+		public static final String COMMENT_BLOCK_BEGIN=("\\/\\*(?!\\*)");// \/\*(?!\*)
+		public static final String DOMMENT_BLOCK_BEGIN=("\\/\\*\\*");// \/\*\*
+		public static final String CDOMMENT_BLOCK_END=("\\*\\/");// \*\/
+		public static final String COMMENT_BLOCK_CHAR=("[\\s\\S]");// [\s\S]
+		public static final String COMMENT_BLOCK_NEWLINE=("\\n");// \n
+		//vscode is buggy and wont recognize newlins in most regexes
 		
 		public static final String CMDGROUP = "(?<cmd>((%s)|(%s)|[^\\\"';\\\\\\n])*)".formatted(Strs.STRLITSTRING,Strs.CMD_NL_ESCAPED); 
 		// (?<cmd>((%s)|(%s)|[^\"';\\\n])*)
