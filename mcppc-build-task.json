@@ -1,0 +1,27 @@
+{
+    "tasks": [
+        {
+            "label": "compile mcpp",
+            "type": "shell",
+            "command": "<your java>\\bin\\java.exe",
+            "args":[
+            "-p",
+            "<your mcppc folder>\\bin",
+            "-XX:+ShowCodeDetailsInExceptionMessages",
+            "-m", "MCPPC/net.mcppc.main.Main",
+
+            "-g",
+            "-src", "<your source-pack folder>",
+            "-o", "<your datapack folder>"],
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            
+			"options": {
+				"cwd": "<your mcppc folder>"
+			}
+        }
+    ]
+}

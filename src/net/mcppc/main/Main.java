@@ -106,6 +106,12 @@ public class Main {
 		else        System.err.println("failed to compile std library;");
 		return success;
 	}
+	public static void makeMarkdownCompileOptions() {
+		for(COption.OptionModifier mod : Main.compileOptions) {
+			String mdrow = "  - " + mod.helpLn();
+			System.out.print(mdrow);
+		}
+	}
 	public static void main(String[] args) {
 		//the project directory is the datapack level (same as pack.mcmeta)
 		//args
@@ -185,7 +191,10 @@ public class Main {
 				skipMainCompile=true;
 				break;
 			}
-
+			if(arg.equals("-md")) {
+				makeMarkdownCompileOptions();
+				return;
+			}
 			if(arg.equals("-g")) {
 				job.addLineInfo();
 			}

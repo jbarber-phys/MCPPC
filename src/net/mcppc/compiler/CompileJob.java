@@ -36,7 +36,6 @@ import net.mcppc.compiler.tokens.Import;
 
 
 /*list of language editions TODO ::
- * extension: add task provider: https://code.visualstudio.com/api/extension-guides/task-provider
  * add documentation
  * make some examples
  * 
@@ -228,17 +227,28 @@ public class CompileJob {
 	final Stack<ResourceLocation> externalImports=new Stack<ResourceLocation>();
 	final Stack<ResourceLocation> externalImportsStrict=new Stack<ResourceLocation>();
 	/**
-	 * primary root directory; used to locate namespaces to compile
-	 * all the other roots are secondary
+	 * primary root directory; used to locate namespaces to compile;
+	 * all the other roots are secondary;
 	 */
-	Path rootSrc;public void setRootSrc(Path o) {
+	Path rootSrc;
+	/** Sets the root directory of the source mcpp files to compile; 
+	 * 
+	 * @param o
+	 */
+	public void setRootSrc(Path o) {
 		this.rootSrc=o;
 	}
 
 	/**
-	 * specifies the root where all mch generated will go; may be same as src root
+	 * specifies the root where all mch generated will go; may be same as src root;
 	 */
-	Path rootHeaderOut;public void setRootHeaderOut(Path o) {
+	Path rootHeaderOut;
+	/** Sets the root directory for where to write the mch files,
+	 * which are used to allow other projects to use functions, variables, ... form this project;
+	 * 
+	 * @param o
+	 */
+	public void setRootHeaderOut(Path o) {
 		this.rootHeaderOut=o;
 	}
 	/**
@@ -251,12 +261,20 @@ public class CompileJob {
 	 *  may be same as rootSrc root but not as rootDatapack
 	 *  not every mcf must be here as long as the other mcf files are already in t;
 	 */
-	final List<Path> rootLinks=new ArrayList<Path>();public void addLink(Path o) {
+	final List<Path> rootLinks=new ArrayList<Path>();
+
+	/** add a path to search for compiled mcfunction files made by another mcpp project;
+	 * they will be conditionally copied into this datapack if they are needed
+	 * 
+	 * @param o
+	 */
+	public void addLink(Path o) {
 		rootLinks.add(o);
 	}
 
 	/**
-	 * specifies where all mcf functions will go; may be same as src root
+	 * specifies where all mcf functions will go (the output directory);
+	 * may be same as src root
 	 */
 	Path rootDatapack;public void setRootDatapack(Path o) {
 		this.rootDatapack=o;
@@ -291,6 +309,12 @@ public class CompileJob {
 		this.rootSrc=this.rootHeaderOut=root;
 		this.rootDatapack=rootDatapack;
 	}
+
+	/** add a directory to seach for mch files from another mcpp project;
+	 * allows this project to use the other projects public functions, variables, etc.;
+	 * 
+	 * @param o
+	 */
 	public CompileJob includePath(Path libroot) {
 		this.rootIncludes.add(libroot);
 		return this;
@@ -1094,8 +1118,7 @@ public class CompileJob {
 		
 	}
 	
-	//TODO target:
-	//...
+	// target ===========
 	private VTarget target = VTarget.ANY;
 	public VTarget getTarget() {
 		return this.target;

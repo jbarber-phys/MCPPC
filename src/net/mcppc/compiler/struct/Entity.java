@@ -29,6 +29,7 @@ import net.mcppc.compiler.ResourceLocation.ResourceToken;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.target.VTarget;
 import net.mcppc.compiler.target.Targeted;
+import net.mcppc.compiler.tokens.Equation;
 import net.mcppc.compiler.tokens.Factories;
 import net.mcppc.compiler.tokens.MemberName;
 import net.mcppc.compiler.tokens.Regexes;
@@ -276,6 +277,18 @@ public class Entity extends Struct {
 	@Override
 	public BuiltinFunction getBuiltinMethod(Variable self, String name) throws CompileError {
 		return super.getBuiltinMethodBasic(self,name, BFS);
+	}
+	public static Map<String,BuiltinFunction> BFS_STATIC = Map.of(
+			 CountStatic.exists.name,CountStatic.exists
+			,CountStatic.count.name,CountStatic.count
+			);
+	@Override
+	public boolean hasStaticBuiltinMethod(String name) {
+		return super.hasStaticBuiltinMethodBasic(name, BFS_STATIC);
+	}
+	@Override
+	public BuiltinFunction getStaticBuiltinMethod(String name, VarType type) throws CompileError {
+		return super.getStaticBuiltinMethodBasic(name, type, BFS_STATIC);
 	}
 	public static Selector checkForSelectorOrEntity(Compiler c,Scope s, Matcher matcher, int line, int col) throws CompileError {
 		ConstExprToken slc=Const.checkForExpressionSafe(c, s, matcher, line, col, ConstType.SELECTOR);
@@ -528,6 +541,88 @@ public class Entity extends Struct {
 			if(!(self.isStruct() && self.type.struct instanceof Entity))throw new CompileError("function %s must be called from an entity object".formatted(this.name));
 			Entity clazz = (Entity) self.type.struct;
 			Selector slc = clazz.getSelectorFor(self);
+			int home=stack.reserve(1);
+			Register h=stack.getRegister(home);
+			p.printf("execute store %s score %s if entity %s\n",this.cmdRetType, h.inCMD(),slc.toCMD());
+			stack.setVarType(home, this.getRetType(token, s));
+			v.setMe(p, s, stack, home);
+		}
+
+		@Override
+		public Number getEstimate(BFCallToken token, Scope s) {
+			return null;
+		}
+		
+	}
+	public static class CountStatic extends BuiltinFunction{
+		public static final String SUCCESS="success";
+		public static final String RESULT="result";
+		public static CountStatic exists = new CountStatic("exists",VarType.BOOL,SUCCESS);
+		public static CountStatic count = new CountStatic("count",VarType.INT,RESULT);
+		public final VarType rtype;
+		public final String cmdRetType;
+		public CountStatic(String name,VarType ret, String cmdRetType) {
+			super(name);
+			this.rtype=ret;
+			this.cmdRetType=cmdRetType;
+			
+		}
+		public boolean isNonstaticMember() {
+			return false;
+		}
+		@Override
+		public VarType getRetType(BFCallToken token, Scope s) {
+			return this.rtype;
+		}
+
+		@Override
+		public Args tokenizeArgs(Compiler c, Scope s, Matcher matcher, int line, int col, RStack stack) throws CompileError {
+			return BuiltinFunction.tokenizeArgsEquations(c, s, matcher, line, col, stack);
+		}
+
+		@Override
+		public void call(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack) throws CompileError {
+			//do nothing (yet)
+		}
+		/*
+		 * https://gaming.stackexchange.com/questions/365931/how-to-count-entities-with-commands-check-if-there-are-only-one-or-a-certain-num
+		 * /execute store result score @s entities if entity @e
+		 * the last bit acts as a testfor statement
+		 */
+		@Override
+		@Targeted
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, RStack stack, int stackstart, VarType typeWanted)
+				throws CompileError {
+			BasicArgs args = (BasicArgs) token.getArgs();
+			if(args.nargs()!=1) throw new CompileError.WrongArgNumber(token, this.name, "1", args.nargs());
+			Equation eq = (Equation) args.arg(0);
+			eq.constify(c, s);
+			if(!eq.isConstable()) eq.throwNotConstError();
+			ConstExprToken ce = eq.getConst();
+			if(ce.constType()!=ConstType.SELECTOR) throw new CompileError.WrongConstType(this.name, ConstType.SELECTOR, ce);
+
+			Selector slc = ((Selector.SelectorToken) ce).selector();
+			int home=stackstart;
+			Register h=stack.getRegister(home);
+			//mc 1.13 has no testfor equivalent
+			//p.printf("execute store %s score %s run data get entity %s\n",this.cmdRetType, h.inCMD(),slc.toCMD());
+			p.printf("execute store %s score %s if entity %s\n",this.cmdRetType, h.inCMD(),slc.toCMD());
+			stack.setVarType(home, this.getRetType(token, s));
+		}
+
+		@Override
+		@Targeted
+		public void getRet(PrintStream p, Compiler c, Scope s, BFCallToken token, Variable v, RStack stack)
+				throws CompileError {
+			BasicArgs args = (BasicArgs) token.getArgs();
+			if(args.nargs()!=1) throw new CompileError.WrongArgNumber(token, this.name, "1", args.nargs());
+			Equation eq = (Equation) args.arg(0);
+			eq.constify(c, s);
+			if(!eq.isConstable()) eq.throwNotConstError();
+			ConstExprToken ce = eq.getConst();
+			if(ce.constType()!=ConstType.SELECTOR) throw new CompileError.WrongConstType(this.name, ConstType.SELECTOR, ce);
+
+			Selector slc = ((Selector.SelectorToken) ce).selector();
 			int home=stack.reserve(1);
 			Register h=stack.getRegister(home);
 			p.printf("execute store %s score %s if entity %s\n",this.cmdRetType, h.inCMD(),slc.toCMD());
