@@ -10,7 +10,7 @@
 
 ## Thread Flow Control
 
-## Thread Locals
+## Thread Variables
 
 ## Special Blocks
 <!-- Death, Tick-->

@@ -45,10 +45,13 @@ The compiler accepts lots of arguments but the most important ones are below.
 
 For more information, see [Compilation](./compilation.md).
 ##  2. <a name='Syntax'></a>Syntax
-Mcpp uses syntax similar java / c++ / c#.
+Mcpp uses syntax similar java / c++ / c#, but also incorperates some types of expressions that appear in mcfunctions.
 
-Code blocks are delimited by curly braces and every line of code (a statement) ends in a semicolon.
-Comments use double forward slashes, etc.
+Code blocks are delimited by curly braces and every line of code (a statement) ends in a semicolon. Comments use double forward slashes.
+
+Target selectors appear exactly as in mcfunctions.
+
+Three numbers seperated by spaces will be interpereted as a world position; tildes and carets will also be accepted. Two numbers will be interpereted as a rotation (a pitch, yaw pair), but no carets are allowed.
 ##  3. <a name='VariablesBasics'></a>Variables (Basics)
 MCPP supports statically typed variables. Variables are typically defined like below.
 ```mcpp
@@ -85,6 +88,12 @@ private void increment(ref int a){
 Normally, mcppc decides where to write the function's files to, but this can be overridden to make it make the function at a specific resourcelocation.
 
 For more info, see [Functions](/docs/functions.md).
+
+There is a [standard library](/docs/stdlib.md) in the namespace `mcppc`, which is always included in an mcpp project and contains some basic functions. One of its contents is the `math` file which includes some basic math functions.
+```mcpp
+import if mcppc:math; //only copy over functions that are used
+printf("%s",math.sin(30));// sine of 30 degrees = 0.5
+```
 
 Note that in addition to normal functions, there are also [BuiltinFunctions](/docs/builtinfunctions.md). Like Structs, Builtin Functions are defined by the compiler and can take unusual expressions as arguments (but they will usually be function-like). They can also require that their arguments be [Constant](#constants) valued or be references to [Variables](#variables).
 ##  5. <a name='VariableTypesBasics'></a>Variable Types (Basics)

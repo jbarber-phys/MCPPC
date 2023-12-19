@@ -17,6 +17,16 @@ import net.mcppc.compiler.tokens.Execute;
 import net.mcppc.compiler.tokens.Token;
 /**
  * a smart version of the /tp command; args are similar to /tp but can accept some variables;
+ * 
+ * arguments are:
+ * <ul>
+ * 		<li>tp(destination)
+ * 		<li>tp(me, destination, rotation, anchor)
+ * </ul>
+ * destination can be a selector or position const;
+ * rotation can be a selector or rotation const or pos const;
+ * 
+ * 
  * @author RadiumE13
  *
  */

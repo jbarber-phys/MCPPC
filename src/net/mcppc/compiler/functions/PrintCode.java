@@ -21,6 +21,7 @@ import net.mcppc.compiler.tokens.Token.CodeLine;
 /**
  * prints mcpp code with highlighting using /tellraw;<p>
  * very cool; try it;
+ * just has 1 arg for reciever entity (default @s)
  * @author RadiumE13
  *
  */

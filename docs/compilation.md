@@ -30,6 +30,8 @@ MCPPC compiles at the project (datapack) level. An mcpp project looks similar to
 ├── ...
 ```
 The mcpp project may or may not be the same as the datapack output and include output directories.
+
+NEVER name any of your namespaces `mcppc` because the compiler will put its standard libraries there if they are used.
 ##  2. <a name='Compiling'></a>Compiling
 A vscode build task for running the compiler is found in 
 [/mcppc-build-task.json](../mcppc-build-task.json). In order to work, the compiler must be runned with the cwd in its directory.

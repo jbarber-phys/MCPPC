@@ -4,6 +4,8 @@
 
 ## Evaluation Order
 
+## Estimation
+
 ## Short and Long Multiplication
 
 ## Integer Overflow
