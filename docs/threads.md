@@ -1,7 +1,21 @@
 # Threads
+<!-- vscode-markdown-toc -->
+* 1. [Defining](#Defining)
+* 2. [Calling](#Calling)
+* 3. [Synchronized](#Synchronized)
+* 4. [Execute As At](#ExecuteAsAt)
+* 5. [Thread Flow Control](#ThreadFlowControl)
+* 6. [Thread Variables](#ThreadVariables)
+* 7. [Special Blocks](#SpecialBlocks)
+
+<!-- vscode-markdown-toc-config
+	numbering=true
+	autoSave=true
+	/vscode-markdown-toc-config -->
+<!-- /vscode-markdown-toc -->
 
 Threads are used to run mcfunction code over multiple ticks, with complicated flow control that can involve delays. It is especially usefull for custom bossfights.
-## Defining
+##  1. <a name='Defining'></a>Defining
 Threads can be define as below.
 ```mcpp
 thread public countdown {
@@ -26,7 +40,7 @@ The controls for a block start with an optional block access and name (used to g
 In place of a block, the `then` keyword can be used to do nothing.
 
 The function can end with the `stop`, `kill`, or `restart` keywords. This keyword determines what will happen when the execution reaches the end. Following this keyword, a call to the thread can optionally be made. The syntax is the same as calling a thread but with no thread name.
-## Calling
+##  2. <a name='Calling'></a>Calling
 Threads can be started like so:
 ```mcpp
 start countdown();
@@ -51,11 +65,11 @@ start countdown(middle, c);
 restart coutdown(b,middle);
 ```
 
-## Synchronized
+##  3. <a name='Synchronized'></a>Synchronized
 Addingthe `synchronized` keyword after the `thread` keyword during declaration makes it so that there can only be 1 instance of the thread running at a time. Any previous calls will automatically stop when another start is done.
 
 Synchronized thread that do not have execute `as` statements will not have an executor, so that argument can be omitted in calls.
-## Execute As At
+##  4. <a name='ExecuteAsAt'></a>Execute As/Asat
 An `as` or `asat` statement can be specified, if either is present, the thread will execute as the selector on start (with a seperate instance per entity). Only one instance of a thread can be running per entity, though.
 
 If a thread does not have an `as` statement but is also not `synchronized`, then the executor will be a new marker summoned on start (and killed after stop).
@@ -73,7 +87,7 @@ thread public rocket asat (@e[type=chicken,distance=..16]) {
 }next kill;
 start rocket();
 ```
-## Thread Flow Control
+##  5. <a name='ThreadFlowControl'></a>Thread Flow Control
 Flow within threads is controlled in 2 ways: statements before each block, and statements within blocks that set `goto`, `wait`, `break`, and `exit`.
 
 The following statements can appear before a thread block:
@@ -89,7 +103,7 @@ Flow set by these statements can be overriden by `goto`, `wait`, `break`, and `e
  - `exit`: whether to stop the thread early at the end of this block.
 
  In addition, there are two types of [Special Blocks](#special-blocks) that handle events (they are not part of normal execution).
-## Thread Variables
+##  6. <a name='ThreadVariables'></a>Thread Variables
 variable declarations can appear in threads. These variables can never be accessed outside the thread. Public variables can be accessed in any block, but private ones are limited to the block they were declared in.
 
 If there could be more than 1 executor, then all variables will be stored as scores to make sure they are unique. If this cannot be done, an error will be thrown. There are two fixes for this. The first is to add the compile flag `-uuidLookup`. This will permit mcppc to create an nbt map that contains UUIDs as keys to all executor locals. If you do this, make sure to never use inline `/return` or `/kill` commands because they could leak entries in this map.
@@ -106,7 +120,7 @@ thread hasLocals asat(@a){
 }
 ```
 In addition variables with masks, private variables set at declaration, and variables inside `synchronized` threads will not be forced to be unique.
-## Special Blocks
+##  7. <a name='SpecialBlocks'></a>Special Blocks
 <!-- Death, Tick; TODO-->
 There are two types of blocks that are not part of normal flow: `tick` and `death`. They can be omitted or put anywhere (and execution will just flow around them). They handle various events. They must be the only block control present.
  - `tick`: runs every tick of execution before normal code

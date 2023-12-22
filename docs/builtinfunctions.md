@@ -63,7 +63,7 @@ printf("there is a sub format: %s",format("formatted %s",1234,bold=true),color="
 ```
 formatlit() is similar to format() but instead it generates a string literal of the json text that can be inserted into nbt data (for things like lore or book pages).
 ###  2.4. <a name='printnextline'></a>printnextline()
-prints the next line of code in this mcpp file with vscode formatting using `/tellraw`. It has only one optional argument (the reciever, which defaults to `@s`).
+Prints the next line of code in this mcpp file with vscode formatting using `/tellraw`. It has only one optional argument (the reciever, which defaults to `@s`).
 
 This is very cool to see. Highly recommend trying it out.
 ###  2.5. <a name='stopLongMultanddoLongMult'></a>stopLongMult() and doLongMult())

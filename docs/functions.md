@@ -77,7 +77,7 @@ recurr(false);
 ```
 All layers of the call stack will share the same value of a volatile variable.
 ##  5. <a name='ExternFunctions'></a>Extern Functions
-MCPP has its own system for passing arguments and return values in and out of functions (it uses storage). Sometime around Java 1.20.2, macros and the `/return` command were added. This means that if an mcpp function is supposed to be called by a raw mcfunction datapack (or vice versa), then that other datapack might need the function to take macro arguments and return using `/return`. In this case, the function must be labeled with the keyword `extern` to tell mcppc to use minecraft's new return/arg system instead of mcpp's. It also requires that a resourcelocation be given to tell the function where to write itself or call itself (if exporting, subfunctions may be created with locations start with the given resourcelocation).
+MCPP has its own system for passing arguments and return values in and out of functions (it uses storage). Sometime around Minecraft Java 1.20.2, macros and the `/return` command were added. This means that if an mcpp function is supposed to be called by a raw mcfunction datapack (or vice versa), then that other datapack might need the function to take macro arguments and return using `/return`. In this case, the function must be labeled with the keyword `extern` to tell mcppc to use minecraft's new return/arg system instead of mcpp's. It also requires that a resourcelocation be given to tell the function where to write itself or call itself (if exporting, subfunctions may be created with locations start with the given resourcelocation).
 ```mcpp
 public int importedExtern(int arg) -> otherpack:a_mcfunction;
 public int exportedExtern(int arg) -> thispack:a_mcfunction {
