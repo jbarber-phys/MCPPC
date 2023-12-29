@@ -25,6 +25,8 @@ It is possible that MCPP will have more key features in the future \(true classe
 
 ## Installation
 See [Installation](docs/getting_started.md#1-installation).
+
+In addition, a vscode extension for mcpp can be found [HERE](https://github.com/jbarber-phys/mcpp_vscode_ext).
 ## Hello World!
 See [Hello World](docs/getting_started.md#2-hello-world).
 ## Documentation
