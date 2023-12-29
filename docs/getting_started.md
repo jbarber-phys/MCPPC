@@ -15,7 +15,7 @@ Currently, this repository is an eclipse Java Project. No bin-install is present
 
 To install for use, create / open the project in eclipse (or other IDE). Compile and run it once with the arg "--std" to compile the compiler and its standard library. The compiler should now be "installed".
 
-There is also a vscode extension for mcpp syntax highlighting at TODO. Download the newest package (EXTENSION.vsix) file and install it with the command
+There is also a vscode extension for mcpp syntax highlighting [HERE](https://github.com/jbarber-phys/mcpp_vscode_ext). Download the newest package (EXTENSION.vsix) file and install it with the command
 ```sh
 code --install-extension EXTENSION.vsix
 ```

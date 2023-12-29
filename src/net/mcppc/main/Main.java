@@ -25,7 +25,7 @@ import net.mcppc.compiler.tokens.Regexes;
  * 		<li>-g : enables debug mode (will add comments to mcfunctions indicating the line numbers)
  * 		<li>-std : recompiles the standard library
  * 		<li>--std : recompiles the standard library and skips normal compilation
- * 		<li>-vscode [$path]: makes the tmLanguage used by the vscode extension and writes it to $path (defaults to in the generated folder); also stops normal compilation
+ * 		<li>--vscode [$path]: makes the tmLanguage used by the vscode extension and writes it to $path (defaults to in the generated folder); also stops normal compilation
  * 		<li>(and also lots of extra options given in {@link Main#compileOptions})
  * </ul>	
  * everything but this file is usable as a library<br>

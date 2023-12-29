@@ -50,7 +50,7 @@ The compiler has the following arguments:
 - -g : add comments to mcfunctions with line number info
 - -std : recompiles the standard library
 - --std : recompiles the standard library and skips normal compilation
-- -vscode $path: generates the tmLanguage used by the vscode extension and writes it to $path (defaults to the generated folder); also stops normal compilation
+- --vscode $path: generates the tmLanguage used by the vscode extension and writes it to $path (defaults to the generated folder); also stops normal compilation
 - more arguments that influence compilation
   - -pedantic : dis-allow anything unsafe
   - -unsafe : allows more unsafe operations
