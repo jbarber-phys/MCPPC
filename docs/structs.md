@@ -6,6 +6,7 @@ Variables can take on a struct type (as opposed to a basic type) asociated with 
 The struct type defines the following behaviors:
  - what if any type arguments are required
  - what a variable of this type can be set to (and how to set it)
+ - whether the type has a constructor
  - any operations that can be done on this variable
  - any fields it has (accessable with the `.` operator)
  - any member builtin functions it has (accessable with the `.` operator)
@@ -13,6 +14,11 @@ The struct type defines the following behaviors:
  - whether the type can be indexed (see [Indexing](#indexing))
 
 Structs have no concept of inheritence, but some belong to a group with very similar behavior. We put these in their own subsection.
+
+Some structs have a constructor. This is called in an equation just like a function with the type as the function name.
+```mcpp
+Vec3d<3> vec = Vec3d<3>(0,1,0);
+```
 ## Indexing
 Some struct variables can be indexed with `[]` brackets.
 ```mcpp
