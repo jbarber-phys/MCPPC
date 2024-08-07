@@ -16,7 +16,8 @@ public class IfElse extends Statement implements Statement.MultiFlow,Statement.C
 	public static Statement skipMe(Compiler c, Matcher matcher, int line, int col,Keyword opener) throws CompileError {
 		//test for else if
 		c.cursor=matcher.end();
-		if(Keyword.checkFor(c, matcher, Keyword.TARGET)) return IfTarget.skipMe(c, matcher, line, col, true);
+		if(Keyword.checkFor(c, matcher, Keyword.TARGET)) 
+			return IfTarget.skipMe(c, matcher, line, col, true);
 		//CompileJob.compileMcfLog.printf("flow skip ifElse %s;\n", opener);
 		Token t;
 		Keyword open=opener;

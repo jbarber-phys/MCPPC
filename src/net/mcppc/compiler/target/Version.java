@@ -17,7 +17,22 @@ public class Version  implements Ordered<Version>{
 	public static final Version JAVA_1_20 = new Version(15); 
 	public static final Version JAVA_1_20_2_SNAP_RETURN_RUN = new Version(16); 
 	public static final Version JAVA_1_20_2 = new Version(18); 
-	public static final Version JAVA_1_20_3_SNAP = new Version(25); //temporary
+	public static final Version JAVA_1_20_3_SNAP = new Version(25); 
+	public static final Version JAVA_1_20_3 = new Version(26); 
+	/*
+	 * 43: Renamed legacy tag folders like tags/items to tags/item, with the exception of tags/functions.
+	 */
+	public static final Version JAVA_1_21_SNAP_PARTICLE_SNBT = new Version(39); 
+	/*
+	 * 43: Renamed legacy tag folders like tags/items to tags/item, with the exception of tags/functions.
+	 */
+	public static final Version JAVA_1_21_SNAP_SOME_SINGULAR = new Version(43); 
+	/*
+	 * 45: Added data driven jukebox songs. Renamed legacy folders like loot_tables to loot_table
+	 *     or tags/functions to tags/function. 
+	 */
+	public static final Version JAVA_1_21_SNAP_ALL_SINGULAR = new Version(45); 
+	public static final Version JAVA_1_21 = new Version(48); 
 	
 	
 	//internal only

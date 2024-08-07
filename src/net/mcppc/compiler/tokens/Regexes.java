@@ -186,6 +186,7 @@ public final class Regexes {
 	public static final Pattern STM_SKIP_MSCCHAR=Pattern.compile("[^\\\";{}@\\w/$]+");// [^\";{}@\w/$]+
 	
 	public static final Pattern FSLASH=Pattern.compile("/");// /
+	public static final Pattern NBT_OPENER_CHAR=Pattern.compile("(\\{)");// (\{)
 	//more carefull nbt tag parsers
 	public static final Pattern NBT_OPEN=Pattern.compile("(?<segment>((%s)|[^~;=\\{\\}\\n])+)(\\{)".formatted(Strs.STRLITSTRING));// (?<segment>((%s)|[^~;=\{\}\n])+)(\{)
 	public static final Pattern NBT_CLOSE=Pattern.compile("(?<segment>((%s)|[^~;=\\{\\}\\n])*)(\\})".formatted(Strs.STRLITSTRING));// (?<segment>((%s)|[^~;=\{\}\n])*)(\})

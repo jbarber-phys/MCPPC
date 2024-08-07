@@ -8,11 +8,15 @@ import net.mcppc.compiler.Compiler;
 import net.mcppc.compiler.Const;
 import net.mcppc.compiler.Const.ConstExprToken;
 import net.mcppc.compiler.Const.ConstType;
+import net.mcppc.compiler.NbtPath;
+import net.mcppc.compiler.NbtPath.NbtPathToken;
 import net.mcppc.compiler.ResourceLocation;
 import net.mcppc.compiler.ResourceLocation.ResourceToken;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.struct.Singleton;
 import net.mcppc.compiler.struct.Struct;
+import net.mcppc.compiler.target.Targeted;
+import net.mcppc.compiler.target.VTarget;
 /**
  * a token for a particle type along with all particle-specific args seperated by spaces;
  * @author RadiumE13
@@ -23,24 +27,35 @@ public class ParticleTypeToken extends Token{
 		
 		ParticleTypeToken particle =  new ParticleTypeToken(line,col,id);
 		Token.Factory[] look = Factories.genericCheck(ResourceLocation.ResourceToken.factory);
-		Token t = c.nextNonNullMatch(look);
-		if(t instanceof ResourceToken) {
-			ResourceToken block = (ResourceToken) t;
-			t =  c.nextNonNullMatch(Factories.genericCheck(BlockstateToken.argFactory));
-			if(t instanceof BlockstateToken) {
-				((BlockstateToken) t).block= block.asString();
-			}else t = new BlockstateToken((ResourceToken) block);
-			particle.args.add(t);
-			return particle;
-			//ignore item nbt; dont use it; it has no effect;
-		}
-		while(true) {
-			ConstExprToken ct = Const.checkForExpressionSafe(c, c.currentScope, matcher, line, col, ConstType.NUM);
-			if(ct==null)
-				break;
-			else {
-				particle.args.add(ct);
-				//System.err.printf("particle type arg: %s\n", ct.textInMcf());
+		
+		//VTarget tg = c.currentScope.getTarget();
+		if(NbtPath.isLookingAtTagOpener(c, matcher)) {
+			//System.err.println("particle snbt");//works
+			NbtPathToken snbt = NbtPath.nextNbtCarefull(c, matcher,false,true);
+			//System.err.println(c.getNextChars());//now is the problem
+			particle.snbt = snbt;
+		}else {
+			//System.err.println("particle has no snbt");
+			Token t = c.nextNonNullMatch(look);
+			if(t instanceof ResourceToken) {
+				ResourceToken block = (ResourceToken) t;
+				t =  c.nextNonNullMatch(Factories.genericCheck(BlockstateToken.argFactory));
+				if(t instanceof BlockstateToken) {
+					((BlockstateToken) t).block= block.asString();
+				}else t = new BlockstateToken((ResourceToken) block);
+				particle.args.add(t);
+				return particle;
+				//ignore item nbt; dont use it; it has no effect;
+			}
+			while(true) {
+				
+				ConstExprToken ct = Const.checkForExpressionSafe(c, c.currentScope, matcher, line, col, ConstType.NUM);
+				if(ct==null)
+					break;
+				else {
+					particle.args.add(ct);
+					//System.err.printf("particle type arg: %s\n", ct.textInMcf());
+				}
 			}
 		}
 		//TODO some nums are null and end in a d, but arg list seems fine
@@ -61,7 +76,8 @@ public class ParticleTypeToken extends Token{
 				return make(c,matcher,line,col,new ResourceLocation(matcher.group()).toString());
 			} };
 	String id;
-	List<Token> args = new ArrayList<Token>();
+	NbtPathToken snbt = null; //post v 39
+	List<Token> args = new ArrayList<Token>();// pre v 39
 	public ParticleTypeToken(int line, int col,String id) {
 		super(line, col);
 		this.id=id;
@@ -70,13 +86,16 @@ public class ParticleTypeToken extends Token{
 	@Override
 	public String asString() {
 		try {
-			return this.textInMcf();
+			return this.textInMcf(VTarget.ANY);
 		} catch (CompileError e) {
 			return this.id + " ...error";
 		}
 	}
-
-	public String textInMcf() throws CompileError{
+	@Targeted
+	public String textInMcf(VTarget tg) throws CompileError{
+		if(this.snbt !=null) {
+			return "%s%s".formatted(this.id,this.snbt.textInMcf(tg));
+		}
 		String[] ss = new String[this.args.size()+1];
 		ss[0] = this.id;
 		for(int i=0;i<args.size();i++) {

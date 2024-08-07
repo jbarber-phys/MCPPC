@@ -30,14 +30,15 @@ import net.mcppc.compiler.errors.COption;
 import net.mcppc.compiler.errors.CompileError;
 import net.mcppc.compiler.errors.OutputDump;
 import net.mcppc.compiler.errors.Warnings;
+import net.mcppc.compiler.errors.Warnings.OneTimeWarnings;
 import net.mcppc.compiler.target.VTarget;
+import net.mcppc.compiler.target.Version;
 import net.mcppc.compiler.target.Targeted;
 import net.mcppc.compiler.tokens.Import;
 
 
 /*list of language editions TODO ::
- * add documentation
- * make some examples
+ * 
  * 
  * far future:
  * macro multiplication to replace longmult;
@@ -97,7 +98,39 @@ public class CompileJob {
 
 	public static final String SUBDIR_SRC="src";
 	public static final String SUBDIR_HDR="include";
-	public static final String SUBDIR_MCF="functions";
+	@Targeted
+	private static final String SUBDIR_MCF_OLD="functions";
+	@Targeted
+	private static final String SUBDIR_MCF_NEW="function";
+	public final String getSubDIR_MCF() {
+		if(this.target.maxVersion.isGreaterOrEqualTo(Version.JAVA_1_21_SNAP_ALL_SINGULAR)) {
+			if(this.target.minVersion.isLessThan(Version.JAVA_1_21_SNAP_ALL_SINGULAR)) {
+				try {
+					Warnings.warn(OneTimeWarnings.NEWANDOLDFOLDERS, null);
+				} catch (CompileError e) {
+					e.printStackTrace();
+				}
+				
+			}
+			return CompileJob.SUBDIR_MCF_NEW;
+		}
+		else return CompileJob.SUBDIR_MCF_OLD;
+	}
+	@Targeted
+	public final String getSubDIR_Tag_Functions() {
+		if(this.target.maxVersion.isGreaterOrEqualTo(Version.JAVA_1_21_SNAP_ALL_SINGULAR)) {
+			if(this.target.minVersion.isLessThan(Version.JAVA_1_21_SNAP_ALL_SINGULAR)) {
+				try {
+					Warnings.warn(OneTimeWarnings.NEWANDOLDFOLDERS, null);
+				} catch (CompileError e) {
+					e.printStackTrace();
+				}
+				
+			}
+			return "tags/function";//new
+		}
+		else return "tags/functions";//old
+	}
 	
 	public static final String FILE_TO_SUBDIR_SUFFIX="__/";
 
@@ -132,10 +165,14 @@ public class CompileJob {
 		      @Override public boolean accept(File file) {
 		         return (file.isDirectory() && file.getName().equals(SUBDIR_HDR));
 		      }};
-	      public static final FileFilter mcfunctions = new FileFilter() {
+	      public static final FileFilter mcfunctions_NEW = new FileFilter() {
 		      @Override public boolean accept(File file) {
-		         return (file.isDirectory() && file.getName().equals(SUBDIR_MCF));
+		         return (file.isDirectory() && file.getName().equals(SUBDIR_MCF_NEW));
 		      }};
+		      public static final FileFilter mcfunctions_OLD= new FileFilter() {
+			      @Override public boolean accept(File file) {
+			         return (file.isDirectory() && file.getName().equals(SUBDIR_MCF_OLD));
+			      }};
 	      public static final FileFilter dirs = new FileFilter() {
 	      @Override public boolean accept(File file) {
 	         return (file.isDirectory());
@@ -354,11 +391,11 @@ public class CompileJob {
 	}
 	
 	public Path pathForMcf(ResourceLocation res) {
-		Path p=this.rootDatapack.resolve(CompileJob.DATA).resolve(res.namespace).resolve(CompileJob.SUBDIR_MCF).resolve(res.path+"."+CompileJob.EXT_MCF);
+		Path p=this.rootDatapack.resolve(CompileJob.DATA).resolve(res.namespace).resolve(this.getSubDIR_MCF()).resolve(res.path+"."+CompileJob.EXT_MCF);
 		return p;
 	}
 	public Path pathForMcfSubfunctionsDir(ResourceLocation res) {
-		Path p=this.rootDatapack.resolve(CompileJob.DATA).resolve(res.namespace).resolve(CompileJob.SUBDIR_MCF).resolve(res.path+CompileJob.FILE_TO_SUBDIR_SUFFIX);
+		Path p=this.rootDatapack.resolve(CompileJob.DATA).resolve(res.namespace).resolve(this.getSubDIR_MCF()).resolve(res.path+CompileJob.FILE_TO_SUBDIR_SUFFIX);
 		return p;
 	}
 	public Path findPathForLink(ResourceLocation res) {
@@ -366,7 +403,7 @@ public class CompileJob {
 		//p=this.rootDatapack.resolve(CompileJob.DATA).resolve(res.namespace).resolve(CompileJob.SUBDIR_MCF).resolve(res.path+"."+CompileJob.EXT_MCF);
 		//if(p.toFile().exists())return null;//dont circular link
 		for(Path r:this.rootLinks) {
-			p=r.resolve(CompileJob.DATA).resolve(res.namespace).resolve(CompileJob.SUBDIR_MCF).resolve(res.path+"."+CompileJob.EXT_MCF);
+			p=r.resolve(CompileJob.DATA).resolve(res.namespace).resolve(this.getSubDIR_MCF()).resolve(res.path+"."+CompileJob.EXT_MCF);
 			if(p.toFile().exists())return p;
 		}
 		return null;
@@ -376,23 +413,33 @@ public class CompileJob {
 		//p=this.rootDatapack.resolve(CompileJob.DATA).resolve(res.namespace).resolve(CompileJob.SUBDIR_MCF).resolve(res.path+CompileJob.FILE_TO_SUBDIR_SUFFIX);
 		//if(p.toFile().exists())return null;//dont circular link
 		for(Path r:this.rootLinks) {
-			p=r.resolve(CompileJob.DATA).resolve(res.namespace).resolve(CompileJob.SUBDIR_MCF).resolve(res.path+CompileJob.FILE_TO_SUBDIR_SUFFIX);
+			p=r.resolve(CompileJob.DATA).resolve(res.namespace).resolve(this.getSubDIR_MCF()).resolve(res.path+CompileJob.FILE_TO_SUBDIR_SUFFIX);
 			if(p.toFile().exists())return p;
 		}
 		return null;
 	}
+	@Targeted
 	public Path pathForTagLoad() {
-		Path p=this.rootDatapack.resolve(CompileJob.DATA).resolve("minecraft/tags/functions").resolve("load"+"."+CompileJob.EXT_JSON);
+		Path p=this.rootDatapack.resolve(CompileJob.DATA)
+				.resolve(MINECRAFT).resolve(this.getSubDIR_Tag_Functions())
+				.resolve("load"+"."+CompileJob.EXT_JSON);
 		return p;
 	}
+	@Targeted
 	public Path pathForTagTick() {
-		Path p=this.rootDatapack.resolve(CompileJob.DATA).resolve("minecraft/tags/functions").resolve("tick"+"."+CompileJob.EXT_JSON);
+		Path p=this.rootDatapack.resolve(CompileJob.DATA)
+				.resolve(MINECRAFT).resolve(this.getSubDIR_Tag_Functions())
+				.resolve("tick"+"."+CompileJob.EXT_JSON);
 		return p;
 	}
+	@Targeted
 	public Path pathForTag(ResourceLocation tag) {
 		String pack = tag.namespace;
 		String sub = tag.path;
-		Path p=this.rootDatapack.resolve(CompileJob.DATA).resolve(pack).resolve("tags/functions").resolve(sub+"."+CompileJob.EXT_JSON);
+		Path p=this.rootDatapack.resolve(CompileJob.DATA)
+				.resolve(pack)
+				.resolve(this.getSubDIR_Tag_Functions())
+				.resolve(sub+"."+CompileJob.EXT_JSON);
 		return p;
 	}
 	@Targeted public static final ResourceLocation TAG_TICK = new ResourceLocation(MINECRAFT,"tick");

@@ -92,17 +92,47 @@ public class NbtPath {
 	}
 	@Override public String toString() {return this.path;}
 	@Override public int hashCode() {return this.path.hashCode();}
-
-	public static NbtPathToken nextNbtCarefull (Compiler c, Matcher matcher) throws CompileError {
-		return nextNbtCarefull(c,matcher,false);
+	public static boolean isLookingAtTagOpener(Compiler c, Matcher matcher) {
+		matcher.region(c.cursor, matcher.regionEnd());
+		//System.err.println(c.getNextChars());
+		if (matcher.usePattern(Regexes.NBT_OPENER_CHAR)
+				.lookingAt()) {
+			return true;
+		}return false;
+		
 	}
-	public static NbtPathToken nextNbtCarefull (Compiler c, Matcher matcher,boolean doubleBraces) throws CompileError {
+	public static NbtPathToken nextNbtCarefull (Compiler c, Matcher matcher) throws CompileError {
+		return nextNbtCarefull(c,matcher,false,false);
+	}
+	public static NbtPathToken nextNbtCarefull (Compiler c, Matcher matcher,boolean doubleBraces,
+			boolean tagOnly) throws CompileError {
 		StringBuffer buff=new StringBuffer();
 		
 		@SuppressWarnings("unused") Token wc=c.nextNonNullMatch(Factories.skipSpace);
 		int braces=0;
 		int line=c.line();
 		int col=c.column();
+		if(tagOnly) {
+			matcher.region(c.cursor, matcher.regionEnd());
+			if(c.cursor>=matcher.regionEnd())throw new CompileError.UnexpectedFileEnd(c.line());
+			if (
+					matcher.usePattern(Regexes.NBT_OPENER_CHAR)
+					.lookingAt()) {
+						buff.append(matcher.group());
+						braces++;
+						c.cursor=matcher.end();
+						if(doubleBraces) {
+							matcher.region(c.cursor, matcher.regionEnd());
+							if(!matcher.usePattern(Regexes.CODEBLOCKBRACE).lookingAt()
+									||
+									matcher.group(1)==null)throw new CompileError("expected a double (escpaed) brace {{ but got a single one");
+							c.cursor=matcher.end();
+						}
+					}
+			else {
+				throw new CompileError("Unexpected sequence '%s', expected an nbt tag".formatted(c.getNextChars()));
+			}
+		}
 		while (true) {
 			matcher.region(c.cursor, matcher.regionEnd());
 			if(c.cursor>=matcher.regionEnd())throw new CompileError.UnexpectedFileEnd(c.line());
@@ -134,7 +164,7 @@ public class NbtPath {
 				}
 				continue;
 			}
-			else if (matcher.usePattern(Regexes.NBT_THROUGH)
+			else if (((!tagOnly) || braces>0) && matcher.usePattern(Regexes.NBT_THROUGH)
 			.lookingAt()) {
 				buff.append(matcher.group());
 				c.cursor=matcher.end();

@@ -96,7 +96,7 @@ public class Main {
 		
 		
 	}
-	public static boolean compileStdLib() {
+	public static boolean compileStdLib(VTarget target) {
 		CompileJob stdlib=new CompileJob(CompileJob.getResources(),CompileJob.getGeneratedResources());
 		stdlib.setRootHeaderOut(CompileJob.getGeneratedResources());
 		stdlib.stdLib();
@@ -225,7 +225,7 @@ public class Main {
 			}
 		}
 		boolean stdSuccess=true;
-		if(compStd) stdSuccess=compileStdLib();
+		if(compStd) stdSuccess=compileStdLib(job.getTarget());
 		if(makevscode) MakeTmLanguage.make(vscode_grammar_path);
 		if(skipMainCompile)return;
 		job.compileAll();

@@ -15,7 +15,8 @@ public class Warnings {
 	//eclipse shows all err output in red
 	public static enum OneTimeWarnings{
 		TYPE64BIT("Warning: used datatype double or long, but these types may be downcasted due to minecraft scores being only 32 bits;"),
-		LIKELYOVERFLOW("Warning: likely overflow of data in scoreboard;")
+		LIKELYOVERFLOW("Warning: likely overflow of data in scoreboard;"),
+		NEWANDOLDFOLDERS("Warning: version range spans 45, which alters function and tag folders; pack will not work before version 45;")
 		
 		;
 		final String message;

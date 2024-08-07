@@ -39,7 +39,7 @@ public class VTarget {
 			String smin =  m.group("min");
 			Version min = smin==null ? Version.JAVA_NEFINITY : new Version(Integer.parseInt(smin));
 			String smax =  m.group("max");
-			Version max = smax==null ? Version.JAVA_NEFINITY : new Version(Integer.parseInt(smax));
+			Version max = smax==null ? Version.JAVA_INFINITY : new Version(Integer.parseInt(smax));
 			return new VTarget(min,max);
 		}
 		else{

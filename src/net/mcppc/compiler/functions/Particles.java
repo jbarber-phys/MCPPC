@@ -157,7 +157,7 @@ public abstract class Particles extends BuiltinFunction {
 			for(int i=0;i<n;i++) {
 				double a = (double)i / (n-1);
 				Coordinates v3 = Coordinates.interpolate(v1.pos, v2.pos, a);
-				p.printf("particle %s %s 0 0 0 %s 1 %s %s\n", id.textInMcf(),v3.inCMD(),speed,doforce,showTo.toCMD());
+				p.printf("particle %s %s 0 0 0 %s 1 %s %s\n", id.textInMcf(s.getTarget()),v3.inCMD(),speed,doforce,showTo.toCMD());
 			}
 			
 		}
@@ -208,7 +208,7 @@ public abstract class Particles extends BuiltinFunction {
 				}else if (vi.getSystem(0) == CoordSystem.TILDE) {
 					throw new CompileError("dont use tiled notation for particle ring velocity; use absolute or caret only");
 				}
-				p.printf("particle %s %s %s 1 0 %s %s\n", id.textInMcf(),ri.inCMD(),vi.inCMD(),doforce,showTo.toCMD());
+				p.printf("particle %s %s %s 1 0 %s %s\n", id.textInMcf(s.getTarget()),ri.inCMD(),vi.inCMD(),doforce,showTo.toCMD());
 			}
 			
 		}
@@ -280,7 +280,7 @@ public abstract class Particles extends BuiltinFunction {
 				}else if (vi.getSystem(0) == CoordSystem.TILDE) {
 					throw new CompileError("dont use tiled notation for particle ring velocity; use absolute or caret only");
 				}
-				p.printf("particle %s %s %s 1 0 %s %s\n", id.textInMcf(),ri.inCMD(),vi.inCMD(),doforce,showTo.toCMD());
+				p.printf("particle %s %s %s 1 0 %s %s\n", id.textInMcf(s.getTarget()),ri.inCMD(),vi.inCMD(),doforce,showTo.toCMD());
 			}
 			
 		}
