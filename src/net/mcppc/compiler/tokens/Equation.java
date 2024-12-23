@@ -45,7 +45,7 @@ public class Equation extends Token  implements TreePrintable,INbtValueProvider{
 		McThread thread = c.currentScope.getThread();
 		if(thread ==null)throw new CompileError("goto cannot be assigned outside a thread");
 		Integer i = thread.checkForBlockNumberName(c, c.currentScope, m);
-		if(i==null) throw new CompileError("invalid block name at line %s col %s".formatted(line,col));
+		if(i==null) throw new CompileError("invalid thread-block name at line %s col %s".formatted(line,col));
 		Num num = new Num(line,col,i,VarType.INT);
 		e.elements.add(num);
 		Statement.nextIsLineEnder(c, m, false);

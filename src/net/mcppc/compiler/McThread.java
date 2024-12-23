@@ -500,13 +500,15 @@ public class McThread {
 	//public static final String EXIT= "exit";
 	
 	public static final String BREAK_F= "thread.break_%d";
-	public static final String OBJ_GOTO= "mcpp.goto";
-	public static final String OBJ_WAIT= "mcpp.wait";
-	public static final String OBJ_EXIT= "mcpp.exit";
+	//prefixed with namespace
+	//these must be different per namespace as tick functions are also per namespace
+	public static final String OBJ_GOTO= "%s.goto";// old prefix was mcpp
+	public static final String OBJ_WAIT= "%s.wait";
+	public static final String OBJ_EXIT= "%s.exit";
 	
 	public static final String OBJ_BREAK_F= "mcpp.thread.break_%d";
 	
-	//death event flags
+	//death event flags; this needs no namespace prefix
 	public static final String OBJ_ISDEAD= "mcpp.isdead";
 	public static final String OBJ_WASRUNNING= "mcpp.wasrunning";
 	public static String getObjBreak(int block) {return OBJ_BREAK_F.formatted(block);};
@@ -588,15 +590,15 @@ public class McThread {
 	public Variable myGoto(Selector e) throws CompileError {
 		
 		if(e==null) {
-			return new Variable(GOTO,VarType.INT,null,Mask.SCORE,this.getStoragePath(),OBJ_GOTO);
+			return new Variable(GOTO,VarType.INT,null,Mask.SCORE,this.getStoragePath(),OBJ_GOTO.formatted(this.path.namespace));
 		}
-		return new Variable(GOTO,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_GOTO).addSelfification(e.selfify());
+		return new Variable(GOTO,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_GOTO.formatted(this.path.namespace)).addSelfification(e.selfify());
 	}
 	public Variable wait(Selector e) throws CompileError {
 		if(e==null) {
-			return new Variable(WAIT,VarType.INT,null,Mask.SCORE,this.getStoragePath(),OBJ_WAIT);
+			return new Variable(WAIT,VarType.INT,null,Mask.SCORE,this.getStoragePath(),OBJ_WAIT.formatted(this.path.namespace));
 		}
-		return waitStaticEntity(e);
+		return waitStaticEntity(e,this.path.namespace);
 		//return new Variable(WAIT,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_WAIT).addSelfification(e.selfify());
 	}
 	public Variable myBreakVar(Selector e, int block) throws CompileError {
@@ -605,15 +607,15 @@ public class McThread {
 		}
 		return new Variable(getBreak(block),VarType.BOOL,null,Mask.SCORE,"","").maskEntityScore(e, getObjBreak(block)).addSelfification(e.selfify());
 	}
-	public static Variable waitStaticEntity(Selector e) throws CompileError {
+	public static Variable waitStaticEntity(Selector e,String ns) throws CompileError {
 		//same as nonstatic for sub case that e!=null
-		return new Variable(WAIT,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_WAIT).addSelfification(e.selfify());
+		return new Variable(WAIT,VarType.INT,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_WAIT.formatted(ns)).addSelfification(e.selfify());
 	}
 	public Variable exit(Selector e) throws CompileError {
 		if(e==null) {
-			return new Variable(EXIT,VarType.BOOL,null,Mask.SCORE,this.getStoragePath(),OBJ_EXIT);
+			return new Variable(EXIT,VarType.BOOL,null,Mask.SCORE,this.getStoragePath(),OBJ_EXIT.formatted(this.path.namespace));
 		}
-		return new Variable(EXIT,VarType.BOOL,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_EXIT).addSelfification(e.selfify());
+		return new Variable(EXIT,VarType.BOOL,null,Mask.SCORE,"","").maskEntityScore(e, OBJ_EXIT.formatted(this.path.namespace)).addSelfification(e.selfify());
 	}
 	public ResourceLocation getBasePath() {
 		return this.path;
@@ -963,7 +965,7 @@ public class McThread {
 	}
 	@Targeted 
 	public static void decrementDelayEntity(PrintStream p, CompileJob job, Namespace ns) throws CompileError {
-		Variable wait = McThread.waitStaticEntity(Selector.AT_S);
+		Variable wait = McThread.waitStaticEntity(Selector.AT_S,ns.name);
 		String score = wait.scorePhrase();
 		p.printf("execute if score %s matches 1.. run scoreboard players remove %s 1\n",score,score);
 	}
@@ -977,7 +979,7 @@ public class McThread {
 		}
 		//calls this threads tick function
 		//dont do it every tick unless that is actually needed
-		p.printf("execute as @s[tag = %s,scores = {%s = 0}] at @s run ",this.getTag(),McThread.OBJ_WAIT);
+		p.printf("execute as @s[tag = %s,scores = {%s = 0}] at @s run ",this.getTag(),McThread.OBJ_WAIT.formatted(ns.name));
 			this.pathTick().run(p,job.getTarget());
 	}
 	public boolean isGlobal() {
@@ -1027,9 +1029,9 @@ public class McThread {
 	}
 	@Targeted
 	public static void onLoad(PrintStream p, CompileJob job,Namespace ns) {
-		p.printf("scoreboard objectives add %s dummy\n", OBJ_GOTO);
-		p.printf("scoreboard objectives add %s dummy\n", OBJ_EXIT);
-		p.printf("scoreboard objectives add %s dummy\n", OBJ_WAIT);
+		p.printf("scoreboard objectives add %s dummy\n", OBJ_GOTO.formatted(ns.name));
+		p.printf("scoreboard objectives add %s dummy\n", OBJ_EXIT.formatted(ns.name));
+		p.printf("scoreboard objectives add %s dummy\n", OBJ_WAIT.formatted(ns.name));
 		p.printf("scoreboard objectives add %s dummy\n", OBJ_ISDEAD);
 		p.printf("scoreboard objectives add %s dummy\n", OBJ_WASRUNNING);
 		for(int i=1;i<=ns.maxThreadBreaks;i++) {
@@ -1075,7 +1077,7 @@ public class McThread {
 			//remove @e[tag=!] the thread-executor tag to prevent overflow bugs
 			//but this would cost 1 @e per tick
 			
-			p.printf("execute as @e[tag=!,scores = {%s = 1..}] at @s run ", McThread.OBJ_GOTO);
+			p.printf("execute as @e[tag=!,scores = {%s = 1..}] at @s run ", McThread.OBJ_GOTO.formatted(ns.name));
 					ns.getEntityTickFunction().run(p,job.getTarget());
 		}
 

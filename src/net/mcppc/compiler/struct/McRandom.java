@@ -178,7 +178,7 @@ public class McRandom extends Struct {
 		@Override
 		public VarType getRetType(BFCallToken token, Scope s) throws CompileError{
 			TemplateArgsToken temp = token.getTemplate();
-			if(temp.size()<1) return DEFAULT_TYPE;
+			if(temp ==null || temp.size()<1) return DEFAULT_TYPE;
 			ConstExprToken tp = temp.getArg(0);
 			if(tp.constType()!=ConstType.TYPE) 
 				throw new CompileError.WrongConstType("%s template".formatted(this.name), ConstType.TYPE, tp);
